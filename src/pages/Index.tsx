@@ -21,6 +21,8 @@ const Index = () => {
     statusFilter,
     setStatusFilter,
     addClient,
+    updateClient,
+    deleteClient,
     updateFollowUpStatus,
     addFollowUp,
     updateFollowUp,
