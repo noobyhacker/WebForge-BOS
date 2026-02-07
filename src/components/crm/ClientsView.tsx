@@ -127,6 +127,11 @@ export function ClientsView({
             onAddFollowUp={(followUp) => onAddFollowUp(currentSelectedClient.id, followUp)}
             onEditFollowUp={(followUpId, updates) => onEditFollowUp(currentSelectedClient.id, followUpId, updates)}
             onDeleteFollowUp={(followUpId) => onDeleteFollowUp(currentSelectedClient.id, followUpId)}
+            onEditClient={(updates) => onUpdateClient(currentSelectedClient.id, updates)}
+            onDeleteClient={() => {
+              onDeleteClient(currentSelectedClient.id);
+              setSelectedClient(null);
+            }}
           />
         </div>
       )}

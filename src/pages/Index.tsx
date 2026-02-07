@@ -56,6 +56,8 @@ const Index = () => {
               statusFilter={statusFilter}
               onStatusFilterChange={setStatusFilter}
               onAddClient={addClient}
+              onUpdateClient={updateClient}
+              onDeleteClient={deleteClient}
               onUpdateFollowUp={updateFollowUpStatus}
               onAddFollowUp={addFollowUp}
               onEditFollowUp={updateFollowUp}
