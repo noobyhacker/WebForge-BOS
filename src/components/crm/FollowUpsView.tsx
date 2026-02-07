@@ -5,7 +5,7 @@ import { Calendar, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
 
 interface FollowUpsViewProps {
   clients: Client[];
-  onMarkComplete: (clientId: string, followUpId: string) => void;
+  onMarkComplete: (clientId: string, followUpId: string, status: 'completed') => void;
 }
 
 export function FollowUpsView({ clients, onMarkComplete }: FollowUpsViewProps) {
