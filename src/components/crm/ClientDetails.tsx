@@ -1,0 +1,155 @@
+import { Client, FollowUpStatus } from '@/types/crm';
+import { StatusBadge } from './StatusBadge';
+import { FollowUpItem } from './FollowUpItem';
+import { Button } from '@/components/ui/button';
+import { Building2, Mail, Phone, Calendar, FileText, Plus, X, Edit2 } from 'lucide-react';
+import { useState } from 'react';
+import { AddFollowUpDialog } from './AddFollowUpDialog';
+
+interface ClientDetailsProps {
+  client: Client;
+  onClose: () => void;
+  onUpdateFollowUp: (followUpId: string, status: FollowUpStatus) => void;
+  onAddFollowUp: (followUp: { date: string; notes: string; type: 'call' | 'email' | 'meeting' | 'task'; status: FollowUpStatus }) => void;
+}
+
+export function ClientDetails({ client, onClose, onUpdateFollowUp, onAddFollowUp }: ClientDetailsProps) {
+  const [showAddFollowUp, setShowAddFollowUp] = useState(false);
+
+  const sortedFollowUps = [...client.followUps].sort((a, b) => {
+    if (a.status === 'completed' && b.status !== 'completed') return 1;
+    if (a.status !== 'completed' && b.status === 'completed') return -1;
+    return new Date(a.date).getTime() - new Date(b.date).getTime();
+  });
+
+  return (
+    <div className="h-full flex flex-col animate-slide-in-right">
+      <div className="flex items-center justify-between p-4 border-b">
+        <h2 className="font-semibold text-lg">Client Details</h2>
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="flex-1 overflow-auto p-4 space-y-6">
+        {/* Header */}
+        <div className="flex items-start gap-4">
+          <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
+            <span className="text-lg font-semibold text-primary">
+              {client.name.split(' ').map((n) => n[0]).join('')}
+            </span>
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-xl font-semibold">{client.name}</h3>
+              <StatusBadge status={client.status} />
+            </div>
+            <p className="text-muted-foreground flex items-center gap-1.5 mt-1">
+              <Building2 className="h-4 w-4" />
+              {client.company}
+            </p>
+          </div>
+        </div>
+
+        {/* Contact Info */}
+        <div className="space-y-3">
+          <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            Contact Information
+          </h4>
+          <div className="space-y-2">
+            <a
+              href={`mailto:${client.email}`}
+              className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+            >
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">{client.email}</span>
+            </a>
+            <a
+              href={`tel:${client.phone}`}
+              className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+            >
+              <Phone className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">{client.phone}</span>
+            </a>
+          </div>
+        </div>
+
+        {/* Dates */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-3 rounded-lg bg-secondary/50">
+            <p className="text-xs text-muted-foreground mb-1">Client Since</p>
+            <p className="text-sm font-medium flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5" />
+              {new Date(client.createdAt).toLocaleDateString()}
+            </p>
+          </div>
+          <div className="p-3 rounded-lg bg-secondary/50">
+            <p className="text-xs text-muted-foreground mb-1">Last Contact</p>
+            <p className="text-sm font-medium flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5" />
+              {new Date(client.lastContact).toLocaleDateString()}
+            </p>
+          </div>
+        </div>
+
+        {/* Notes */}
+        {client.notes && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              Notes
+            </h4>
+            <div className="p-3 rounded-lg bg-secondary/50">
+              <p className="text-sm text-muted-foreground flex gap-2">
+                <FileText className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                {client.notes}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Follow-ups */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              Follow-ups ({client.followUps.length})
+            </h4>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setShowAddFollowUp(true)}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add
+            </Button>
+          </div>
+
+          {sortedFollowUps.length > 0 ? (
+            <div className="space-y-2">
+              {sortedFollowUps.map((followUp) => (
+                <FollowUpItem
+                  key={followUp.id}
+                  followUp={followUp}
+                  onMarkComplete={(id) => onUpdateFollowUp(id, 'completed')}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground text-sm">
+              No follow-ups scheduled
+            </div>
+          )}
+        </div>
+      </div>
+
+      <AddFollowUpDialog
+        open={showAddFollowUp}
+        onOpenChange={setShowAddFollowUp}
+        onAdd={(followUp) => {
+          onAddFollowUp(followUp);
+          setShowAddFollowUp(false);
+        }}
+      />
+    </div>
+  );
+}
