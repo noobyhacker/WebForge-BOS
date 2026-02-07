@@ -96,6 +96,34 @@ export function useClients() {
     );
   }, []);
 
+  const updateFollowUp = useCallback((clientId: string, followUpId: string, updates: Partial<Omit<FollowUp, 'id' | 'clientId'>>) => {
+    setClients((prev) =>
+      prev.map((client) =>
+        client.id === clientId
+          ? {
+              ...client,
+              followUps: client.followUps.map((f) =>
+                f.id === followUpId ? { ...f, ...updates } : f
+              ),
+            }
+          : client
+      )
+    );
+  }, []);
+
+  const deleteFollowUp = useCallback((clientId: string, followUpId: string) => {
+    setClients((prev) =>
+      prev.map((client) =>
+        client.id === clientId
+          ? {
+              ...client,
+              followUps: client.followUps.filter((f) => f.id !== followUpId),
+            }
+          : client
+      )
+    );
+  }, []);
+
   return {
     clients: filteredClients,
     allClients: clients,
@@ -109,6 +137,8 @@ export function useClients() {
     updateClient,
     deleteClient,
     addFollowUp,
+    updateFollowUp,
+    deleteFollowUp,
     updateFollowUpStatus,
   };
 }

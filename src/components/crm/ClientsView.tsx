@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Client, FollowUpStatus } from '@/types/crm';
+import { Client, FollowUp, FollowUpStatus } from '@/types/crm';
 import { ClientCard } from './ClientCard';
 import { ClientDetails } from './ClientDetails';
 import { AddClientDialog } from './AddClientDialog';
@@ -17,6 +17,8 @@ interface ClientsViewProps {
   onAddClient: (client: Omit<Client, 'id' | 'createdAt' | 'followUps'>) => void;
   onUpdateFollowUp: (clientId: string, followUpId: string, status: FollowUpStatus) => void;
   onAddFollowUp: (clientId: string, followUp: { date: string; notes: string; type: 'call' | 'email' | 'meeting' | 'task'; status: FollowUpStatus }) => void;
+  onEditFollowUp: (clientId: string, followUpId: string, updates: Partial<Omit<FollowUp, 'id' | 'clientId'>>) => void;
+  onDeleteFollowUp: (clientId: string, followUpId: string) => void;
 }
 
 export function ClientsView({
@@ -28,6 +30,8 @@ export function ClientsView({
   onAddClient,
   onUpdateFollowUp,
   onAddFollowUp,
+  onEditFollowUp,
+  onDeleteFollowUp,
 }: ClientsViewProps) {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [showAddClient, setShowAddClient] = useState(false);
@@ -117,6 +121,8 @@ export function ClientsView({
               onUpdateFollowUp(currentSelectedClient.id, followUpId, status)
             }
             onAddFollowUp={(followUp) => onAddFollowUp(currentSelectedClient.id, followUp)}
+            onEditFollowUp={(followUpId, updates) => onEditFollowUp(currentSelectedClient.id, followUpId, updates)}
+            onDeleteFollowUp={(followUpId) => onDeleteFollowUp(currentSelectedClient.id, followUpId)}
           />
         </div>
       )}
