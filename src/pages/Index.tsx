@@ -23,6 +23,8 @@ const Index = () => {
     addClient,
     updateFollowUpStatus,
     addFollowUp,
+    updateFollowUp,
+    deleteFollowUp,
   } = useClients();
 
   return (
@@ -54,6 +56,8 @@ const Index = () => {
               onAddClient={addClient}
               onUpdateFollowUp={updateFollowUpStatus}
               onAddFollowUp={addFollowUp}
+              onEditFollowUp={updateFollowUp}
+              onDeleteFollowUp={deleteFollowUp}
             />
           )}
 
@@ -61,6 +65,8 @@ const Index = () => {
             <FollowUpsView
               clients={allClients}
               onMarkComplete={updateFollowUpStatus}
+              onUpdateFollowUp={updateFollowUp}
+              onDeleteFollowUp={deleteFollowUp}
             />
           )}
         </div>
