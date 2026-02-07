@@ -70,18 +70,31 @@ export function useClients(userEmail: string = 'anonymous') {
       followUps: [],
     };
     setClients((prev) => [...prev, newClient]);
+    logAction('create', 'client', newClient.name, `Created client ${newClient.name} (${newClient.company})`);
     return newClient;
-  }, []);
+  }, [logAction]);
 
   const updateClient = useCallback((id: string, updates: Partial<Client>) => {
     setClients((prev) =>
-      prev.map((client) => (client.id === id ? { ...client, ...updates } : client))
+      prev.map((client) => {
+        if (client.id === id) {
+          logAction('update', 'client', client.name, `Updated client ${client.name}`);
+          return { ...client, ...updates };
+        }
+        return client;
+      })
     );
-  }, []);
+  }, [logAction]);
 
   const deleteClient = useCallback((id: string) => {
-    setClients((prev) => prev.filter((client) => client.id !== id));
-  }, []);
+    setClients((prev) => {
+      const client = prev.find((c) => c.id === id);
+      if (client) {
+        logAction('delete', 'client', client.name, `Deleted client ${client.name}`);
+      }
+      return prev.filter((c) => c.id !== id);
+    });
+  }, [logAction]);
 
   const addFollowUp = useCallback((clientId: string, followUp: Omit<FollowUp, 'id' | 'clientId'>) => {
     const newFollowUp: FollowUp = {
