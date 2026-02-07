@@ -28,3 +28,16 @@ export interface DashboardStats {
   pendingFollowUps: number;
   overdueFollowUps: number;
 }
+
+export type ActionType = 'create' | 'update' | 'delete';
+export type EntityType = 'client' | 'follow_up';
+
+export interface ActionLog {
+  id: string;
+  userEmail: string;
+  actionType: ActionType;
+  entityType: EntityType;
+  entityName: string;
+  details?: string;
+  createdAt: string;
+}

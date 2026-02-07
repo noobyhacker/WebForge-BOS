@@ -1,10 +1,29 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Client, FollowUp, DashboardStats, FollowUpStatus } from '@/types/crm';
+import { Client, FollowUp, DashboardStats, FollowUpStatus, ActionLog, ActionType, EntityType } from '@/types/crm';
 
-export function useClients() {
+export function useClients(userEmail: string = 'anonymous') {
   const [clients, setClients] = useState<Client[]>([]);
+  const [actionLogs, setActionLogs] = useState<ActionLog[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  const logAction = useCallback((
+    actionType: ActionType,
+    entityType: EntityType,
+    entityName: string,
+    details?: string
+  ) => {
+    const log: ActionLog = {
+      id: Date.now().toString(),
+      userEmail,
+      actionType,
+      entityType,
+      entityName,
+      details,
+      createdAt: new Date().toISOString(),
+    };
+    setActionLogs((prev) => [log, ...prev]);
+  }, [userEmail]);
 
   const filteredClients = useMemo(() => {
     return clients.filter((client) => {
