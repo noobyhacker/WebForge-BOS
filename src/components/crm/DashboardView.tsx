@@ -6,7 +6,7 @@ import { Users, UserCheck, Clock, AlertTriangle } from 'lucide-react';
 interface DashboardViewProps {
   stats: DashboardStats;
   upcomingFollowUps: (FollowUp & { clientName: string; clientCompany: string })[];
-  onMarkComplete: (clientId: string, followUpId: string) => void;
+  onMarkComplete: (clientId: string, followUpId: string, status: 'completed') => void;
 }
 
 export function DashboardView({ stats, upcomingFollowUps, onMarkComplete }: DashboardViewProps) {
