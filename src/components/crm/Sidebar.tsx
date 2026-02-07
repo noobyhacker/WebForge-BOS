@@ -1,10 +1,11 @@
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Calendar, Settings, ChevronLeft } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SidebarProps {
-  activeView: 'dashboard' | 'clients' | 'followups';
-  onViewChange: (view: 'dashboard' | 'clients' | 'followups') => void;
+  activeView: 'dashboard' | 'clients' | 'followups' | 'admin';
+  onViewChange: (view: 'dashboard' | 'clients' | 'followups' | 'admin') => void;
   collapsed: boolean;
   onCollapse: (collapsed: boolean) => void;
 }
@@ -16,6 +17,8 @@ const navItems = [
 ] as const;
 
 export function Sidebar({ activeView, onViewChange, collapsed, onCollapse }: SidebarProps) {
+  const { isAdmin, signOut, profile } = useAuth();
+
   return (
     <aside
       className={cn(
@@ -62,18 +65,40 @@ export function Sidebar({ activeView, onViewChange, collapsed, onCollapse }: Sid
             {!collapsed && <span>{item.label}</span>}
           </button>
         ))}
+
+        {/* Admin Section */}
+        {isAdmin && (
+          <button
+            onClick={() => onViewChange('admin')}
+            className={cn(
+              'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+              activeView === 'admin'
+                ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+            )}
+          >
+            <Shield className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span>User Management</span>}
+          </button>
+        )}
       </nav>
 
       {/* Footer */}
-      <div className="p-3 border-t border-sidebar-border">
+      <div className="p-3 border-t border-sidebar-border space-y-1">
+        {!collapsed && profile && (
+          <div className="px-3 py-2 text-xs text-muted-foreground truncate">
+            {profile.display_name || profile.email}
+          </div>
+        )}
         <button
+          onClick={signOut}
           className={cn(
             'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
             'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
           )}
         >
-          <Settings className="h-5 w-5 flex-shrink-0" />
-          {!collapsed && <span>Settings</span>}
+          <LogOut className="h-5 w-5 flex-shrink-0" />
+          {!collapsed && <span>Sign Out</span>}
         </button>
       </div>
     </aside>

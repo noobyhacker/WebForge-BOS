@@ -3,13 +3,16 @@ import { Sidebar } from '@/components/crm/Sidebar';
 import { DashboardView } from '@/components/crm/DashboardView';
 import { ClientsView } from '@/components/crm/ClientsView';
 import { FollowUpsView } from '@/components/crm/FollowUpsView';
+import { AdminUsersView } from '@/components/crm/AdminUsersView';
 import { useClients } from '@/hooks/useClients';
+import { useAuth } from '@/contexts/AuthContext';
 
-type View = 'dashboard' | 'clients' | 'followups';
+type View = 'dashboard' | 'clients' | 'followups' | 'admin';
 
 const Index = () => {
   const [activeView, setActiveView] = useState<View>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { isAdmin } = useAuth();
 
   const {
     clients,
@@ -73,6 +76,8 @@ const Index = () => {
               onDeleteFollowUp={deleteFollowUp}
             />
           )}
+
+          {activeView === 'admin' && isAdmin && <AdminUsersView />}
         </div>
       </main>
     </div>
