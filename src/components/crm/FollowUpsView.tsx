@@ -78,7 +78,7 @@ export function FollowUpsView({ clients, onMarkComplete }: FollowUpsViewProps) {
                 key={followUp.id}
                 followUp={followUp}
                 showClient
-                onMarkComplete={(id) => onMarkComplete(followUp.clientId, id)}
+                onMarkComplete={(id) => onMarkComplete(followUp.clientId, id, 'completed')}
               />
             ))
           ) : (

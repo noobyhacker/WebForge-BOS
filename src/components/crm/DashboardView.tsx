@@ -61,7 +61,7 @@ export function DashboardView({ stats, upcomingFollowUps, onMarkComplete }: Dash
                 key={followUp.id}
                 followUp={followUp}
                 showClient
-                onMarkComplete={(id) => onMarkComplete(followUp.clientId, id)}
+                onMarkComplete={(id) => onMarkComplete(followUp.clientId, id, 'completed')}
               />
             ))}
           </div>
