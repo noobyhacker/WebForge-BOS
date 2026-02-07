@@ -1,9 +1,8 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Client, FollowUp, DashboardStats, FollowUpStatus } from '@/types/crm';
-import { mockClients } from '@/data/mockClients';
 
 export function useClients() {
-  const [clients, setClients] = useState<Client[]>(mockClients);
+  const [clients, setClients] = useState<Client[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
