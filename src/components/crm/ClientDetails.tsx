@@ -3,9 +3,10 @@ import { Client, FollowUp, FollowUpStatus } from '@/types/crm';
 import { StatusBadge } from './StatusBadge';
 import { FollowUpItem } from './FollowUpItem';
 import { Button } from '@/components/ui/button';
-import { Building2, Mail, Phone, Calendar, FileText, Plus, X } from 'lucide-react';
+import { Building2, Mail, Phone, Calendar, FileText, Plus, X, Pencil } from 'lucide-react';
 import { AddFollowUpDialog } from './AddFollowUpDialog';
 import { EditFollowUpDialog } from './EditFollowUpDialog';
+import { EditClientDialog } from './EditClientDialog';
 
 interface ClientDetailsProps {
   client: Client;
@@ -14,11 +15,23 @@ interface ClientDetailsProps {
   onAddFollowUp: (followUp: { date: string; notes: string; type: 'call' | 'email' | 'meeting' | 'task'; status: FollowUpStatus }) => void;
   onEditFollowUp: (followUpId: string, updates: Partial<Omit<FollowUp, 'id' | 'clientId'>>) => void;
   onDeleteFollowUp: (followUpId: string) => void;
+  onEditClient: (updates: Partial<Omit<Client, 'id' | 'createdAt' | 'followUps'>>) => void;
+  onDeleteClient: () => void;
 }
 
-export function ClientDetails({ client, onClose, onUpdateFollowUp, onAddFollowUp, onEditFollowUp, onDeleteFollowUp }: ClientDetailsProps) {
+export function ClientDetails({ 
+  client, 
+  onClose, 
+  onUpdateFollowUp, 
+  onAddFollowUp, 
+  onEditFollowUp, 
+  onDeleteFollowUp,
+  onEditClient,
+  onDeleteClient,
+}: ClientDetailsProps) {
   const [showAddFollowUp, setShowAddFollowUp] = useState(false);
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUp | null>(null);
+  const [showEditClient, setShowEditClient] = useState(false);
 
   const sortedFollowUps = [...client.followUps].sort((a, b) => {
     if (a.status === 'completed' && b.status !== 'completed') return 1;
@@ -40,13 +53,23 @@ export function ClientDetails({ client, onClose, onUpdateFollowUp, onAddFollowUp
     }
   };
 
+  const handleDeleteClient = () => {
+    onDeleteClient();
+    onClose();
+  };
+
   return (
     <div className="h-full flex flex-col animate-slide-in-right">
       <div className="flex items-center justify-between p-4 border-b">
         <h2 className="font-semibold text-lg">Client Details</h2>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" onClick={() => setShowEditClient(true)}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-auto p-4 space-y-6">
@@ -176,6 +199,14 @@ export function ClientDetails({ client, onClose, onUpdateFollowUp, onAddFollowUp
         followUp={editingFollowUp}
         onSave={handleSaveFollowUp}
         onDelete={handleDeleteFollowUp}
+      />
+
+      <EditClientDialog
+        open={showEditClient}
+        onOpenChange={setShowEditClient}
+        client={client}
+        onSave={onEditClient}
+        onDelete={handleDeleteClient}
       />
     </div>
   );
