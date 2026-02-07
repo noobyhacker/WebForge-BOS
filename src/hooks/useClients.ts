@@ -1,10 +1,29 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Client, FollowUp, DashboardStats, FollowUpStatus } from '@/types/crm';
+import { Client, FollowUp, DashboardStats, FollowUpStatus, ActionLog, ActionType, EntityType } from '@/types/crm';
 
-export function useClients() {
+export function useClients(userEmail: string = 'anonymous') {
   const [clients, setClients] = useState<Client[]>([]);
+  const [actionLogs, setActionLogs] = useState<ActionLog[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  const logAction = useCallback((
+    actionType: ActionType,
+    entityType: EntityType,
+    entityName: string,
+    details?: string
+  ) => {
+    const log: ActionLog = {
+      id: Date.now().toString(),
+      userEmail,
+      actionType,
+      entityType,
+      entityName,
+      details,
+      createdAt: new Date().toISOString(),
+    };
+    setActionLogs((prev) => [log, ...prev]);
+  }, [userEmail]);
 
   const filteredClients = useMemo(() => {
     return clients.filter((client) => {
@@ -51,18 +70,31 @@ export function useClients() {
       followUps: [],
     };
     setClients((prev) => [...prev, newClient]);
+    logAction('create', 'client', newClient.name, `Created client ${newClient.name} (${newClient.company})`);
     return newClient;
-  }, []);
+  }, [logAction]);
 
   const updateClient = useCallback((id: string, updates: Partial<Client>) => {
     setClients((prev) =>
-      prev.map((client) => (client.id === id ? { ...client, ...updates } : client))
+      prev.map((client) => {
+        if (client.id === id) {
+          logAction('update', 'client', client.name, `Updated client ${client.name}`);
+          return { ...client, ...updates };
+        }
+        return client;
+      })
     );
-  }, []);
+  }, [logAction]);
 
   const deleteClient = useCallback((id: string) => {
-    setClients((prev) => prev.filter((client) => client.id !== id));
-  }, []);
+    setClients((prev) => {
+      const client = prev.find((c) => c.id === id);
+      if (client) {
+        logAction('delete', 'client', client.name, `Deleted client ${client.name}`);
+      }
+      return prev.filter((c) => c.id !== id);
+    });
+  }, [logAction]);
 
   const addFollowUp = useCallback((clientId: string, followUp: Omit<FollowUp, 'id' | 'clientId'>) => {
     const newFollowUp: FollowUp = {
@@ -71,63 +103,81 @@ export function useClients() {
       clientId,
     };
     setClients((prev) =>
-      prev.map((client) =>
-        client.id === clientId
-          ? { ...client, followUps: [...client.followUps, newFollowUp] }
-          : client
-      )
+      prev.map((client) => {
+        if (client.id === clientId) {
+          logAction('create', 'follow_up', `${followUp.type} for ${client.name}`, followUp.notes);
+          return { ...client, followUps: [...client.followUps, newFollowUp] };
+        }
+        return client;
+      })
     );
     return newFollowUp;
-  }, []);
+  }, [logAction]);
 
   const updateFollowUpStatus = useCallback((clientId: string, followUpId: string, status: FollowUpStatus) => {
     setClients((prev) =>
-      prev.map((client) =>
-        client.id === clientId
-          ? {
-              ...client,
-              followUps: client.followUps.map((f) =>
-                f.id === followUpId ? { ...f, status } : f
-              ),
-            }
-          : client
-      )
+      prev.map((client) => {
+        if (client.id === clientId) {
+          const followUp = client.followUps.find((f) => f.id === followUpId);
+          if (followUp) {
+            logAction('update', 'follow_up', `${followUp.type} for ${client.name}`, `Status changed to ${status}`);
+          }
+          return {
+            ...client,
+            followUps: client.followUps.map((f) =>
+              f.id === followUpId ? { ...f, status } : f
+            ),
+          };
+        }
+        return client;
+      })
     );
-  }, []);
+  }, [logAction]);
 
   const updateFollowUp = useCallback((clientId: string, followUpId: string, updates: Partial<Omit<FollowUp, 'id' | 'clientId'>>) => {
     setClients((prev) =>
-      prev.map((client) =>
-        client.id === clientId
-          ? {
-              ...client,
-              followUps: client.followUps.map((f) =>
-                f.id === followUpId ? { ...f, ...updates } : f
-              ),
-            }
-          : client
-      )
+      prev.map((client) => {
+        if (client.id === clientId) {
+          const followUp = client.followUps.find((f) => f.id === followUpId);
+          if (followUp) {
+            logAction('update', 'follow_up', `${followUp.type} for ${client.name}`, 'Follow-up updated');
+          }
+          return {
+            ...client,
+            followUps: client.followUps.map((f) =>
+              f.id === followUpId ? { ...f, ...updates } : f
+            ),
+          };
+        }
+        return client;
+      })
     );
-  }, []);
+  }, [logAction]);
 
   const deleteFollowUp = useCallback((clientId: string, followUpId: string) => {
     setClients((prev) =>
-      prev.map((client) =>
-        client.id === clientId
-          ? {
-              ...client,
-              followUps: client.followUps.filter((f) => f.id !== followUpId),
-            }
-          : client
-      )
+      prev.map((client) => {
+        if (client.id === clientId) {
+          const followUp = client.followUps.find((f) => f.id === followUpId);
+          if (followUp) {
+            logAction('delete', 'follow_up', `${followUp.type} for ${client.name}`, 'Follow-up deleted');
+          }
+          return {
+            ...client,
+            followUps: client.followUps.filter((f) => f.id !== followUpId),
+          };
+        }
+        return client;
+      })
     );
-  }, []);
+  }, [logAction]);
 
   return {
     clients: filteredClients,
     allClients: clients,
     stats,
     upcomingFollowUps,
+    actionLogs,
     searchQuery,
     setSearchQuery,
     statusFilter,

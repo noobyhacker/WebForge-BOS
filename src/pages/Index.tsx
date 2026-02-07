@@ -3,22 +3,24 @@ import { Sidebar } from '@/components/crm/Sidebar';
 import { DashboardView } from '@/components/crm/DashboardView';
 import { ClientsView } from '@/components/crm/ClientsView';
 import { FollowUpsView } from '@/components/crm/FollowUpsView';
+import { ActionLogsView } from '@/components/crm/ActionLogsView';
 import { AdminUsersView } from '@/components/crm/AdminUsersView';
 import { useClients } from '@/hooks/useClients';
 import { useAuth } from '@/contexts/AuthContext';
 
-type View = 'dashboard' | 'clients' | 'followups' | 'admin';
+type View = 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin';
 
 const Index = () => {
   const [activeView, setActiveView] = useState<View>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const { isAdmin } = useAuth();
+  const { isAdmin, profile } = useAuth();
 
   const {
     clients,
     allClients,
     stats,
     upcomingFollowUps,
+    actionLogs,
     searchQuery,
     setSearchQuery,
     statusFilter,
@@ -30,7 +32,7 @@ const Index = () => {
     addFollowUp,
     updateFollowUp,
     deleteFollowUp,
-  } = useClients();
+  } = useClients(profile?.email || 'anonymous');
 
   return (
     <div className="flex h-screen bg-background">
@@ -76,6 +78,8 @@ const Index = () => {
               onDeleteFollowUp={deleteFollowUp}
             />
           )}
+
+          {activeView === 'logs' && <ActionLogsView actionLogs={actionLogs} />}
 
           {activeView === 'admin' && isAdmin && <AdminUsersView />}
         </div>
