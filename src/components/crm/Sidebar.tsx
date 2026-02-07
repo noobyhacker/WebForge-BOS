@@ -1,11 +1,11 @@
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface SidebarProps {
-  activeView: 'dashboard' | 'clients' | 'followups' | 'admin';
-  onViewChange: (view: 'dashboard' | 'clients' | 'followups' | 'admin') => void;
+  activeView: 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin';
+  onViewChange: (view: 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin') => void;
   collapsed: boolean;
   onCollapse: (collapsed: boolean) => void;
 }
@@ -14,6 +14,7 @@ const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'clients', label: 'Clients', icon: Users },
   { id: 'followups', label: 'Follow-ups', icon: Calendar },
+  { id: 'logs', label: 'Action Logs', icon: ClipboardList },
 ] as const;
 
 export function Sidebar({ activeView, onViewChange, collapsed, onCollapse }: SidebarProps) {

@@ -79,6 +79,8 @@ const Index = () => {
             />
           )}
 
+          {activeView === 'logs' && <ActionLogsView actionLogs={actionLogs} />}
+
           {activeView === 'admin' && isAdmin && <AdminUsersView />}
         </div>
       </main>
