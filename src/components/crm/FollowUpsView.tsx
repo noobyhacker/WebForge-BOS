@@ -1,14 +1,20 @@
-import { Client, FollowUp } from '@/types/crm';
+import { useState } from 'react';
+import { Client, FollowUp, FollowUpStatus } from '@/types/crm';
 import { FollowUpItem } from './FollowUpItem';
+import { EditFollowUpDialog } from './EditFollowUpDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Clock } from 'lucide-react';
 
 interface FollowUpsViewProps {
   clients: Client[];
   onMarkComplete: (clientId: string, followUpId: string, status: 'completed') => void;
+  onUpdateFollowUp: (clientId: string, followUpId: string, updates: Partial<Omit<FollowUp, 'id' | 'clientId'>>) => void;
+  onDeleteFollowUp: (clientId: string, followUpId: string) => void;
 }
 
-export function FollowUpsView({ clients, onMarkComplete }: FollowUpsViewProps) {
+export function FollowUpsView({ clients, onMarkComplete, onUpdateFollowUp, onDeleteFollowUp }: FollowUpsViewProps) {
+  const [editingFollowUp, setEditingFollowUp] = useState<(FollowUp & { clientId: string }) | null>(null);
+
   const allFollowUps = clients.flatMap((c) =>
     c.followUps.map((f) => ({
       ...f,
@@ -28,6 +34,24 @@ export function FollowUpsView({ clients, onMarkComplete }: FollowUpsViewProps) {
   const sortedCompleted = [...completedFollowUps].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
+
+  const handleEditFollowUp = (followUp: FollowUp) => {
+    setEditingFollowUp({ ...followUp, clientId: followUp.clientId });
+  };
+
+  const handleSaveFollowUp = (updates: { date: string; notes: string; type: 'call' | 'email' | 'meeting' | 'task'; status: FollowUpStatus }) => {
+    if (editingFollowUp) {
+      onUpdateFollowUp(editingFollowUp.clientId, editingFollowUp.id, updates);
+      setEditingFollowUp(null);
+    }
+  };
+
+  const handleDeleteFollowUp = () => {
+    if (editingFollowUp) {
+      onDeleteFollowUp(editingFollowUp.clientId, editingFollowUp.id);
+      setEditingFollowUp(null);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -60,6 +84,7 @@ export function FollowUpsView({ clients, onMarkComplete }: FollowUpsViewProps) {
                 followUp={followUp}
                 showClient
                 onMarkComplete={(id) => onMarkComplete(followUp.clientId, id, 'completed')}
+                onEdit={handleEditFollowUp}
               />
             ))
           ) : (
@@ -79,6 +104,7 @@ export function FollowUpsView({ clients, onMarkComplete }: FollowUpsViewProps) {
                 followUp={followUp}
                 showClient
                 onMarkComplete={(id) => onMarkComplete(followUp.clientId, id, 'completed')}
+                onEdit={handleEditFollowUp}
               />
             ))
           ) : (
@@ -93,7 +119,12 @@ export function FollowUpsView({ clients, onMarkComplete }: FollowUpsViewProps) {
         <TabsContent value="completed" className="space-y-2">
           {sortedCompleted.length > 0 ? (
             sortedCompleted.map((followUp) => (
-              <FollowUpItem key={followUp.id} followUp={followUp} showClient />
+              <FollowUpItem
+                key={followUp.id}
+                followUp={followUp}
+                showClient
+                onEdit={handleEditFollowUp}
+              />
             ))
           ) : (
             <EmptyState
@@ -104,6 +135,14 @@ export function FollowUpsView({ clients, onMarkComplete }: FollowUpsViewProps) {
           )}
         </TabsContent>
       </Tabs>
+
+      <EditFollowUpDialog
+        open={!!editingFollowUp}
+        onOpenChange={(open) => !open && setEditingFollowUp(null)}
+        followUp={editingFollowUp}
+        onSave={handleSaveFollowUp}
+        onDelete={handleDeleteFollowUp}
+      />
     </div>
   );
 }

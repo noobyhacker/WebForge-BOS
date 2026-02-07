@@ -1,26 +1,44 @@
-import { Client, FollowUpStatus } from '@/types/crm';
+import { useState } from 'react';
+import { Client, FollowUp, FollowUpStatus } from '@/types/crm';
 import { StatusBadge } from './StatusBadge';
 import { FollowUpItem } from './FollowUpItem';
 import { Button } from '@/components/ui/button';
-import { Building2, Mail, Phone, Calendar, FileText, Plus, X, Edit2 } from 'lucide-react';
-import { useState } from 'react';
+import { Building2, Mail, Phone, Calendar, FileText, Plus, X } from 'lucide-react';
 import { AddFollowUpDialog } from './AddFollowUpDialog';
+import { EditFollowUpDialog } from './EditFollowUpDialog';
 
 interface ClientDetailsProps {
   client: Client;
   onClose: () => void;
   onUpdateFollowUp: (followUpId: string, status: FollowUpStatus) => void;
   onAddFollowUp: (followUp: { date: string; notes: string; type: 'call' | 'email' | 'meeting' | 'task'; status: FollowUpStatus }) => void;
+  onEditFollowUp: (followUpId: string, updates: Partial<Omit<FollowUp, 'id' | 'clientId'>>) => void;
+  onDeleteFollowUp: (followUpId: string) => void;
 }
 
-export function ClientDetails({ client, onClose, onUpdateFollowUp, onAddFollowUp }: ClientDetailsProps) {
+export function ClientDetails({ client, onClose, onUpdateFollowUp, onAddFollowUp, onEditFollowUp, onDeleteFollowUp }: ClientDetailsProps) {
   const [showAddFollowUp, setShowAddFollowUp] = useState(false);
+  const [editingFollowUp, setEditingFollowUp] = useState<FollowUp | null>(null);
 
   const sortedFollowUps = [...client.followUps].sort((a, b) => {
     if (a.status === 'completed' && b.status !== 'completed') return 1;
     if (a.status !== 'completed' && b.status === 'completed') return -1;
     return new Date(a.date).getTime() - new Date(b.date).getTime();
   });
+
+  const handleSaveFollowUp = (updates: { date: string; notes: string; type: 'call' | 'email' | 'meeting' | 'task'; status: FollowUpStatus }) => {
+    if (editingFollowUp) {
+      onEditFollowUp(editingFollowUp.id, updates);
+      setEditingFollowUp(null);
+    }
+  };
+
+  const handleDeleteFollowUp = () => {
+    if (editingFollowUp) {
+      onDeleteFollowUp(editingFollowUp.id);
+      setEditingFollowUp(null);
+    }
+  };
 
   return (
     <div className="h-full flex flex-col animate-slide-in-right">
@@ -131,6 +149,7 @@ export function ClientDetails({ client, onClose, onUpdateFollowUp, onAddFollowUp
                   key={followUp.id}
                   followUp={followUp}
                   onMarkComplete={(id) => onUpdateFollowUp(id, 'completed')}
+                  onEdit={(f) => setEditingFollowUp(f)}
                 />
               ))}
             </div>
@@ -149,6 +168,14 @@ export function ClientDetails({ client, onClose, onUpdateFollowUp, onAddFollowUp
           onAddFollowUp(followUp);
           setShowAddFollowUp(false);
         }}
+      />
+
+      <EditFollowUpDialog
+        open={!!editingFollowUp}
+        onOpenChange={(open) => !open && setEditingFollowUp(null)}
+        followUp={editingFollowUp}
+        onSave={handleSaveFollowUp}
+        onDelete={handleDeleteFollowUp}
       />
     </div>
   );
