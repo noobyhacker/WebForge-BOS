@@ -103,57 +103,74 @@ export function useClients(userEmail: string = 'anonymous') {
       clientId,
     };
     setClients((prev) =>
-      prev.map((client) =>
-        client.id === clientId
-          ? { ...client, followUps: [...client.followUps, newFollowUp] }
-          : client
-      )
+      prev.map((client) => {
+        if (client.id === clientId) {
+          logAction('create', 'follow_up', `${followUp.type} for ${client.name}`, followUp.notes);
+          return { ...client, followUps: [...client.followUps, newFollowUp] };
+        }
+        return client;
+      })
     );
     return newFollowUp;
-  }, []);
+  }, [logAction]);
 
   const updateFollowUpStatus = useCallback((clientId: string, followUpId: string, status: FollowUpStatus) => {
     setClients((prev) =>
-      prev.map((client) =>
-        client.id === clientId
-          ? {
-              ...client,
-              followUps: client.followUps.map((f) =>
-                f.id === followUpId ? { ...f, status } : f
-              ),
-            }
-          : client
-      )
+      prev.map((client) => {
+        if (client.id === clientId) {
+          const followUp = client.followUps.find((f) => f.id === followUpId);
+          if (followUp) {
+            logAction('update', 'follow_up', `${followUp.type} for ${client.name}`, `Status changed to ${status}`);
+          }
+          return {
+            ...client,
+            followUps: client.followUps.map((f) =>
+              f.id === followUpId ? { ...f, status } : f
+            ),
+          };
+        }
+        return client;
+      })
     );
-  }, []);
+  }, [logAction]);
 
   const updateFollowUp = useCallback((clientId: string, followUpId: string, updates: Partial<Omit<FollowUp, 'id' | 'clientId'>>) => {
     setClients((prev) =>
-      prev.map((client) =>
-        client.id === clientId
-          ? {
-              ...client,
-              followUps: client.followUps.map((f) =>
-                f.id === followUpId ? { ...f, ...updates } : f
-              ),
-            }
-          : client
-      )
+      prev.map((client) => {
+        if (client.id === clientId) {
+          const followUp = client.followUps.find((f) => f.id === followUpId);
+          if (followUp) {
+            logAction('update', 'follow_up', `${followUp.type} for ${client.name}`, 'Follow-up updated');
+          }
+          return {
+            ...client,
+            followUps: client.followUps.map((f) =>
+              f.id === followUpId ? { ...f, ...updates } : f
+            ),
+          };
+        }
+        return client;
+      })
     );
-  }, []);
+  }, [logAction]);
 
   const deleteFollowUp = useCallback((clientId: string, followUpId: string) => {
     setClients((prev) =>
-      prev.map((client) =>
-        client.id === clientId
-          ? {
-              ...client,
-              followUps: client.followUps.filter((f) => f.id !== followUpId),
-            }
-          : client
-      )
+      prev.map((client) => {
+        if (client.id === clientId) {
+          const followUp = client.followUps.find((f) => f.id === followUpId);
+          if (followUp) {
+            logAction('delete', 'follow_up', `${followUp.type} for ${client.name}`, 'Follow-up deleted');
+          }
+          return {
+            ...client,
+            followUps: client.followUps.filter((f) => f.id !== followUpId),
+          };
+        }
+        return client;
+      })
     );
-  }, []);
+  }, [logAction]);
 
   return {
     clients: filteredClients,
