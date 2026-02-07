@@ -177,6 +177,7 @@ export function useClients(userEmail: string = 'anonymous') {
     allClients: clients,
     stats,
     upcomingFollowUps,
+    actionLogs,
     searchQuery,
     setSearchQuery,
     statusFilter,
