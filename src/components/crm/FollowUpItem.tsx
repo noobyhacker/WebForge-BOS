@@ -1,6 +1,6 @@
 import { FollowUp } from '@/types/crm';
 import { StatusBadge } from './StatusBadge';
-import { Phone, Mail, Calendar, CheckSquare, Check } from 'lucide-react';
+import { Phone, Mail, Calendar, CheckSquare, Check, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -8,6 +8,7 @@ interface FollowUpItemProps {
   followUp: FollowUp & { clientName?: string; clientCompany?: string };
   showClient?: boolean;
   onMarkComplete?: (id: string) => void;
+  onEdit?: (followUp: FollowUp) => void;
 }
 
 const typeIcons = {
@@ -24,7 +25,7 @@ const typeLabels = {
   task: 'Task',
 };
 
-export function FollowUpItem({ followUp, showClient = false, onMarkComplete }: FollowUpItemProps) {
+export function FollowUpItem({ followUp, showClient = false, onMarkComplete, onEdit }: FollowUpItemProps) {
   const Icon = typeIcons[followUp.type];
   const isCompleted = followUp.status === 'completed';
 
@@ -71,17 +72,30 @@ export function FollowUpItem({ followUp, showClient = false, onMarkComplete }: F
             <span>{new Date(followUp.date).toLocaleDateString()}</span>
           </div>
 
-          {!isCompleted && onMarkComplete && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs gap-1 text-success hover:text-success hover:bg-success/10"
-              onClick={() => onMarkComplete(followUp.id)}
-            >
-              <Check className="h-3.5 w-3.5" />
-              Complete
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {onEdit && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                onClick={() => onEdit(followUp)}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </Button>
+            )}
+            {!isCompleted && onMarkComplete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs gap-1 text-success hover:text-success hover:bg-success/10"
+                onClick={() => onMarkComplete(followUp.id)}
+              >
+                <Check className="h-3.5 w-3.5" />
+                Complete
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>

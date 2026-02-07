@@ -137,6 +137,8 @@ export function useClients() {
     updateClient,
     deleteClient,
     addFollowUp,
+    updateFollowUp,
+    deleteFollowUp,
     updateFollowUpStatus,
   };
 }
