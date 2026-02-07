@@ -20,6 +20,7 @@ const Index = () => {
     allClients,
     stats,
     upcomingFollowUps,
+    actionLogs,
     searchQuery,
     setSearchQuery,
     statusFilter,
@@ -31,7 +32,7 @@ const Index = () => {
     addFollowUp,
     updateFollowUp,
     deleteFollowUp,
-  } = useClients();
+  } = useClients(profile?.email || 'anonymous');
 
   return (
     <div className="flex h-screen bg-background">
