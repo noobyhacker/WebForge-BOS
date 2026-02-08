@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList } from 'lucide-react';
+import webforgeLogo from '@/assets/webforge-logo.png';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 
