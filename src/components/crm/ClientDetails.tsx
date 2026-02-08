@@ -3,10 +3,12 @@ import { Client, FollowUp, FollowUpStatus } from '@/types/crm';
 import { StatusBadge } from './StatusBadge';
 import { FollowUpItem } from './FollowUpItem';
 import { Button } from '@/components/ui/button';
-import { Building2, Mail, Phone, Calendar, FileText, Plus, X, Pencil } from 'lucide-react';
+import { Building2, Mail, Phone, Calendar, FileText, Plus, X, Pencil, Share2 } from 'lucide-react';
 import { AddFollowUpDialog } from './AddFollowUpDialog';
 import { EditFollowUpDialog } from './EditFollowUpDialog';
 import { EditClientDialog } from './EditClientDialog';
+import { ShareClientDialog } from './ShareClientDialog';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ClientDetailsProps {
   client: Client;
@@ -29,9 +31,14 @@ export function ClientDetails({
   onEditClient,
   onDeleteClient,
 }: ClientDetailsProps) {
+  const { user, isAdmin } = useAuth();
   const [showAddFollowUp, setShowAddFollowUp] = useState(false);
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUp | null>(null);
   const [showEditClient, setShowEditClient] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+
+  // Only owners and admins can share
+  const canShare = isAdmin || client.userId === user?.id;
 
   const sortedFollowUps = [...client.followUps].sort((a, b) => {
     if (a.status === 'completed' && b.status !== 'completed') return 1;
@@ -63,6 +70,11 @@ export function ClientDetails({
       <div className="flex items-center justify-between p-4 border-b">
         <h2 className="font-semibold text-lg">Client Details</h2>
         <div className="flex items-center gap-1">
+          {canShare && (
+            <Button variant="ghost" size="icon" onClick={() => setShowShareDialog(true)} title="Share client">
+              <Share2 className="h-4 w-4" />
+            </Button>
+          )}
           <Button variant="ghost" size="icon" onClick={() => setShowEditClient(true)}>
             <Pencil className="h-4 w-4" />
           </Button>
@@ -207,6 +219,13 @@ export function ClientDetails({
         client={client}
         onSave={onEditClient}
         onDelete={handleDeleteClient}
+      />
+
+      <ShareClientDialog
+        open={showShareDialog}
+        onOpenChange={setShowShareDialog}
+        clientId={client.id}
+        clientName={client.name}
       />
     </div>
   );

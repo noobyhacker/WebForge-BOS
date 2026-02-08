@@ -20,6 +20,7 @@ export interface Client {
   lastContact: string;
   notes: string;
   followUps: FollowUp[];
+  userId?: string; // Owner of the client
 }
 
 export interface DashboardStats {
@@ -39,5 +40,17 @@ export interface ActionLog {
   entityType: EntityType;
   entityName: string;
   details?: string;
+  createdAt: string;
+}
+
+export type PermissionLevel = 'view' | 'edit';
+
+export interface ClientShare {
+  id: string;
+  clientId: string;
+  userId: string;
+  userEmail?: string;
+  userName?: string;
+  permission: PermissionLevel;
   createdAt: string;
 }
