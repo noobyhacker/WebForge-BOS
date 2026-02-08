@@ -117,7 +117,7 @@ export const AdminUsersView = () => {
     const { error } = await supabase
       .from('profiles')
       .update({
-        approved: false,
+        is_approved: false,
         approved_by: null,
         approved_at: null,
       })
