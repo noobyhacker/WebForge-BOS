@@ -116,8 +116,6 @@ export const AdminUsersView = () => {
       .from('profiles')
       .update({
         is_approved: false,
-        approved_by: null,
-        approved_at: null,
       })
       .eq('id', userId);
 
