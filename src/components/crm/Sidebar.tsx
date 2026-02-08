@@ -31,12 +31,7 @@ export function Sidebar({ activeView, onViewChange, collapsed, onCollapse }: Sid
       {/* Logo */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
         {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">CRM</span>
-            </div>
-            <span className="font-semibold text-foreground">ClientHub</span>
-          </div>
+          <img src={webforgeLogo} alt="WebForge" className="h-10 object-contain" />
         )}
         <Button
           variant="ghost"
