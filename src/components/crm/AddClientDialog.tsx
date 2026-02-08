@@ -6,11 +6,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Client } from '@/types/crm';
+import { useToast } from '@/hooks/use-toast';
 
 interface AddClientDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (client: Omit<Client, 'id' | 'createdAt' | 'followUps'>) => void;
+  onAdd: (client: Omit<Client, 'id' | 'createdAt' | 'followUps'>) => Promise<Client | null>;
 }
 
 export function AddClientDialog({ open, onOpenChange, onAdd }: AddClientDialogProps) {
@@ -20,29 +21,52 @@ export function AddClientDialog({ open, onOpenChange, onAdd }: AddClientDialogPr
   const [company, setCompany] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive' | 'lead'>('lead');
   const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email) return;
 
-    onAdd({
-      name,
-      email,
-      phone,
-      company,
-      status,
-      notes,
-      lastContact: new Date().toISOString().split('T')[0],
-    });
+    setIsSubmitting(true);
+    
+    try {
+      const result = await onAdd({
+        name,
+        email,
+        phone,
+        company,
+        status,
+        notes,
+        lastContact: new Date().toISOString().split('T')[0],
+      });
 
-    // Reset form
-    setName('');
-    setEmail('');
-    setPhone('');
-    setCompany('');
-    setStatus('lead');
-    setNotes('');
-    onOpenChange(false);
+      if (result) {
+        toast({ title: 'Client added successfully' });
+        // Reset form
+        setName('');
+        setEmail('');
+        setPhone('');
+        setCompany('');
+        setStatus('lead');
+        setNotes('');
+        onOpenChange(false);
+      } else {
+        toast({ 
+          title: 'Failed to add client', 
+          description: 'Check if you have permission and the INSERT policy is set up.',
+          variant: 'destructive' 
+        });
+      }
+    } catch (error) {
+      toast({ 
+        title: 'Error adding client', 
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive' 
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -127,10 +151,12 @@ export function AddClientDialog({ open, onOpenChange, onAdd }: AddClientDialogPr
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit">Add Client</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Adding...' : 'Add Client'}
+            </Button>
           </div>
         </form>
       </DialogContent>
