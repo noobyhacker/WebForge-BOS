@@ -223,6 +223,15 @@ USING (
 );
 
 -- ============================================================
+-- 9. Add entity_id and entity_data columns to action_logs for undo functionality
+-- ============================================================
+
+ALTER TABLE public.action_logs
+  ADD COLUMN IF NOT EXISTS entity_id uuid,
+  ADD COLUMN IF NOT EXISTS entity_data text;
+
+-- ============================================================
 -- Done! Admins can see all clients/follow-ups.
 -- Owners can share their clients with other users (view/edit).
+-- Deleted items can be restored from Action Logs.
 -- ============================================================

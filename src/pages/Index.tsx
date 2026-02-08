@@ -32,6 +32,7 @@ const Index = () => {
     addFollowUp,
     updateFollowUp,
     deleteFollowUp,
+    restoreFromLog,
   } = useClients(profile?.email || 'anonymous');
 
   return (
@@ -79,7 +80,7 @@ const Index = () => {
             />
           )}
 
-          {activeView === 'logs' && <ActionLogsView actionLogs={actionLogs} />}
+          {activeView === 'logs' && <ActionLogsView actionLogs={actionLogs} onRestore={restoreFromLog} />}
 
           {activeView === 'admin' && isAdmin && <AdminUsersView />}
         </div>

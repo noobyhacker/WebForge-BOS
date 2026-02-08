@@ -14,17 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface UserProfile {
   id: string;
@@ -40,6 +30,14 @@ export const AdminUsersView = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  // Confirmation dialog states
+  const [confirmAction, setConfirmAction] = useState<{
+    type: 'revoke' | 'toggleAdmin';
+    userId: string;
+    userName: string;
+    isAdmin?: boolean;
+  } | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -169,6 +167,17 @@ export const AdminUsersView = () => {
     }
   };
 
+  const handleConfirmAction = () => {
+    if (!confirmAction) return;
+    
+    if (confirmAction.type === 'revoke') {
+      revokeApproval(confirmAction.userId);
+    } else if (confirmAction.type === 'toggleAdmin') {
+      toggleAdminRole(confirmAction.userId, confirmAction.isAdmin ?? false);
+    }
+    setConfirmAction(null);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -281,31 +290,26 @@ export const AdminUsersView = () => {
                           <Button
                             size="sm"
                             variant={isAdmin ? 'outline' : 'secondary'}
-                            onClick={() => toggleAdminRole(u.id, isAdmin)}
+                            onClick={() => setConfirmAction({
+                              type: 'toggleAdmin',
+                              userId: u.id,
+                              userName: u.full_name || u.email || 'User',
+                              isAdmin,
+                            })}
                           >
                             {isAdmin ? 'Remove Admin' : 'Make Admin'}
                           </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="destructive">
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Revoke Access</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will remove {u.full_name || u.email}'s access to the CRM. They'll need to be approved again to regain access.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => revokeApproval(u.id)}>
-                                  Revoke Access
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={() => setConfirmAction({
+                              type: 'revoke',
+                              userId: u.id,
+                              userName: u.full_name || u.email || 'User',
+                            })}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         </>
                       )}
                     </TableCell>
@@ -316,6 +320,31 @@ export const AdminUsersView = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Confirmation Dialogs */}
+      <ConfirmDialog
+        open={confirmAction?.type === 'revoke'}
+        onOpenChange={(open) => !open && setConfirmAction(null)}
+        title="Revoke Access"
+        description={`This will remove ${confirmAction?.userName}'s access to the CRM. They'll need to be approved again to regain access.`}
+        confirmText="Revoke Access"
+        variant="destructive"
+        onConfirm={handleConfirmAction}
+      />
+
+      <ConfirmDialog
+        open={confirmAction?.type === 'toggleAdmin'}
+        onOpenChange={(open) => !open && setConfirmAction(null)}
+        title={confirmAction?.isAdmin ? 'Remove Admin Role' : 'Grant Admin Role'}
+        description={
+          confirmAction?.isAdmin
+            ? `Are you sure you want to remove admin privileges from ${confirmAction?.userName}? They will no longer be able to manage users or see all data.`
+            : `Are you sure you want to grant admin privileges to ${confirmAction?.userName}? They will be able to manage users and see all data.`
+        }
+        confirmText={confirmAction?.isAdmin ? 'Remove Admin' : 'Make Admin'}
+        variant={confirmAction?.isAdmin ? 'destructive' : 'default'}
+        onConfirm={handleConfirmAction}
+      />
     </div>
   );
 };

@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FollowUp, FollowUpStatus } from '@/types/crm';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface EditFollowUpDialogProps {
   open: boolean;
@@ -25,6 +26,7 @@ export function EditFollowUpDialog({ open, onOpenChange, followUp, onSave, onDel
   const [notes, setNotes] = useState('');
   const [type, setType] = useState<'call' | 'email' | 'meeting' | 'task'>('call');
   const [status, setStatus] = useState<FollowUpStatus>('scheduled');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (followUp) {
@@ -50,6 +52,7 @@ export function EditFollowUpDialog({ open, onOpenChange, followUp, onSave, onDel
   const handleDelete = () => {
     onDelete();
     onOpenChange(false);
+    setShowDeleteConfirm(false);
   };
 
   return (
@@ -114,7 +117,7 @@ export function EditFollowUpDialog({ open, onOpenChange, followUp, onSave, onDel
           </div>
 
           <div className="flex justify-between">
-            <Button type="button" variant="destructive" onClick={handleDelete}>
+            <Button type="button" variant="destructive" onClick={() => setShowDeleteConfirm(true)}>
               Delete
             </Button>
             <div className="flex gap-2">
@@ -125,6 +128,16 @@ export function EditFollowUpDialog({ open, onOpenChange, followUp, onSave, onDel
             </div>
           </div>
         </form>
+
+        <ConfirmDialog
+          open={showDeleteConfirm}
+          onOpenChange={setShowDeleteConfirm}
+          title="Delete Follow-up"
+          description="Are you sure you want to delete this follow-up? This action cannot be undone."
+          confirmText="Delete"
+          variant="destructive"
+          onConfirm={handleDelete}
+        />
       </DialogContent>
     </Dialog>
   );
