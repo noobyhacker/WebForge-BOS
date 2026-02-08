@@ -6,11 +6,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Client } from '@/types/crm';
+import { useToast } from '@/hooks/use-toast';
 
 interface AddClientDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (client: Omit<Client, 'id' | 'createdAt' | 'followUps'>) => void;
+  onAdd: (client: Omit<Client, 'id' | 'createdAt' | 'followUps'>) => Promise<Client | null>;
 }
 
 export function AddClientDialog({ open, onOpenChange, onAdd }: AddClientDialogProps) {
