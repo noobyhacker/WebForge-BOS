@@ -299,7 +299,7 @@ export const AdminUsersView = () => {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Revoke Access</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This will remove {u.display_name || u.email}'s access to the CRM. They'll need to be approved again to regain access.
+                                  This will remove {u.full_name || u.email}'s access to the CRM. They'll need to be approved again to regain access.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
