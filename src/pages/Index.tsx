@@ -32,6 +32,7 @@ const Index = () => {
     addFollowUp,
     updateFollowUp,
     deleteFollowUp,
+    restoreFromLog,
   } = useClients(profile?.email || 'anonymous');
 
   return (
