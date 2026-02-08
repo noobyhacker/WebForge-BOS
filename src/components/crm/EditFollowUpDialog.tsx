@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FollowUp, FollowUpStatus } from '@/types/crm';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface EditFollowUpDialogProps {
   open: boolean;
@@ -25,6 +26,7 @@ export function EditFollowUpDialog({ open, onOpenChange, followUp, onSave, onDel
   const [notes, setNotes] = useState('');
   const [type, setType] = useState<'call' | 'email' | 'meeting' | 'task'>('call');
   const [status, setStatus] = useState<FollowUpStatus>('scheduled');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (followUp) {
@@ -50,6 +52,7 @@ export function EditFollowUpDialog({ open, onOpenChange, followUp, onSave, onDel
   const handleDelete = () => {
     onDelete();
     onOpenChange(false);
+    setShowDeleteConfirm(false);
   };
 
   return (
