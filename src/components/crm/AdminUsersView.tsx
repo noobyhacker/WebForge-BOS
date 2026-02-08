@@ -181,8 +181,8 @@ export const AdminUsersView = () => {
     );
   }
 
-  const pendingUsers = users.filter(u => !u.approved);
-  const approvedUsers = users.filter(u => u.approved);
+  const pendingUsers = users.filter(u => !u.is_approved);
+  const approvedUsers = users.filter(u => u.is_approved);
 
   return (
     <div className="space-y-6">
