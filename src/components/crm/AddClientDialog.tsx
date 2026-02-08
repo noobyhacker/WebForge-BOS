@@ -21,29 +21,52 @@ export function AddClientDialog({ open, onOpenChange, onAdd }: AddClientDialogPr
   const [company, setCompany] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive' | 'lead'>('lead');
   const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email) return;
 
-    onAdd({
-      name,
-      email,
-      phone,
-      company,
-      status,
-      notes,
-      lastContact: new Date().toISOString().split('T')[0],
-    });
+    setIsSubmitting(true);
+    
+    try {
+      const result = await onAdd({
+        name,
+        email,
+        phone,
+        company,
+        status,
+        notes,
+        lastContact: new Date().toISOString().split('T')[0],
+      });
 
-    // Reset form
-    setName('');
-    setEmail('');
-    setPhone('');
-    setCompany('');
-    setStatus('lead');
-    setNotes('');
-    onOpenChange(false);
+      if (result) {
+        toast({ title: 'Client added successfully' });
+        // Reset form
+        setName('');
+        setEmail('');
+        setPhone('');
+        setCompany('');
+        setStatus('lead');
+        setNotes('');
+        onOpenChange(false);
+      } else {
+        toast({ 
+          title: 'Failed to add client', 
+          description: 'Check if you have permission and the INSERT policy is set up.',
+          variant: 'destructive' 
+        });
+      }
+    } catch (error) {
+      toast({ 
+        title: 'Error adding client', 
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive' 
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
