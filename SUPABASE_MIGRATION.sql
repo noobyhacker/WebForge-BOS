@@ -1,13 +1,18 @@
 -- ============================================================
 -- CRM Security Migration: Admin Access + Client Sharing
 -- Run this in your Supabase SQL Editor
+-- Uses IF NOT EXISTS / CREATE OR REPLACE to be idempotent
 -- ============================================================
 
--- 1. Create permission level enum
-CREATE TYPE public.permission_level AS ENUM ('view', 'edit');
+-- 1. Create permission level enum (if not exists)
+DO $$ BEGIN
+  CREATE TYPE public.permission_level AS ENUM ('view', 'edit');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 -- 2. Create client_shares table for sharing clients with other users
-CREATE TABLE public.client_shares (
+CREATE TABLE IF NOT EXISTS public.client_shares (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   client_id uuid REFERENCES public.clients(id) ON DELETE CASCADE NOT NULL,
   user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
@@ -164,6 +169,10 @@ USING (
 );
 
 -- 8. RLS policies for client_shares table
+DROP POLICY IF EXISTS "client_shares_select_policy" ON public.client_shares;
+DROP POLICY IF EXISTS "client_shares_insert_policy" ON public.client_shares;
+DROP POLICY IF EXISTS "client_shares_update_policy" ON public.client_shares;
+DROP POLICY IF EXISTS "client_shares_delete_policy" ON public.client_shares;
 
 -- SELECT: Admins see all, owners see shares for their clients, shared users see their own shares
 CREATE POLICY "client_shares_select_policy" ON public.client_shares
