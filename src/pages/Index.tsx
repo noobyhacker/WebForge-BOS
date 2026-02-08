@@ -44,7 +44,7 @@ const Index = () => {
       />
 
       <main className="flex-1 overflow-hidden">
-        <div className="h-full overflow-auto p-6">
+        <div className="h-full overflow-auto p-4 md:p-6 pt-16 md:pt-6">
           {activeView === 'dashboard' && (
             <DashboardView
               stats={stats}
