@@ -220,6 +220,13 @@ export function ClientDetails({
         onSave={onEditClient}
         onDelete={handleDeleteClient}
       />
+
+      <ShareClientDialog
+        open={showShareDialog}
+        onOpenChange={setShowShareDialog}
+        clientId={client.id}
+        clientName={client.name}
+      />
     </div>
   );
 }
