@@ -29,8 +29,8 @@ import {
 interface UserProfile {
   id: string;
   email: string | null;
-  display_name: string | null;
-  approved: boolean;
+  full_name: string | null;
+  is_approved: boolean;
   created_at: string;
   roles: string[];
 }
