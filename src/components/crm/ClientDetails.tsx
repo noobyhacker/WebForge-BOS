@@ -70,6 +70,11 @@ export function ClientDetails({
       <div className="flex items-center justify-between p-4 border-b">
         <h2 className="font-semibold text-lg">Client Details</h2>
         <div className="flex items-center gap-1">
+          {canShare && (
+            <Button variant="ghost" size="icon" onClick={() => setShowShareDialog(true)} title="Share client">
+              <Share2 className="h-4 w-4" />
+            </Button>
+          )}
           <Button variant="ghost" size="icon" onClick={() => setShowEditClient(true)}>
             <Pencil className="h-4 w-4" />
           </Button>
