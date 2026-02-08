@@ -41,8 +41,8 @@ export function FollowUpItem({ followUp, showClient = false, onMarkComplete, onE
     <>
       <div
         className={cn(
-          'flex items-start gap-3 rounded-lg border bg-card p-3 transition-all',
-          isCompleted && 'opacity-60'
+          'flex items-start gap-3 rounded-lg border-2 border-primary/40 bg-card p-3 transition-all shadow-sm hover:border-primary hover:shadow-md',
+          isCompleted && 'opacity-60 border-muted'
         )}
       >
         <div
