@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { FollowUp } from '@/types/crm';
 import { StatusBadge } from './StatusBadge';
 import { Phone, Mail, Calendar, CheckSquare, Check, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface FollowUpItemProps {
   followUp: FollowUp & { clientName?: string; clientCompany?: string };
