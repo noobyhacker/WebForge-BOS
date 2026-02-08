@@ -263,7 +263,7 @@ export const AdminUsersView = () => {
                 return (
                   <TableRow key={u.id}>
                     <TableCell className="font-medium">
-                      {u.display_name || 'No name'}
+                      {u.full_name || 'No name'}
                       {isCurrentUser && (
                         <Badge variant="outline" className="ml-2">You</Badge>
                       )}
