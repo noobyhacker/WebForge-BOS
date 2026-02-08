@@ -73,9 +73,13 @@ export const AdminUsersView = () => {
       });
     }
 
-    // Combine profiles with roles
+    // Combine profiles with roles, mapping DB fields to interface
     const usersWithRoles = profiles.map(profile => ({
-      ...profile,
+      id: profile.id,
+      email: profile.email,
+      full_name: profile.full_name,
+      is_approved: profile.is_approved,
+      created_at: profile.created_at,
       roles: roles?.filter(r => r.user_id === profile.id).map(r => r.role) || [],
     }));
 
