@@ -94,8 +94,10 @@ export function useClients(userEmail: string = 'anonymous') {
         userEmail: l.user_email,
         actionType: l.action_type as ActionType,
         entityType: l.entity_type as EntityType,
+        entityId: l.entity_id || undefined,
         entityName: l.entity_name,
         details: l.details || undefined,
+        entityData: l.entity_data || undefined,
         createdAt: l.created_at,
       }));
 
