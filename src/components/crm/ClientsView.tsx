@@ -14,7 +14,7 @@ interface ClientsViewProps {
   onSearchChange: (query: string) => void;
   statusFilter: string;
   onStatusFilterChange: (status: string) => void;
-  onAddClient: (client: Omit<Client, 'id' | 'createdAt' | 'followUps'>) => void;
+  onAddClient: (client: Omit<Client, 'id' | 'createdAt' | 'followUps'>) => Promise<Client | null>;
   onUpdateClient: (clientId: string, updates: Partial<Client>) => void;
   onDeleteClient: (clientId: string) => void;
   onUpdateFollowUp: (clientId: string, followUpId: string, status: FollowUpStatus) => void;
