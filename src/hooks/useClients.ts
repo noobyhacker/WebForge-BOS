@@ -515,6 +515,7 @@ export function useClients(userEmail: string = 'anonymous') {
     updateFollowUp,
     deleteFollowUp,
     updateFollowUpStatus,
+    restoreFromLog,
     refetch: fetchClients,
   };
 }
