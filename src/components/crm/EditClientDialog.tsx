@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Client } from '@/types/crm';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface EditClientDialogProps {
   open: boolean;
@@ -22,6 +23,7 @@ export function EditClientDialog({ open, onOpenChange, client, onSave, onDelete 
   const [company, setCompany] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive' | 'lead'>('lead');
   const [notes, setNotes] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (client) {
@@ -52,6 +54,7 @@ export function EditClientDialog({ open, onOpenChange, client, onSave, onDelete 
   const handleDelete = () => {
     onDelete();
     onOpenChange(false);
+    setShowDeleteConfirm(false);
   };
 
   return (
