@@ -88,7 +88,7 @@ export function Sidebar({ activeView, onViewChange, collapsed, onCollapse }: Sid
       <div className="p-3 border-t border-sidebar-border space-y-1">
         {!collapsed && profile && (
           <div className="px-3 py-2 text-xs text-muted-foreground truncate">
-            {profile.display_name || profile.email}
+            {profile.full_name || profile.email}
           </div>
         )}
         <button

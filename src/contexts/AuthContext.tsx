@@ -4,10 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface Profile {
   id: string;
-  email: string | null;
-  display_name: string | null;
-  avatar_url: string | null;
-  approved: boolean;
+  email: string;
+  full_name: string | null;
+  is_approved: boolean;
   created_at: string;
 }
 
@@ -18,7 +17,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isApproved: boolean;
   loading: boolean;
-  signUp: (email: string, password: string, displayName?: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -34,23 +33,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    try {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, is_approved, created_at')
+        .eq('id', userId)
+        .single();
 
-    if (profileData) {
-      setProfile(profileData as Profile);
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+      } else if (profileData) {
+        setProfile(profileData as Profile);
+      }
+
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+
+      if (roleError) {
+        console.error('Error fetching roles:', roleError);
+      }
+
+      const hasAdminRole = roleData?.some(r => r.role === 'admin') ?? false;
+      setIsAdmin(hasAdminRole);
+    } catch (error) {
+      console.error('Error in fetchProfile:', error);
     }
-
-    const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId);
-
-    const hasAdminRole = roleData?.some(r => r.role === 'admin') ?? false;
-    setIsAdmin(hasAdminRole);
   };
 
   const refreshProfile = async () => {
@@ -90,13 +99,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, displayName?: string) => {
+  const signUp = async (email: string, password: string, fullName?: string) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: window.location.origin,
-        data: { display_name: displayName },
+        data: { full_name: fullName },
       },
     });
     return { error };
@@ -115,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAdmin(false);
   };
 
-  const isApproved = profile?.approved ?? false;
+  const isApproved = profile?.is_approved ?? false;
 
   return (
     <AuthContext.Provider

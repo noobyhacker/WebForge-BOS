@@ -187,7 +187,7 @@ const PendingApproval = () => {
         <CardHeader>
           <CardTitle>Pending Approval</CardTitle>
           <CardDescription>
-            Welcome, {profile?.display_name || profile?.email}!
+            Welcome, {profile?.full_name || profile?.email}!
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
