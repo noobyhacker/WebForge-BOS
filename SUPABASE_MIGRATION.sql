@@ -22,6 +22,17 @@ CREATE TABLE IF NOT EXISTS public.client_shares (
   UNIQUE (client_id, user_id)
 );
 
+-- If client_shares already existed, ensure required columns exist (CREATE TABLE IF NOT EXISTS won't add them)
+ALTER TABLE public.client_shares
+  ADD COLUMN IF NOT EXISTS user_id uuid,
+  ADD COLUMN IF NOT EXISTS permission public.permission_level,
+  ADD COLUMN IF NOT EXISTS created_at timestamptz,
+  ADD COLUMN IF NOT EXISTS created_by uuid;
+
+-- Ensure sane defaults (safe even if columns already had defaults)
+ALTER TABLE public.client_shares ALTER COLUMN permission SET DEFAULT 'view';
+ALTER TABLE public.client_shares ALTER COLUMN created_at SET DEFAULT now();
+
 -- Enable RLS on client_shares
 ALTER TABLE public.client_shares ENABLE ROW LEVEL SECURITY;
 
