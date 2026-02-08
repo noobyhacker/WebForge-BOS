@@ -294,7 +294,16 @@ export function useClients(userEmail: string = 'anonymous') {
       }
 
       if (client) {
-        await logAction('delete', 'client', client.name, `Deleted client ${client.name}`);
+        // Store full client data for potential undo
+        await logAction('delete', 'client', client.name, `Deleted client ${client.name}`, id, {
+          name: client.name,
+          email: client.email,
+          phone: client.phone,
+          company: client.company,
+          status: client.status,
+          notes: client.notes,
+          lastContact: client.lastContact,
+        });
       }
       await fetchClients();
     } catch (error) {
