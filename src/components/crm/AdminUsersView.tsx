@@ -96,8 +96,6 @@ export const AdminUsersView = () => {
       .from('profiles')
       .update({
         is_approved: true,
-        approved_by: user?.id,
-        approved_at: new Date().toISOString(),
       })
       .eq('id', userId);
 
@@ -118,8 +116,6 @@ export const AdminUsersView = () => {
       .from('profiles')
       .update({
         is_approved: false,
-        approved_by: null,
-        approved_at: null,
       })
       .eq('id', userId);
 
