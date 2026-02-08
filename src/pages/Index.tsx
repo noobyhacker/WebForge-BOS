@@ -80,7 +80,7 @@ const Index = () => {
             />
           )}
 
-          {activeView === 'logs' && <ActionLogsView actionLogs={actionLogs} />}
+          {activeView === 'logs' && <ActionLogsView actionLogs={actionLogs} onRestore={restoreFromLog} />}
 
           {activeView === 'admin' && isAdmin && <AdminUsersView />}
         </div>
