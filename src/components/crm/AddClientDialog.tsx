@@ -151,10 +151,12 @@ export function AddClientDialog({ open, onOpenChange, onAdd }: AddClientDialogPr
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit">Add Client</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Adding...' : 'Add Client'}
+            </Button>
           </div>
         </form>
       </DialogContent>
