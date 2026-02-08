@@ -118,7 +118,9 @@ export function useClients(userEmail: string = 'anonymous') {
     actionType: ActionType,
     entityType: EntityType,
     entityName: string,
-    details?: string
+    details?: string,
+    entityId?: string,
+    entityData?: object
   ) => {
     if (!user) return;
 
@@ -130,6 +132,8 @@ export function useClients(userEmail: string = 'anonymous') {
         entity_type: entityType,
         entity_name: entityName,
         details,
+        entity_id: entityId,
+        entity_data: entityData ? JSON.stringify(entityData) : null,
       });
 
       if (error) {
