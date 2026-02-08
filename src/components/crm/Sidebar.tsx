@@ -29,9 +29,9 @@ export function Sidebar({ activeView, onViewChange, collapsed, onCollapse }: Sid
       )}
     >
       {/* Logo */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
+      <div className="h-20 flex items-center justify-between px-4 border-b border-sidebar-border">
         {!collapsed && (
-          <img src={webforgeLogo} alt="WebForge" className="h-10 object-contain" />
+          <img src={webforgeLogo} alt="WebForge" className="h-14 object-contain" />
         )}
         <Button
           variant="ghost"
