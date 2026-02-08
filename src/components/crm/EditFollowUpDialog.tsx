@@ -117,7 +117,7 @@ export function EditFollowUpDialog({ open, onOpenChange, followUp, onSave, onDel
           </div>
 
           <div className="flex justify-between">
-            <Button type="button" variant="destructive" onClick={handleDelete}>
+            <Button type="button" variant="destructive" onClick={() => setShowDeleteConfirm(true)}>
               Delete
             </Button>
             <div className="flex gap-2">
@@ -128,6 +128,16 @@ export function EditFollowUpDialog({ open, onOpenChange, followUp, onSave, onDel
             </div>
           </div>
         </form>
+
+        <ConfirmDialog
+          open={showDeleteConfirm}
+          onOpenChange={setShowDeleteConfirm}
+          title="Delete Follow-up"
+          description="Are you sure you want to delete this follow-up? This action cannot be undone."
+          confirmText="Delete"
+          variant="destructive"
+          onConfirm={handleDelete}
+        />
       </DialogContent>
     </Dialog>
   );

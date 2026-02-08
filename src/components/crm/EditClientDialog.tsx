@@ -139,7 +139,7 @@ export function EditClientDialog({ open, onOpenChange, client, onSave, onDelete 
           </div>
 
           <div className="flex justify-between pt-2">
-            <Button type="button" variant="destructive" onClick={handleDelete}>
+            <Button type="button" variant="destructive" onClick={() => setShowDeleteConfirm(true)}>
               Delete Client
             </Button>
             <div className="flex gap-2">
@@ -150,6 +150,18 @@ export function EditClientDialog({ open, onOpenChange, client, onSave, onDelete 
             </div>
           </div>
         </form>
+
+        <ConfirmDialog
+          open={showDeleteConfirm}
+          onOpenChange={setShowDeleteConfirm}
+          title="Delete Client"
+          description={`Are you sure you want to delete "${name}"? This will also delete all their follow-ups. This action cannot be undone.`}
+          confirmText="Delete"
+          variant="destructive"
+          requireConfirmation
+          confirmationWord="DELETE"
+          onConfirm={handleDelete}
+        />
       </DialogContent>
     </Dialog>
   );
