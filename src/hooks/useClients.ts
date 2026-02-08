@@ -178,10 +178,14 @@ export function useClients(userEmail: string = 'anonymous') {
   }, [clients]);
 
   const addClient = useCallback(async (client: Omit<Client, 'id' | 'createdAt' | 'followUps'>) => {
-    if (!user) return null;
+    if (!user) {
+      throw new Error('Not authenticated');
+    }
 
     try {
-      const { data, error } = await supabase
+      // IMPORTANT: avoid `.select().single()` on insert because RLS can block RETURNING
+      // which makes the insert look like it failed even if it succeeded.
+      const { error: insertError } = await supabase
         .from('clients')
         .insert({
           user_id: user.id,
@@ -192,33 +196,44 @@ export function useClients(userEmail: string = 'anonymous') {
           status: client.status,
           notes: client.notes,
           last_contact: client.lastContact,
-        })
-        .select()
-        .single();
+        });
 
-      if (error) {
-        console.error('Error adding client:', error);
-        return null;
+      if (insertError) {
+        console.error('Error adding client:', insertError);
+        throw new Error(insertError.message);
       }
 
       await logAction('create', 'client', client.name, `Created client ${client.name} (${client.company})`);
       await fetchClients();
 
+      // Best-effort: fetch latest client for this user so callers can treat as success.
+      const { data: latest, error: latestError } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (latestError) {
+        console.warn('Could not fetch newly created client:', latestError);
+      }
+
       return {
-        id: data.id,
-        name: data.name,
-        email: data.email || '',
-        phone: data.phone || '',
-        company: data.company || '',
-        status: data.status as 'active' | 'inactive' | 'lead',
-        createdAt: data.created_at,
-        lastContact: data.last_contact,
-        notes: data.notes || '',
+        id: latest?.id ?? crypto.randomUUID(),
+        name: latest?.name ?? client.name,
+        email: latest?.email || client.email || '',
+        phone: latest?.phone || client.phone || '',
+        company: latest?.company || client.company || '',
+        status: (latest?.status as 'active' | 'inactive' | 'lead') ?? client.status,
+        createdAt: latest?.created_at ?? new Date().toISOString(),
+        lastContact: latest?.last_contact ?? client.lastContact,
+        notes: latest?.notes || client.notes || '',
         followUps: [],
       };
     } catch (error) {
       console.error('Error in addClient:', error);
-      return null;
+      throw error instanceof Error ? error : new Error('Failed to add client');
     }
   }, [user, logAction, fetchClients]);
 
