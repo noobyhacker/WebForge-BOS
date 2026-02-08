@@ -30,6 +30,18 @@ export const AdminUsersView = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  // Confirmation dialog states
+  const [confirmAction, setConfirmAction] = useState<{
+    type: 'revoke' | 'toggleAdmin';
+    userId: string;
+    userName: string;
+    isAdmin?: boolean;
+  } | null>(null);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   const fetchUsers = async () => {
     setLoading(true);
