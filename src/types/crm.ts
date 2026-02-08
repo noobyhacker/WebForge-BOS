@@ -38,8 +38,10 @@ export interface ActionLog {
   userEmail: string;
   actionType: ActionType;
   entityType: EntityType;
+  entityId?: string;
   entityName: string;
   details?: string;
+  entityData?: string; // JSON string of deleted entity for undo
   createdAt: string;
 }
 
