@@ -1,8 +1,11 @@
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, X } from 'lucide-react';
 import webforgeLogo from '@/assets/webforge-logo.png';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useState } from 'react';
 
 interface SidebarProps {
   activeView: 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin';
@@ -18,16 +21,22 @@ const navItems = [
   { id: 'logs', label: 'Action Logs', icon: ClipboardList },
 ] as const;
 
-export function Sidebar({ activeView, onViewChange, collapsed, onCollapse }: SidebarProps) {
+function SidebarContent({ 
+  activeView, 
+  onViewChange, 
+  collapsed, 
+  onCollapse,
+  onNavigate 
+}: SidebarProps & { onNavigate?: () => void }) {
   const { isAdmin, signOut, profile } = useAuth();
 
+  const handleNavClick = (view: 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin') => {
+    onViewChange(view);
+    onNavigate?.();
+  };
+
   return (
-    <aside
-      className={cn(
-        'h-screen bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-300',
-        collapsed ? 'w-16' : 'w-64'
-      )}
-    >
+    <div className="h-full flex flex-col">
       {/* Logo */}
       <div className="h-20 flex items-center justify-between px-4 border-b border-sidebar-border">
         {!collapsed && (
@@ -36,7 +45,7 @@ export function Sidebar({ activeView, onViewChange, collapsed, onCollapse }: Sid
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 text-sidebar-foreground"
+          className="h-8 w-8 text-sidebar-foreground hidden md:flex"
           onClick={() => onCollapse(!collapsed)}
         >
           <ChevronLeft
@@ -50,7 +59,7 @@ export function Sidebar({ activeView, onViewChange, collapsed, onCollapse }: Sid
         {navItems.map((item) => (
           <button
             key={item.id}
-            onClick={() => onViewChange(item.id)}
+            onClick={() => handleNavClick(item.id)}
             className={cn(
               'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
               activeView === item.id
@@ -66,7 +75,7 @@ export function Sidebar({ activeView, onViewChange, collapsed, onCollapse }: Sid
         {/* Admin Section */}
         {isAdmin && (
           <button
-            onClick={() => onViewChange('admin')}
+            onClick={() => handleNavClick('admin')}
             className={cn(
               'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
               activeView === 'admin'
@@ -98,6 +107,52 @@ export function Sidebar({ activeView, onViewChange, collapsed, onCollapse }: Sid
           {!collapsed && <span>Sign Out</span>}
         </button>
       </div>
+    </div>
+  );
+}
+
+export function Sidebar({ activeView, onViewChange, collapsed, onCollapse }: SidebarProps) {
+  const isMobile = useIsMobile();
+  const [open, setOpen] = useState(false);
+
+  if (isMobile) {
+    return (
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="fixed top-4 left-4 z-50 bg-background shadow-md border"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="p-0 w-64 bg-sidebar">
+          <SidebarContent
+            activeView={activeView}
+            onViewChange={onViewChange}
+            collapsed={false}
+            onCollapse={onCollapse}
+            onNavigate={() => setOpen(false)}
+          />
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  return (
+    <aside
+      className={cn(
+        'h-screen bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-300',
+        collapsed ? 'w-16' : 'w-64'
+      )}
+    >
+      <SidebarContent
+        activeView={activeView}
+        onViewChange={onViewChange}
+        collapsed={collapsed}
+        onCollapse={onCollapse}
+      />
     </aside>
   );
 }
