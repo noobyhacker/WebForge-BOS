@@ -215,7 +215,7 @@ export const AdminUsersView = () => {
                 {pendingUsers.map(u => (
                   <TableRow key={u.id}>
                     <TableCell className="font-medium">
-                      {u.display_name || 'No name'}
+                      {u.full_name || 'No name'}
                     </TableCell>
                     <TableCell>{u.email}</TableCell>
                     <TableCell>
