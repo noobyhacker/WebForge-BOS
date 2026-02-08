@@ -29,8 +29,8 @@ import {
 interface UserProfile {
   id: string;
   email: string | null;
-  display_name: string | null;
-  approved: boolean;
+  full_name: string | null;
+  is_approved: boolean;
   created_at: string;
   roles: string[];
 }
@@ -73,9 +73,13 @@ export const AdminUsersView = () => {
       });
     }
 
-    // Combine profiles with roles
+    // Combine profiles with roles, mapping DB fields to interface
     const usersWithRoles = profiles.map(profile => ({
-      ...profile,
+      id: profile.id,
+      email: profile.email,
+      full_name: profile.full_name,
+      is_approved: profile.is_approved,
+      created_at: profile.created_at,
       roles: roles?.filter(r => r.user_id === profile.id).map(r => r.role) || [],
     }));
 
@@ -91,7 +95,7 @@ export const AdminUsersView = () => {
     const { error } = await supabase
       .from('profiles')
       .update({
-        approved: true,
+        is_approved: true,
         approved_by: user?.id,
         approved_at: new Date().toISOString(),
       })
@@ -113,7 +117,7 @@ export const AdminUsersView = () => {
     const { error } = await supabase
       .from('profiles')
       .update({
-        approved: false,
+        is_approved: false,
         approved_by: null,
         approved_at: null,
       })
@@ -177,8 +181,8 @@ export const AdminUsersView = () => {
     );
   }
 
-  const pendingUsers = users.filter(u => !u.approved);
-  const approvedUsers = users.filter(u => u.approved);
+  const pendingUsers = users.filter(u => !u.is_approved);
+  const approvedUsers = users.filter(u => u.is_approved);
 
   return (
     <div className="space-y-6">
@@ -211,7 +215,7 @@ export const AdminUsersView = () => {
                 {pendingUsers.map(u => (
                   <TableRow key={u.id}>
                     <TableCell className="font-medium">
-                      {u.display_name || 'No name'}
+                      {u.full_name || 'No name'}
                     </TableCell>
                     <TableCell>{u.email}</TableCell>
                     <TableCell>
@@ -259,7 +263,7 @@ export const AdminUsersView = () => {
                 return (
                   <TableRow key={u.id}>
                     <TableCell className="font-medium">
-                      {u.display_name || 'No name'}
+                      {u.full_name || 'No name'}
                       {isCurrentUser && (
                         <Badge variant="outline" className="ml-2">You</Badge>
                       )}
@@ -295,7 +299,7 @@ export const AdminUsersView = () => {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Revoke Access</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This will remove {u.display_name || u.email}'s access to the CRM. They'll need to be approved again to regain access.
+                                  This will remove {u.full_name || u.email}'s access to the CRM. They'll need to be approved again to regain access.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
