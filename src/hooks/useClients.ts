@@ -430,13 +430,72 @@ export function useClients(userEmail: string = 'anonymous') {
       }
 
       if (client && followUp) {
-        await logAction('delete', 'follow_up', `${followUp.type} for ${client.name}`, 'Follow-up deleted');
+        // Store full follow-up data for potential undo
+        await logAction('delete', 'follow_up', `${followUp.type} for ${client.name}`, 'Follow-up deleted', followUpId, {
+          clientId,
+          date: followUp.date,
+          notes: followUp.notes,
+          status: followUp.status,
+          type: followUp.type,
+        });
       }
       await fetchClients();
     } catch (error) {
       console.error('Error in deleteFollowUp:', error);
     }
   }, [user, clients, logAction, fetchClients]);
+
+  // Restore a deleted entity from action log
+  const restoreFromLog = useCallback(async (log: ActionLog) => {
+    if (!user || log.actionType !== 'delete' || !log.entityData) return false;
+
+    try {
+      const data = JSON.parse(log.entityData);
+
+      if (log.entityType === 'client') {
+        const { error } = await supabase.from('clients').insert({
+          user_id: user.id,
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          company: data.company,
+          status: data.status,
+          notes: data.notes,
+          last_contact: data.lastContact,
+        });
+
+        if (error) {
+          console.error('Error restoring client:', error);
+          return false;
+        }
+
+        await logAction('create', 'client', data.name, `Restored client ${data.name}`);
+        await fetchClients();
+        return true;
+      } else if (log.entityType === 'follow_up') {
+        const { error } = await supabase.from('follow_ups').insert({
+          client_id: data.clientId,
+          user_id: user.id,
+          date: data.date,
+          notes: data.notes,
+          status: data.status,
+          type: data.type,
+        });
+
+        if (error) {
+          console.error('Error restoring follow-up:', error);
+          return false;
+        }
+
+        await logAction('create', 'follow_up', `${data.type}`, `Restored follow-up`);
+        await fetchClients();
+        return true;
+      }
+    } catch (error) {
+      console.error('Error in restoreFromLog:', error);
+    }
+    return false;
+  }, [user, logAction, fetchClients]);
 
   return {
     clients: filteredClients,
