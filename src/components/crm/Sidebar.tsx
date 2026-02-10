@@ -91,7 +91,9 @@ function SidebarContent({
       </nav>
 
       {/* Footer */}
-      <div className="p-3 border-t border-sidebar-border space-y-1">
+      <div className="p-3 border-t border-sidebar-border space-y-2">
+        {/* Dark Mode Toggle */}
+        <DarkModeToggle collapsed={collapsed} />
         {!collapsed && profile && (
           <div className="px-3 py-2 text-xs text-muted-foreground truncate">
             {profile.full_name || profile.email}
