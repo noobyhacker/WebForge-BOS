@@ -29,15 +29,23 @@ function DarkModeToggle({ collapsed }: { collapsed: boolean }) {
   }, []);
 
   return (
-    <div className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg', collapsed && 'justify-center')}>
+    <button
+      type="button"
+      onClick={() => setIsDark(!isDark)}
+      className={cn(
+        'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors',
+        'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+        collapsed && 'justify-center'
+      )}
+    >
       {isDark ? <Moon className="h-5 w-5 text-sidebar-foreground flex-shrink-0" /> : <Sun className="h-5 w-5 text-sidebar-foreground flex-shrink-0" />}
       {!collapsed && (
         <>
-          <span className="text-sm font-medium text-sidebar-foreground flex-1">Dark Mode</span>
-          <Switch checked={isDark} onCheckedChange={setIsDark} />
+          <span className="text-sm font-medium text-sidebar-foreground flex-1 text-left">Dark Mode</span>
+          <Switch checked={isDark} onCheckedChange={setIsDark} onClick={(e) => e.stopPropagation()} />
         </>
       )}
-    </div>
+    </button>
   );
 }
 
