@@ -1,11 +1,45 @@
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, Sun, Moon } from 'lucide-react';
 import webforgeLogo from '@/assets/webforge-logo.png';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Switch } from '@/components/ui/switch';
+
+function DarkModeToggle({ collapsed }: { collapsed: boolean }) {
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDark]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      setIsDark(true);
+    }
+  }, []);
+
+  return (
+    <div className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg', collapsed && 'justify-center')}>
+      {isDark ? <Moon className="h-5 w-5 text-sidebar-foreground flex-shrink-0" /> : <Sun className="h-5 w-5 text-sidebar-foreground flex-shrink-0" />}
+      {!collapsed && (
+        <>
+          <span className="text-sm font-medium text-sidebar-foreground flex-1">Dark Mode</span>
+          <Switch checked={isDark} onCheckedChange={setIsDark} />
+        </>
+      )}
+    </div>
+  );
+}
 
 interface SidebarProps {
   activeView: 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin';
@@ -90,7 +124,9 @@ function SidebarContent({
       </nav>
 
       {/* Footer */}
-      <div className="p-3 border-t border-sidebar-border space-y-1">
+      <div className="p-3 border-t border-sidebar-border space-y-2">
+        {/* Dark Mode Toggle */}
+        <DarkModeToggle collapsed={collapsed} />
         {!collapsed && profile && (
           <div className="px-3 py-2 text-xs text-muted-foreground truncate">
             {profile.full_name || profile.email}
