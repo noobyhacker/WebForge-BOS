@@ -28,6 +28,8 @@ const Index = () => {
     addClient,
     updateClient,
     deleteClient,
+    claimClient,
+    serveClient,
     updateFollowUpStatus,
     addFollowUp,
     updateFollowUp,
@@ -64,6 +66,8 @@ const Index = () => {
               onAddClient={addClient}
               onUpdateClient={updateClient}
               onDeleteClient={deleteClient}
+              onClaimClient={claimClient}
+              onServeClient={serveClient}
               onUpdateFollowUp={updateFollowUpStatus}
               onAddFollowUp={addFollowUp}
               onEditFollowUp={updateFollowUp}

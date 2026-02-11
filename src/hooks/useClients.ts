@@ -244,6 +244,56 @@ export function useClients(userEmail: string = 'anonymous') {
     }
   }, [user, logAction, fetchClients]);
 
+  // Claim a lead – assign current user as owner
+  const claimClient = useCallback(async (id: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update({ user_id: user.id })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error claiming client:', error);
+        return;
+      }
+
+      const client = clients.find((c) => c.id === id);
+      if (client) {
+        await logAction('update', 'client', client.name, `Claimed lead ${client.name}`);
+      }
+      await fetchClients();
+    } catch (error) {
+      console.error('Error in claimClient:', error);
+    }
+  }, [user, clients, logAction, fetchClients]);
+
+  // Mark a lead as being served (change status to active + claim if not owned)
+  const serveClient = useCallback(async (id: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update({ status: 'active', user_id: user.id })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error serving client:', error);
+        return;
+      }
+
+      const client = clients.find((c) => c.id === id);
+      if (client) {
+        await logAction('update', 'client', client.name, `Started serving lead ${client.name}`);
+      }
+      await fetchClients();
+    } catch (error) {
+      console.error('Error in serveClient:', error);
+    }
+  }, [user, clients, logAction, fetchClients]);
+
   const updateClient = useCallback(async (id: string, updates: Partial<Client>) => {
     if (!user) return;
 
@@ -511,6 +561,8 @@ export function useClients(userEmail: string = 'anonymous') {
     addClient,
     updateClient,
     deleteClient,
+    claimClient,
+    serveClient,
     addFollowUp,
     updateFollowUp,
     deleteFollowUp,

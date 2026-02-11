@@ -17,6 +17,8 @@ interface ClientsViewProps {
   onAddClient: (client: Omit<Client, 'id' | 'createdAt' | 'followUps'>) => Promise<Client | null>;
   onUpdateClient: (clientId: string, updates: Partial<Client>) => void;
   onDeleteClient: (clientId: string) => void;
+  onClaimClient: (clientId: string) => void;
+  onServeClient: (clientId: string) => void;
   onUpdateFollowUp: (clientId: string, followUpId: string, status: FollowUpStatus) => void;
   onAddFollowUp: (clientId: string, followUp: { date: string; notes: string; type: 'call' | 'email' | 'meeting' | 'task'; status: FollowUpStatus }) => void;
   onEditFollowUp: (clientId: string, followUpId: string, updates: Partial<Omit<FollowUp, 'id' | 'clientId'>>) => void;
@@ -32,6 +34,8 @@ export function ClientsView({
   onAddClient,
   onUpdateClient,
   onDeleteClient,
+  onClaimClient,
+  onServeClient,
   onUpdateFollowUp,
   onAddFollowUp,
   onEditFollowUp,
@@ -97,6 +101,8 @@ export function ClientsView({
                 client={client}
                 onClick={() => setSelectedClient(client)}
                 isSelected={currentSelectedClient?.id === client.id}
+                onClaimClient={onClaimClient}
+                onServeClient={onServeClient}
               />
             ))}
           </div>
