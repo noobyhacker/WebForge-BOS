@@ -1,17 +1,19 @@
 -- ============================================================
--- CRM Security Migration: Admin Access + Client Sharing
+-- CRM Expansion Migration – Phase 1
 -- Run this in your Supabase SQL Editor
 -- Uses IF NOT EXISTS / CREATE OR REPLACE to be idempotent
 -- ============================================================
 
--- 1. Create permission level enum (if not exists)
-DO $$ BEGIN
-  CREATE TYPE public.permission_level AS ENUM ('view', 'edit');
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
+-- ── Enums ──
 
--- 2. Create client_shares table for sharing clients with other users
+DO $$ BEGIN CREATE TYPE public.permission_level AS ENUM ('view', 'edit'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE public.contact_status AS ENUM ('active', 'inactive', 'prospect'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE public.deal_stage AS ENUM ('prospecting', 'qualification', 'proposal', 'negotiation', 'closed_won', 'closed_lost'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE public.activity_type AS ENUM ('call', 'email', 'meeting', 'task'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE public.activity_status AS ENUM ('pending', 'completed', 'cancelled'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- ── Existing tables (client_shares) ──
+
 CREATE TABLE IF NOT EXISTS public.client_shares (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   client_id uuid REFERENCES public.clients(id) ON DELETE CASCADE NOT NULL,
@@ -22,68 +24,127 @@ CREATE TABLE IF NOT EXISTS public.client_shares (
   UNIQUE (client_id, user_id)
 );
 
--- If client_shares already existed, ensure required columns exist (CREATE TABLE IF NOT EXISTS won't add them)
 ALTER TABLE public.client_shares
   ADD COLUMN IF NOT EXISTS user_id uuid,
   ADD COLUMN IF NOT EXISTS permission public.permission_level,
   ADD COLUMN IF NOT EXISTS created_at timestamptz,
   ADD COLUMN IF NOT EXISTS created_by uuid;
 
--- Ensure sane defaults (safe even if columns already had defaults)
 ALTER TABLE public.client_shares ALTER COLUMN permission SET DEFAULT 'view';
 ALTER TABLE public.client_shares ALTER COLUMN created_at SET DEFAULT now();
-
--- Enable RLS on client_shares
 ALTER TABLE public.client_shares ENABLE ROW LEVEL SECURITY;
 
--- 3. Create helper functions (SECURITY DEFINER to avoid RLS recursion)
+-- ── New Tables ──
 
--- Check if user is the owner of a client
+-- Accounts
+CREATE TABLE IF NOT EXISTS public.accounts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  industry text DEFAULT '',
+  website text DEFAULT '',
+  phone text DEFAULT '',
+  address text DEFAULT '',
+  owner_id uuid REFERENCES auth.users(id) ON DELETE SET NULL NOT NULL,
+  created_at timestamptz DEFAULT now() NOT NULL,
+  updated_at timestamptz DEFAULT now() NOT NULL
+);
+ALTER TABLE public.accounts ENABLE ROW LEVEL SECURITY;
+
+-- Contacts
+CREATE TABLE IF NOT EXISTS public.contacts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  first_name text NOT NULL,
+  last_name text NOT NULL DEFAULT '',
+  email text DEFAULT '',
+  phone text DEFAULT '',
+  account_id uuid REFERENCES public.accounts(id) ON DELETE SET NULL,
+  owner_id uuid REFERENCES auth.users(id) ON DELETE SET NULL NOT NULL,
+  status public.contact_status DEFAULT 'prospect' NOT NULL,
+  source text DEFAULT '',
+  title text DEFAULT '',
+  created_at timestamptz DEFAULT now() NOT NULL,
+  updated_at timestamptz DEFAULT now() NOT NULL
+);
+ALTER TABLE public.contacts ENABLE ROW LEVEL SECURITY;
+
+-- Deals
+CREATE TABLE IF NOT EXISTS public.deals (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  account_id uuid REFERENCES public.accounts(id) ON DELETE SET NULL,
+  contact_id uuid REFERENCES public.contacts(id) ON DELETE SET NULL,
+  owner_id uuid REFERENCES auth.users(id) ON DELETE SET NULL NOT NULL,
+  stage public.deal_stage DEFAULT 'prospecting' NOT NULL,
+  value numeric(12,2) DEFAULT 0,
+  probability int DEFAULT 0 CHECK (probability >= 0 AND probability <= 100),
+  expected_close_date date,
+  created_at timestamptz DEFAULT now() NOT NULL,
+  updated_at timestamptz DEFAULT now() NOT NULL
+);
+ALTER TABLE public.deals ENABLE ROW LEVEL SECURITY;
+
+-- Activities
+CREATE TABLE IF NOT EXISTS public.activities (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  type public.activity_type NOT NULL DEFAULT 'task',
+  subject text NOT NULL,
+  description text DEFAULT '',
+  entity_type text DEFAULT '',
+  entity_id uuid,
+  owner_id uuid REFERENCES auth.users(id) ON DELETE SET NULL NOT NULL,
+  due_date timestamptz,
+  completed_at timestamptz,
+  status public.activity_status DEFAULT 'pending' NOT NULL,
+  created_at timestamptz DEFAULT now() NOT NULL
+);
+ALTER TABLE public.activities ENABLE ROW LEVEL SECURITY;
+
+-- Products
+CREATE TABLE IF NOT EXISTS public.products (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  description text DEFAULT '',
+  price numeric(10,2) DEFAULT 0,
+  sku text DEFAULT '',
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now() NOT NULL,
+  updated_at timestamptz DEFAULT now() NOT NULL
+);
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+
+-- ── Action Logs columns ──
+
+ALTER TABLE public.action_logs
+  ADD COLUMN IF NOT EXISTS entity_id uuid,
+  ADD COLUMN IF NOT EXISTS entity_data text;
+
+-- ── Helper Functions (SECURITY DEFINER) ──
+
 CREATE OR REPLACE FUNCTION public.is_client_owner(client_id uuid)
-RETURNS boolean
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.clients
-    WHERE id = client_id AND user_id = auth.uid()
-  )
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS (SELECT 1 FROM public.clients WHERE id = client_id AND user_id = auth.uid())
 $$;
 
--- Check if user has at least view permission on a client (owner OR shared)
 CREATE OR REPLACE FUNCTION public.has_client_access(client_id uuid)
-RETURNS boolean
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.clients WHERE id = client_id AND user_id = auth.uid()
-  ) OR EXISTS (
-    SELECT 1 FROM public.client_shares WHERE client_id = $1 AND user_id = auth.uid()
-  )
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS (SELECT 1 FROM public.clients WHERE id = client_id AND user_id = auth.uid())
+  OR EXISTS (SELECT 1 FROM public.client_shares WHERE client_id = $1 AND user_id = auth.uid())
 $$;
 
--- Check if user has edit permission on a client (owner OR shared with 'edit')
 CREATE OR REPLACE FUNCTION public.has_client_edit_access(client_id uuid)
-RETURNS boolean
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.clients WHERE id = client_id AND user_id = auth.uid()
-  ) OR EXISTS (
-    SELECT 1 FROM public.client_shares 
-    WHERE client_id = $1 AND user_id = auth.uid() AND permission = 'edit'
-  )
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS (SELECT 1 FROM public.clients WHERE id = client_id AND user_id = auth.uid())
+  OR EXISTS (SELECT 1 FROM public.client_shares WHERE client_id = $1 AND user_id = auth.uid() AND permission = 'edit')
 $$;
 
--- 4. Drop existing RLS policies on clients (adjust names if different)
+-- Generic owner check
+CREATE OR REPLACE FUNCTION public.is_owner(_owner_id uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT _owner_id = auth.uid()
+$$;
+
+-- ── RLS Policies: Clients ──
+
 DROP POLICY IF EXISTS "Users can view their own clients" ON public.clients;
 DROP POLICY IF EXISTS "Users can insert their own clients" ON public.clients;
 DROP POLICY IF EXISTS "Users can update their own clients" ON public.clients;
@@ -93,45 +154,21 @@ DROP POLICY IF EXISTS "clients_insert_policy" ON public.clients;
 DROP POLICY IF EXISTS "clients_update_policy" ON public.clients;
 DROP POLICY IF EXISTS "clients_delete_policy" ON public.clients;
 
--- 5. Create new RLS policies for clients
+CREATE POLICY "clients_select_policy" ON public.clients FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR user_id = auth.uid() OR public.has_client_access(id));
 
--- SELECT: Admins see all, owners see their own, shared users see shared clients
-CREATE POLICY "clients_select_policy" ON public.clients
-FOR SELECT TO authenticated
-USING (
-  public.has_role(auth.uid(), 'admin')
-  OR user_id = auth.uid()
-  OR public.has_client_access(id)
-);
+CREATE POLICY "clients_insert_policy" ON public.clients FOR INSERT TO authenticated
+  WITH CHECK (user_id = auth.uid());
 
--- INSERT: Any authenticated user can create clients (ownership set via user_id)
-CREATE POLICY "clients_insert_policy" ON public.clients
-FOR INSERT TO authenticated
-WITH CHECK (user_id = auth.uid());
+CREATE POLICY "clients_update_policy" ON public.clients FOR UPDATE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR user_id = auth.uid() OR public.has_client_edit_access(id))
+  WITH CHECK (public.has_role(auth.uid(), 'admin') OR user_id = auth.uid() OR public.has_client_edit_access(id));
 
--- UPDATE: Admins can update all, owners can update their own, shared users with 'edit' can update
-CREATE POLICY "clients_update_policy" ON public.clients
-FOR UPDATE TO authenticated
-USING (
-  public.has_role(auth.uid(), 'admin')
-  OR user_id = auth.uid()
-  OR public.has_client_edit_access(id)
-)
-WITH CHECK (
-  public.has_role(auth.uid(), 'admin')
-  OR user_id = auth.uid()
-  OR public.has_client_edit_access(id)
-);
+CREATE POLICY "clients_delete_policy" ON public.clients FOR DELETE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR user_id = auth.uid());
 
--- DELETE: Only admins and owners can delete
-CREATE POLICY "clients_delete_policy" ON public.clients
-FOR DELETE TO authenticated
-USING (
-  public.has_role(auth.uid(), 'admin')
-  OR user_id = auth.uid()
-);
+-- ── RLS Policies: Follow-ups ──
 
--- 6. Drop existing RLS policies on follow_ups (adjust names if different)
 DROP POLICY IF EXISTS "Users can view their own follow ups" ON public.follow_ups;
 DROP POLICY IF EXISTS "Users can insert their own follow ups" ON public.follow_ups;
 DROP POLICY IF EXISTS "Users can update their own follow ups" ON public.follow_ups;
@@ -141,97 +178,165 @@ DROP POLICY IF EXISTS "follow_ups_insert_policy" ON public.follow_ups;
 DROP POLICY IF EXISTS "follow_ups_update_policy" ON public.follow_ups;
 DROP POLICY IF EXISTS "follow_ups_delete_policy" ON public.follow_ups;
 
--- 7. Create new RLS policies for follow_ups (inherit access from parent client)
+CREATE POLICY "follow_ups_select_policy" ON public.follow_ups FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR public.has_client_access(client_id));
 
--- SELECT: Admins see all, otherwise based on client access
-CREATE POLICY "follow_ups_select_policy" ON public.follow_ups
-FOR SELECT TO authenticated
-USING (
-  public.has_role(auth.uid(), 'admin')
-  OR public.has_client_access(client_id)
-);
+CREATE POLICY "follow_ups_insert_policy" ON public.follow_ups FOR INSERT TO authenticated
+  WITH CHECK (public.has_role(auth.uid(), 'admin') OR public.has_client_edit_access(client_id));
 
--- INSERT: Admins can insert anywhere, owners/editors can add to their accessible clients
-CREATE POLICY "follow_ups_insert_policy" ON public.follow_ups
-FOR INSERT TO authenticated
-WITH CHECK (
-  public.has_role(auth.uid(), 'admin')
-  OR public.has_client_edit_access(client_id)
-);
+CREATE POLICY "follow_ups_update_policy" ON public.follow_ups FOR UPDATE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR public.has_client_edit_access(client_id))
+  WITH CHECK (public.has_role(auth.uid(), 'admin') OR public.has_client_edit_access(client_id));
 
--- UPDATE: Admins can update all, owners/editors can update on their accessible clients
-CREATE POLICY "follow_ups_update_policy" ON public.follow_ups
-FOR UPDATE TO authenticated
-USING (
-  public.has_role(auth.uid(), 'admin')
-  OR public.has_client_edit_access(client_id)
-)
-WITH CHECK (
-  public.has_role(auth.uid(), 'admin')
-  OR public.has_client_edit_access(client_id)
-);
+CREATE POLICY "follow_ups_delete_policy" ON public.follow_ups FOR DELETE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR public.is_client_owner(client_id));
 
--- DELETE: Admins and client owners only
-CREATE POLICY "follow_ups_delete_policy" ON public.follow_ups
-FOR DELETE TO authenticated
-USING (
-  public.has_role(auth.uid(), 'admin')
-  OR public.is_client_owner(client_id)
-);
+-- ── RLS Policies: Client Shares ──
 
--- 8. RLS policies for client_shares table
 DROP POLICY IF EXISTS "client_shares_select_policy" ON public.client_shares;
 DROP POLICY IF EXISTS "client_shares_insert_policy" ON public.client_shares;
 DROP POLICY IF EXISTS "client_shares_update_policy" ON public.client_shares;
 DROP POLICY IF EXISTS "client_shares_delete_policy" ON public.client_shares;
 
--- SELECT: Admins see all, owners see shares for their clients, shared users see their own shares
-CREATE POLICY "client_shares_select_policy" ON public.client_shares
-FOR SELECT TO authenticated
-USING (
-  public.has_role(auth.uid(), 'admin')
-  OR public.is_client_owner(client_id)
-  OR user_id = auth.uid()
-);
+CREATE POLICY "client_shares_select_policy" ON public.client_shares FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR public.is_client_owner(client_id) OR user_id = auth.uid());
 
--- INSERT: Only admins and client owners can share
-CREATE POLICY "client_shares_insert_policy" ON public.client_shares
-FOR INSERT TO authenticated
-WITH CHECK (
-  public.has_role(auth.uid(), 'admin')
-  OR public.is_client_owner(client_id)
-);
+CREATE POLICY "client_shares_insert_policy" ON public.client_shares FOR INSERT TO authenticated
+  WITH CHECK (public.has_role(auth.uid(), 'admin') OR public.is_client_owner(client_id));
 
--- UPDATE: Only admins and client owners can update share permissions
-CREATE POLICY "client_shares_update_policy" ON public.client_shares
-FOR UPDATE TO authenticated
-USING (
-  public.has_role(auth.uid(), 'admin')
-  OR public.is_client_owner(client_id)
-)
-WITH CHECK (
-  public.has_role(auth.uid(), 'admin')
-  OR public.is_client_owner(client_id)
-);
+CREATE POLICY "client_shares_update_policy" ON public.client_shares FOR UPDATE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR public.is_client_owner(client_id))
+  WITH CHECK (public.has_role(auth.uid(), 'admin') OR public.is_client_owner(client_id));
 
--- DELETE: Only admins and client owners can remove shares
-CREATE POLICY "client_shares_delete_policy" ON public.client_shares
-FOR DELETE TO authenticated
-USING (
-  public.has_role(auth.uid(), 'admin')
-  OR public.is_client_owner(client_id)
-);
+CREATE POLICY "client_shares_delete_policy" ON public.client_shares FOR DELETE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR public.is_client_owner(client_id));
+
+-- ── RLS Policies: Accounts ──
+
+DROP POLICY IF EXISTS "accounts_select_policy" ON public.accounts;
+DROP POLICY IF EXISTS "accounts_insert_policy" ON public.accounts;
+DROP POLICY IF EXISTS "accounts_update_policy" ON public.accounts;
+DROP POLICY IF EXISTS "accounts_delete_policy" ON public.accounts;
+
+CREATE POLICY "accounts_select_policy" ON public.accounts FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid());
+
+CREATE POLICY "accounts_insert_policy" ON public.accounts FOR INSERT TO authenticated
+  WITH CHECK (owner_id = auth.uid());
+
+CREATE POLICY "accounts_update_policy" ON public.accounts FOR UPDATE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid())
+  WITH CHECK (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid());
+
+CREATE POLICY "accounts_delete_policy" ON public.accounts FOR DELETE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid());
+
+-- ── RLS Policies: Contacts ──
+
+DROP POLICY IF EXISTS "contacts_select_policy" ON public.contacts;
+DROP POLICY IF EXISTS "contacts_insert_policy" ON public.contacts;
+DROP POLICY IF EXISTS "contacts_update_policy" ON public.contacts;
+DROP POLICY IF EXISTS "contacts_delete_policy" ON public.contacts;
+
+CREATE POLICY "contacts_select_policy" ON public.contacts FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid());
+
+CREATE POLICY "contacts_insert_policy" ON public.contacts FOR INSERT TO authenticated
+  WITH CHECK (owner_id = auth.uid());
+
+CREATE POLICY "contacts_update_policy" ON public.contacts FOR UPDATE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid())
+  WITH CHECK (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid());
+
+CREATE POLICY "contacts_delete_policy" ON public.contacts FOR DELETE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid());
+
+-- ── RLS Policies: Deals ──
+
+DROP POLICY IF EXISTS "deals_select_policy" ON public.deals;
+DROP POLICY IF EXISTS "deals_insert_policy" ON public.deals;
+DROP POLICY IF EXISTS "deals_update_policy" ON public.deals;
+DROP POLICY IF EXISTS "deals_delete_policy" ON public.deals;
+
+CREATE POLICY "deals_select_policy" ON public.deals FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid());
+
+CREATE POLICY "deals_insert_policy" ON public.deals FOR INSERT TO authenticated
+  WITH CHECK (owner_id = auth.uid());
+
+CREATE POLICY "deals_update_policy" ON public.deals FOR UPDATE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid())
+  WITH CHECK (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid());
+
+CREATE POLICY "deals_delete_policy" ON public.deals FOR DELETE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid());
+
+-- ── RLS Policies: Activities ──
+
+DROP POLICY IF EXISTS "activities_select_policy" ON public.activities;
+DROP POLICY IF EXISTS "activities_insert_policy" ON public.activities;
+DROP POLICY IF EXISTS "activities_update_policy" ON public.activities;
+DROP POLICY IF EXISTS "activities_delete_policy" ON public.activities;
+
+CREATE POLICY "activities_select_policy" ON public.activities FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid());
+
+CREATE POLICY "activities_insert_policy" ON public.activities FOR INSERT TO authenticated
+  WITH CHECK (owner_id = auth.uid());
+
+CREATE POLICY "activities_update_policy" ON public.activities FOR UPDATE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid())
+  WITH CHECK (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid());
+
+CREATE POLICY "activities_delete_policy" ON public.activities FOR DELETE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid());
+
+-- ── RLS Policies: Products (all authenticated can view, admin can edit) ──
+
+DROP POLICY IF EXISTS "products_select_policy" ON public.products;
+DROP POLICY IF EXISTS "products_insert_policy" ON public.products;
+DROP POLICY IF EXISTS "products_update_policy" ON public.products;
+DROP POLICY IF EXISTS "products_delete_policy" ON public.products;
+
+CREATE POLICY "products_select_policy" ON public.products FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "products_insert_policy" ON public.products FOR INSERT TO authenticated
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "products_update_policy" ON public.products FOR UPDATE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'))
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "products_delete_policy" ON public.products FOR DELETE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+-- ── Updated_at trigger function ──
+
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+-- Apply to all tables with updated_at
+DO $$ BEGIN
+  CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.accounts FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.contacts FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.deals FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.products FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ============================================================
--- 9. Add entity_id and entity_data columns to action_logs for undo functionality
--- ============================================================
-
-ALTER TABLE public.action_logs
-  ADD COLUMN IF NOT EXISTS entity_id uuid,
-  ADD COLUMN IF NOT EXISTS entity_data text;
-
--- ============================================================
--- Done! Admins can see all clients/follow-ups.
--- Owners can share their clients with other users (view/edit).
--- Deleted items can be restored from Action Logs.
+-- Done! Run this migration in your Supabase SQL Editor.
 -- ============================================================

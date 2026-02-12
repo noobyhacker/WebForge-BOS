@@ -1,0 +1,78 @@
+import { useState, useCallback, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Deal, DealStage } from '@/types/crm';
+import { useAuth } from '@/contexts/AuthContext';
+
+export function useDeals() {
+  const { user, isApproved } = useAuth();
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchDeals = useCallback(async () => {
+    if (!user || !isApproved) { setDeals([]); setLoading(false); return; }
+    try {
+      const { data, error } = await supabase
+        .from('deals')
+        .select('*, accounts(name), contacts(first_name, last_name)')
+        .order('created_at', { ascending: false });
+      if (error) { console.error('Error fetching deals:', error); return; }
+      setDeals((data || []).map((d: any) => ({
+        id: d.id,
+        name: d.name,
+        accountId: d.account_id || undefined,
+        accountName: d.accounts?.name || '',
+        contactId: d.contact_id || undefined,
+        contactName: d.contacts ? `${d.contacts.first_name} ${d.contacts.last_name}`.trim() : '',
+        ownerId: d.owner_id,
+        stage: d.stage as DealStage,
+        value: Number(d.value) || 0,
+        probability: d.probability || 0,
+        expectedCloseDate: d.expected_close_date || '',
+        createdAt: d.created_at,
+        updatedAt: d.updated_at,
+      })));
+    } finally { setLoading(false); }
+  }, [user, isApproved]);
+
+  useEffect(() => { fetchDeals(); }, [fetchDeals]);
+
+  const addDeal = useCallback(async (deal: Omit<Deal, 'id' | 'createdAt' | 'updatedAt' | 'ownerId' | 'accountName' | 'contactName'>) => {
+    if (!user) return;
+    const { error } = await supabase.from('deals').insert({
+      name: deal.name,
+      account_id: deal.accountId || null,
+      contact_id: deal.contactId || null,
+      owner_id: user.id,
+      stage: deal.stage,
+      value: deal.value,
+      probability: deal.probability,
+      expected_close_date: deal.expectedCloseDate || null,
+    });
+    if (error) { console.error('Error adding deal:', error); throw error; }
+    await fetchDeals();
+  }, [user, fetchDeals]);
+
+  const updateDeal = useCallback(async (id: string, updates: Partial<Deal>) => {
+    if (!user) return;
+    const dbUpdates: Record<string, unknown> = {};
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.accountId !== undefined) dbUpdates.account_id = updates.accountId || null;
+    if (updates.contactId !== undefined) dbUpdates.contact_id = updates.contactId || null;
+    if (updates.stage !== undefined) dbUpdates.stage = updates.stage;
+    if (updates.value !== undefined) dbUpdates.value = updates.value;
+    if (updates.probability !== undefined) dbUpdates.probability = updates.probability;
+    if (updates.expectedCloseDate !== undefined) dbUpdates.expected_close_date = updates.expectedCloseDate || null;
+    const { error } = await supabase.from('deals').update(dbUpdates).eq('id', id);
+    if (error) { console.error('Error updating deal:', error); return; }
+    await fetchDeals();
+  }, [user, fetchDeals]);
+
+  const deleteDeal = useCallback(async (id: string) => {
+    if (!user) return;
+    const { error } = await supabase.from('deals').delete().eq('id', id);
+    if (error) { console.error('Error deleting deal:', error); return; }
+    await fetchDeals();
+  }, [user, fetchDeals]);
+
+  return { deals, loading, addDeal, updateDeal, deleteDeal, refetch: fetchDeals };
+}

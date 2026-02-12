@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, Sun, Moon, Contact, Building2, Handshake, ListTodo, Package } from 'lucide-react';
 import webforgeLogo from '@/assets/webforge-logo.png';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -49,19 +49,26 @@ function DarkModeToggle({ collapsed }: { collapsed: boolean }) {
   );
 }
 
+type View = 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin' | 'contacts' | 'accounts' | 'deals' | 'activities' | 'products';
+
 interface SidebarProps {
-  activeView: 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin';
-  onViewChange: (view: 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin') => void;
+  activeView: View;
+  onViewChange: (view: View) => void;
   collapsed: boolean;
   onCollapse: (collapsed: boolean) => void;
 }
 
 const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'clients', label: 'Clients', icon: Users },
-  { id: 'followups', label: 'Follow-ups', icon: Calendar },
-  { id: 'logs', label: 'Action Logs', icon: ClipboardList },
-] as const;
+  { id: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'clients' as const, label: 'Clients', icon: Users },
+  { id: 'contacts' as const, label: 'Contacts', icon: Contact },
+  { id: 'accounts' as const, label: 'Accounts', icon: Building2 },
+  { id: 'deals' as const, label: 'Deals', icon: Handshake },
+  { id: 'activities' as const, label: 'Activities', icon: ListTodo },
+  { id: 'products' as const, label: 'Products', icon: Package },
+  { id: 'followups' as const, label: 'Follow-ups', icon: Calendar },
+  { id: 'logs' as const, label: 'Action Logs', icon: ClipboardList },
+];
 
 function SidebarContent({ 
   activeView, 
@@ -72,7 +79,7 @@ function SidebarContent({
 }: SidebarProps & { onNavigate?: () => void }) {
   const { isAdmin, signOut, profile } = useAuth();
 
-  const handleNavClick = (view: 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin') => {
+  const handleNavClick = (view: View) => {
     onViewChange(view);
     onNavigate?.();
   };
@@ -97,7 +104,7 @@ function SidebarContent({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1">
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {navItems.map((item) => (
           <button
             key={item.id}
@@ -133,7 +140,6 @@ function SidebarContent({
 
       {/* Footer */}
       <div className="p-3 border-t border-sidebar-border space-y-2">
-        {/* Dark Mode Toggle */}
         <DarkModeToggle collapsed={collapsed} />
         {!collapsed && profile && (
           <div className="px-3 py-2 text-xs text-muted-foreground truncate">
