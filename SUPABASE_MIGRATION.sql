@@ -394,5 +394,75 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ============================================================
+-- Phase 4: Automation Engine + Lead Scoring
+-- ============================================================
+
+-- Automation Rules (admin-only)
+CREATE TABLE IF NOT EXISTS public.automation_rules (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  description text DEFAULT '',
+  entity_type text NOT NULL DEFAULT 'deal',
+  trigger_type text NOT NULL DEFAULT 'record_created',
+  trigger_config jsonb DEFAULT '{}',
+  action_type text NOT NULL DEFAULT 'create_task',
+  action_config jsonb DEFAULT '{}',
+  is_active boolean DEFAULT true,
+  created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL NOT NULL,
+  created_at timestamptz DEFAULT now() NOT NULL,
+  updated_at timestamptz DEFAULT now() NOT NULL
+);
+ALTER TABLE public.automation_rules ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "automation_rules_select_policy" ON public.automation_rules;
+DROP POLICY IF EXISTS "automation_rules_insert_policy" ON public.automation_rules;
+DROP POLICY IF EXISTS "automation_rules_update_policy" ON public.automation_rules;
+DROP POLICY IF EXISTS "automation_rules_delete_policy" ON public.automation_rules;
+
+CREATE POLICY "automation_rules_select_policy" ON public.automation_rules FOR SELECT TO authenticated USING (true);
+CREATE POLICY "automation_rules_insert_policy" ON public.automation_rules FOR INSERT TO authenticated
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "automation_rules_update_policy" ON public.automation_rules FOR UPDATE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "automation_rules_delete_policy" ON public.automation_rules FOR DELETE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+DO $$ BEGIN
+  CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.automation_rules FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Lead Scoring Rules (admin-only management, all can view)
+CREATE TABLE IF NOT EXISTS public.lead_scoring_rules (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  field text NOT NULL,
+  operator text NOT NULL DEFAULT 'equals',
+  value text DEFAULT '',
+  points int NOT NULL DEFAULT 0,
+  entity_type text NOT NULL DEFAULT 'client',
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now() NOT NULL,
+  updated_at timestamptz DEFAULT now() NOT NULL
+);
+ALTER TABLE public.lead_scoring_rules ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "lead_scoring_rules_select_policy" ON public.lead_scoring_rules;
+DROP POLICY IF EXISTS "lead_scoring_rules_insert_policy" ON public.lead_scoring_rules;
+DROP POLICY IF EXISTS "lead_scoring_rules_update_policy" ON public.lead_scoring_rules;
+DROP POLICY IF EXISTS "lead_scoring_rules_delete_policy" ON public.lead_scoring_rules;
+
+CREATE POLICY "lead_scoring_rules_select_policy" ON public.lead_scoring_rules FOR SELECT TO authenticated USING (true);
+CREATE POLICY "lead_scoring_rules_insert_policy" ON public.lead_scoring_rules FOR INSERT TO authenticated
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "lead_scoring_rules_update_policy" ON public.lead_scoring_rules FOR UPDATE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "lead_scoring_rules_delete_policy" ON public.lead_scoring_rules FOR DELETE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+DO $$ BEGIN
+  CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.lead_scoring_rules FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- ============================================================
 -- Done! Run this migration in your Supabase SQL Editor.
 -- ============================================================
