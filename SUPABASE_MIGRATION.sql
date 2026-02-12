@@ -464,5 +464,177 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ============================================================
+-- Phase 5: Quotes, Invoices, Documents
+-- ============================================================
+
+-- Quotes
+CREATE TABLE IF NOT EXISTS public.quotes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  quote_number text NOT NULL DEFAULT ('QT-' || to_char(now(), 'YYYYMMDD') || '-' || substr(gen_random_uuid()::text, 1, 4)),
+  deal_id uuid REFERENCES public.deals(id) ON DELETE SET NULL,
+  deal_name text DEFAULT '',
+  account_name text DEFAULT '',
+  contact_name text DEFAULT '',
+  status text NOT NULL DEFAULT 'draft',
+  valid_until date,
+  subtotal numeric(12,2) DEFAULT 0,
+  total_discount numeric(12,2) DEFAULT 0,
+  total_tax numeric(12,2) DEFAULT 0,
+  grand_total numeric(12,2) DEFAULT 0,
+  notes text DEFAULT '',
+  owner_id uuid REFERENCES auth.users(id) ON DELETE SET NULL NOT NULL,
+  created_at timestamptz DEFAULT now() NOT NULL,
+  updated_at timestamptz DEFAULT now() NOT NULL
+);
+ALTER TABLE public.quotes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "quotes_select_policy" ON public.quotes;
+DROP POLICY IF EXISTS "quotes_insert_policy" ON public.quotes;
+DROP POLICY IF EXISTS "quotes_update_policy" ON public.quotes;
+DROP POLICY IF EXISTS "quotes_delete_policy" ON public.quotes;
+
+CREATE POLICY "quotes_select_policy" ON public.quotes FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid());
+CREATE POLICY "quotes_insert_policy" ON public.quotes FOR INSERT TO authenticated
+  WITH CHECK (owner_id = auth.uid());
+CREATE POLICY "quotes_update_policy" ON public.quotes FOR UPDATE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid())
+  WITH CHECK (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid());
+CREATE POLICY "quotes_delete_policy" ON public.quotes FOR DELETE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid());
+
+DO $$ BEGIN
+  CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Quote Line Items
+CREATE TABLE IF NOT EXISTS public.quote_line_items (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  quote_id uuid REFERENCES public.quotes(id) ON DELETE CASCADE NOT NULL,
+  product_id uuid REFERENCES public.products(id) ON DELETE SET NULL,
+  product_name text NOT NULL,
+  description text DEFAULT '',
+  quantity int NOT NULL DEFAULT 1,
+  unit_price numeric(10,2) NOT NULL DEFAULT 0,
+  discount numeric(10,2) DEFAULT 0,
+  tax numeric(10,2) DEFAULT 0,
+  total numeric(12,2) NOT NULL DEFAULT 0
+);
+ALTER TABLE public.quote_line_items ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "quote_line_items_select_policy" ON public.quote_line_items;
+DROP POLICY IF EXISTS "quote_line_items_insert_policy" ON public.quote_line_items;
+DROP POLICY IF EXISTS "quote_line_items_delete_policy" ON public.quote_line_items;
+
+CREATE POLICY "quote_line_items_select_policy" ON public.quote_line_items FOR SELECT TO authenticated USING (true);
+CREATE POLICY "quote_line_items_insert_policy" ON public.quote_line_items FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "quote_line_items_delete_policy" ON public.quote_line_items FOR DELETE TO authenticated USING (true);
+
+-- Invoices
+CREATE TABLE IF NOT EXISTS public.invoices (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  invoice_number text NOT NULL DEFAULT ('INV-' || to_char(now(), 'YYYYMMDD') || '-' || substr(gen_random_uuid()::text, 1, 4)),
+  quote_id uuid REFERENCES public.quotes(id) ON DELETE SET NULL,
+  deal_id uuid REFERENCES public.deals(id) ON DELETE SET NULL,
+  deal_name text DEFAULT '',
+  account_name text DEFAULT '',
+  contact_name text DEFAULT '',
+  status text NOT NULL DEFAULT 'draft',
+  issue_date date DEFAULT CURRENT_DATE,
+  due_date date DEFAULT (CURRENT_DATE + interval '30 days'),
+  subtotal numeric(12,2) DEFAULT 0,
+  total_tax numeric(12,2) DEFAULT 0,
+  grand_total numeric(12,2) DEFAULT 0,
+  paid_amount numeric(12,2) DEFAULT 0,
+  notes text DEFAULT '',
+  owner_id uuid REFERENCES auth.users(id) ON DELETE SET NULL NOT NULL,
+  created_at timestamptz DEFAULT now() NOT NULL,
+  updated_at timestamptz DEFAULT now() NOT NULL
+);
+ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "invoices_select_policy" ON public.invoices;
+DROP POLICY IF EXISTS "invoices_insert_policy" ON public.invoices;
+DROP POLICY IF EXISTS "invoices_update_policy" ON public.invoices;
+DROP POLICY IF EXISTS "invoices_delete_policy" ON public.invoices;
+
+CREATE POLICY "invoices_select_policy" ON public.invoices FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid());
+CREATE POLICY "invoices_insert_policy" ON public.invoices FOR INSERT TO authenticated
+  WITH CHECK (owner_id = auth.uid());
+CREATE POLICY "invoices_update_policy" ON public.invoices FOR UPDATE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid())
+  WITH CHECK (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid());
+CREATE POLICY "invoices_delete_policy" ON public.invoices FOR DELETE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid());
+
+DO $$ BEGIN
+  CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.invoices FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Invoice Line Items
+CREATE TABLE IF NOT EXISTS public.invoice_line_items (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  invoice_id uuid REFERENCES public.invoices(id) ON DELETE CASCADE NOT NULL,
+  product_id uuid REFERENCES public.products(id) ON DELETE SET NULL,
+  product_name text NOT NULL,
+  description text DEFAULT '',
+  quantity int NOT NULL DEFAULT 1,
+  unit_price numeric(10,2) NOT NULL DEFAULT 0,
+  discount numeric(10,2) DEFAULT 0,
+  tax numeric(10,2) DEFAULT 0,
+  total numeric(12,2) NOT NULL DEFAULT 0
+);
+ALTER TABLE public.invoice_line_items ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "invoice_line_items_select_policy" ON public.invoice_line_items;
+DROP POLICY IF EXISTS "invoice_line_items_insert_policy" ON public.invoice_line_items;
+DROP POLICY IF EXISTS "invoice_line_items_delete_policy" ON public.invoice_line_items;
+
+CREATE POLICY "invoice_line_items_select_policy" ON public.invoice_line_items FOR SELECT TO authenticated USING (true);
+CREATE POLICY "invoice_line_items_insert_policy" ON public.invoice_line_items FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "invoice_line_items_delete_policy" ON public.invoice_line_items FOR DELETE TO authenticated USING (true);
+
+-- Documents metadata table (files stored in Supabase Storage)
+CREATE TABLE IF NOT EXISTS public.documents (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  file_url text NOT NULL,
+  file_size bigint DEFAULT 0,
+  mime_type text DEFAULT '',
+  entity_type text NOT NULL,
+  entity_id uuid NOT NULL,
+  uploaded_by uuid REFERENCES auth.users(id) ON DELETE SET NULL NOT NULL,
+  created_at timestamptz DEFAULT now() NOT NULL
+);
+ALTER TABLE public.documents ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "documents_select_policy" ON public.documents;
+DROP POLICY IF EXISTS "documents_insert_policy" ON public.documents;
+DROP POLICY IF EXISTS "documents_delete_policy" ON public.documents;
+
+CREATE POLICY "documents_select_policy" ON public.documents FOR SELECT TO authenticated USING (true);
+CREATE POLICY "documents_insert_policy" ON public.documents FOR INSERT TO authenticated
+  WITH CHECK (uploaded_by = auth.uid());
+CREATE POLICY "documents_delete_policy" ON public.documents FOR DELETE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR uploaded_by = auth.uid());
+
+-- Storage bucket for documents
+INSERT INTO storage.buckets (id, name, public) VALUES ('documents', 'documents', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Storage RLS policies
+DROP POLICY IF EXISTS "documents_storage_insert" ON storage.objects;
+DROP POLICY IF EXISTS "documents_storage_select" ON storage.objects;
+DROP POLICY IF EXISTS "documents_storage_delete" ON storage.objects;
+
+CREATE POLICY "documents_storage_insert" ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'documents');
+CREATE POLICY "documents_storage_select" ON storage.objects FOR SELECT TO authenticated
+  USING (bucket_id = 'documents');
+CREATE POLICY "documents_storage_delete" ON storage.objects FOR DELETE TO authenticated
+  USING (bucket_id = 'documents' AND (auth.uid())::text = (storage.foldername(name))[1]);
+
+-- ============================================================
 -- Done! Run this migration in your Supabase SQL Editor.
 -- ============================================================
