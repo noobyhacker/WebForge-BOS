@@ -26,7 +26,7 @@ const Index = () => {
   const { isAdmin, profile } = useAuth();
 
   const {
-    clients, allClients, stats, upcomingFollowUps, actionLogs,
+    clients, allClients, upcomingFollowUps, actionLogs,
     searchQuery, setSearchQuery, statusFilter, setStatusFilter,
     addClient, updateClient, deleteClient, claimClient, serveClient,
     updateFollowUpStatus, addFollowUp, updateFollowUp, deleteFollowUp, restoreFromLog,
@@ -37,6 +37,18 @@ const Index = () => {
   const { deals, addDeal, updateDeal, deleteDeal } = useDeals();
   const { activities, addActivity, updateActivity, deleteActivity } = useActivities();
   const { products, addProduct, updateProduct, deleteProduct } = useProducts();
+
+  // Compute unified dashboard stats
+  const stats = {
+    totalClients: clients.length,
+    activeClients: clients.filter(c => c.status === 'active').length,
+    pendingFollowUps: allClients.flatMap(c => c.followUps).filter(f => f.status === 'pending' || f.status === 'scheduled').length,
+    overdueFollowUps: allClients.flatMap(c => c.followUps).filter(f => f.status === 'overdue').length,
+    totalContacts: contacts.length,
+    totalAccounts: accounts.length,
+    totalDeals: deals.length,
+    totalPipelineValue: deals.filter(d => !['closed_won', 'closed_lost'].includes(d.stage)).reduce((s, d) => s + d.value, 0),
+  };
 
   return (
     <div className="flex h-screen bg-background">
@@ -50,7 +62,7 @@ const Index = () => {
       <main className="flex-1 overflow-hidden">
         <div className="h-full overflow-auto p-4 md:p-6 pt-16 md:pt-6">
           {activeView === 'dashboard' && (
-            <DashboardView stats={stats} upcomingFollowUps={upcomingFollowUps} onMarkComplete={updateFollowUpStatus} />
+            <DashboardView stats={stats} upcomingFollowUps={upcomingFollowUps} onMarkComplete={updateFollowUpStatus} deals={deals} />
           )}
           {activeView === 'clients' && (
             <ClientsView

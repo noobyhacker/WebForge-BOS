@@ -1,15 +1,57 @@
-import { DashboardStats, FollowUp } from '@/types/crm';
+import { DashboardStats, FollowUp, Deal, DealStage } from '@/types/crm';
 import { StatCard } from './StatCard';
 import { FollowUpItem } from './FollowUpItem';
-import { Users, UserCheck, Clock, AlertTriangle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Users, UserCheck, Clock, AlertTriangle, DollarSign, TrendingUp, Handshake, Contact, Building2 } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+
+const STAGE_CONFIG: Record<DealStage, { label: string; color: string }> = {
+  prospecting: { label: 'Prospecting', color: 'hsl(221, 83%, 53%)' },
+  qualification: { label: 'Qualification', color: 'hsl(271, 70%, 55%)' },
+  proposal: { label: 'Proposal', color: 'hsl(38, 92%, 50%)' },
+  negotiation: { label: 'Negotiation', color: 'hsl(25, 85%, 55%)' },
+  closed_won: { label: 'Won', color: 'hsl(142, 76%, 36%)' },
+  closed_lost: { label: 'Lost', color: 'hsl(0, 84%, 60%)' },
+};
 
 interface DashboardViewProps {
   stats: DashboardStats;
   upcomingFollowUps: (FollowUp & { clientName: string; clientCompany: string })[];
   onMarkComplete: (clientId: string, followUpId: string, status: 'completed') => void;
+  deals: Deal[];
 }
 
-export function DashboardView({ stats, upcomingFollowUps, onMarkComplete }: DashboardViewProps) {
+export function DashboardView({ stats, upcomingFollowUps, onMarkComplete, deals }: DashboardViewProps) {
+  // Pipeline data for bar chart
+  const pipelineData = (Object.keys(STAGE_CONFIG) as DealStage[])
+    .filter(s => s !== 'closed_lost')
+    .map(stage => ({
+      name: STAGE_CONFIG[stage].label,
+      value: deals.filter(d => d.stage === stage).reduce((sum, d) => sum + d.value, 0),
+      count: deals.filter(d => d.stage === stage).length,
+      fill: STAGE_CONFIG[stage].color,
+    }));
+
+  // Win rate
+  const closedDeals = deals.filter(d => d.stage === 'closed_won' || d.stage === 'closed_lost');
+  const winRate = closedDeals.length > 0
+    ? Math.round((deals.filter(d => d.stage === 'closed_won').length / closedDeals.length) * 100)
+    : 0;
+
+  // Pipeline totals
+  const openDeals = deals.filter(d => !['closed_won', 'closed_lost'].includes(d.stage));
+  const totalPipeline = openDeals.reduce((s, d) => s + d.value, 0);
+  const weightedPipeline = openDeals.reduce((s, d) => s + d.value * d.probability / 100, 0);
+  const wonRevenue = deals.filter(d => d.stage === 'closed_won').reduce((s, d) => s + d.value, 0);
+  const avgDealSize = deals.length > 0 ? Math.round(deals.reduce((s, d) => s + d.value, 0) / deals.length) : 0;
+
+  // Stage distribution for pie chart
+  const stageDistribution = (Object.keys(STAGE_CONFIG) as DealStage[]).map(stage => ({
+    name: STAGE_CONFIG[stage].label,
+    value: deals.filter(d => d.stage === stage).length,
+    color: STAGE_CONFIG[stage].color,
+  })).filter(s => s.value > 0);
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -17,61 +59,148 @@ export function DashboardView({ stats, upcomingFollowUps, onMarkComplete }: Dash
         <p className="text-muted-foreground">Welcome back! Here's an overview of your CRM.</p>
       </div>
 
-      {/* Stats Grid */}
+      {/* Primary KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Total Clients" value={stats.totalClients} icon={Users} variant="default" />
+        <StatCard title="Active Clients" value={stats.activeClients} icon={UserCheck} variant="success" />
+        <StatCard title="Contacts" value={stats.totalContacts} icon={Contact} variant="primary" />
+        <StatCard title="Accounts" value={stats.totalAccounts} icon={Building2} variant="default" />
+      </div>
+
+      {/* Deal KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Open Pipeline" value={`$${totalPipeline.toLocaleString()}`} icon={DollarSign} variant="primary" />
+        <StatCard title="Weighted Pipeline" value={`$${weightedPipeline.toLocaleString()}`} icon={TrendingUp} variant="default" />
+        <StatCard title="Won Revenue" value={`$${wonRevenue.toLocaleString()}`} icon={DollarSign} variant="success" />
         <StatCard
-          title="Total Clients"
-          value={stats.totalClients}
-          icon={Users}
-          variant="default"
-        />
-        <StatCard
-          title="Active Clients"
-          value={stats.activeClients}
-          icon={UserCheck}
-          variant="success"
-        />
-        <StatCard
-          title="Pending Follow-ups"
-          value={stats.pendingFollowUps}
-          icon={Clock}
-          variant="primary"
-        />
-        <StatCard
-          title="Overdue"
-          value={stats.overdueFollowUps}
-          icon={AlertTriangle}
-          variant={stats.overdueFollowUps > 0 ? 'destructive' : 'default'}
+          title="Win Rate"
+          value={closedDeals.length > 0 ? `${winRate}%` : 'N/A'}
+          icon={Handshake}
+          variant={winRate >= 50 ? 'success' : winRate > 0 ? 'warning' : 'default'}
         />
       </div>
 
-      {/* Upcoming Follow-ups */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Upcoming Follow-ups</h2>
-          <span className="text-sm text-muted-foreground">
-            {upcomingFollowUps.length} pending
-          </span>
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Pipeline Bar Chart */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Sales Pipeline</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {pipelineData.some(d => d.value > 0) ? (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={pipelineData}>
+                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
+                  <Tooltip formatter={(v: number) => [`$${v.toLocaleString()}`, 'Value']} />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    {pipelineData.map((entry, i) => (
+                      <Cell key={i} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[260px] flex items-center justify-center text-muted-foreground text-sm">
+                No deals data yet. Create deals to see pipeline analytics.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Stage Distribution Pie */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Deal Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {stageDistribution.length > 0 ? (
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie data={stageDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={90} paddingAngle={2}>
+                    {stageDistribution.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[260px] flex items-center justify-center text-muted-foreground text-sm">
+                No deals yet
+              </div>
+            )}
+            {stageDistribution.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {stageDistribution.map(s => (
+                  <div key={s.name} className="flex items-center gap-1.5 text-xs">
+                    <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                    <span className="text-muted-foreground">{s.name} ({s.value})</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Follow-ups + Quick Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Upcoming Follow-ups */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Upcoming Follow-ups</h2>
+            <span className="text-sm text-muted-foreground">{upcomingFollowUps.length} pending</span>
+          </div>
+          {upcomingFollowUps.length > 0 ? (
+            <div className="space-y-2">
+              {upcomingFollowUps.map((followUp) => (
+                <FollowUpItem
+                  key={followUp.id}
+                  followUp={followUp}
+                  showClient
+                  onMarkComplete={(id) => onMarkComplete(followUp.clientId, id, 'completed')}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-card rounded-lg border">
+              <Clock className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+              <p className="text-muted-foreground">No pending follow-ups</p>
+              <p className="text-sm text-muted-foreground/70">You're all caught up!</p>
+            </div>
+          )}
         </div>
 
-        {upcomingFollowUps.length > 0 ? (
-          <div className="space-y-2">
-            {upcomingFollowUps.map((followUp) => (
-              <FollowUpItem
-                key={followUp.id}
-                followUp={followUp}
-                showClient
-                onMarkComplete={(id) => onMarkComplete(followUp.clientId, id, 'completed')}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12 bg-card rounded-lg border">
-            <Clock className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
-            <p className="text-muted-foreground">No pending follow-ups</p>
-            <p className="text-sm text-muted-foreground/70">You're all caught up!</p>
-          </div>
-        )}
+        {/* Quick Stats */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Quick Stats</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Total Deals</span>
+              <span className="text-sm font-semibold">{deals.length}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Avg Deal Size</span>
+              <span className="text-sm font-semibold">${avgDealSize.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Open Deals</span>
+              <span className="text-sm font-semibold">{openDeals.length}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Pending Follow-ups</span>
+              <span className="text-sm font-semibold">{stats.pendingFollowUps}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Overdue</span>
+              <span className={`text-sm font-semibold ${stats.overdueFollowUps > 0 ? 'text-destructive' : ''}`}>{stats.overdueFollowUps}</span>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
