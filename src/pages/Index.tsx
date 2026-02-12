@@ -18,6 +18,8 @@ import { InvoicesView } from '@/components/crm/InvoicesView';
 import { DocumentsView } from '@/components/crm/DocumentsView';
 import { CustomFieldsView } from '@/components/crm/CustomFieldsView';
 import { ImportExportView } from '@/components/crm/ImportExportView';
+import { FieldPermissionsView } from '@/components/crm/FieldPermissionsView';
+import { SharingGroupsView } from '@/components/crm/SharingGroupsView';
 import { useClients } from '@/hooks/useClients';
 import { useContacts } from '@/hooks/useContacts';
 import { useAccounts } from '@/hooks/useAccounts';
@@ -31,9 +33,11 @@ import { useQuotes } from '@/hooks/useQuotes';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useCustomFields } from '@/hooks/useCustomFields';
+import { useFieldPermissions } from '@/hooks/useFieldPermissions';
+import { useSharingGroups } from '@/hooks/useSharingGroups';
 import { useAuth } from '@/contexts/AuthContext';
 
-type View = 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin' | 'contacts' | 'accounts' | 'deals' | 'activities' | 'products' | 'templates' | 'automation' | 'scoring' | 'quotes' | 'invoices' | 'documents' | 'custom_fields' | 'import_export';
+type View = 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin' | 'contacts' | 'accounts' | 'deals' | 'activities' | 'products' | 'templates' | 'automation' | 'scoring' | 'quotes' | 'invoices' | 'documents' | 'custom_fields' | 'import_export' | 'field_permissions' | 'sharing_groups';
 
 const Index = () => {
   const [activeView, setActiveView] = useState<View>('dashboard');
@@ -59,6 +63,8 @@ const Index = () => {
   const { invoices, generateFromQuote, updateInvoiceStatus, markPaid, deleteInvoice } = useInvoices();
   const { documents, uploadDocument, deleteDocument } = useDocuments();
   const { fields: customFields, addField: addCustomField, updateField: updateCustomField, deleteField: deleteCustomField } = useCustomFields();
+  const { permissions: fieldPermissions, addPermission: addFieldPermission, updatePermission: updateFieldPermission, deletePermission: deleteFieldPermission } = useFieldPermissions();
+  const { groups: sharingGroups, addGroup: addSharingGroup, updateGroup: updateSharingGroup, deleteGroup: deleteSharingGroup } = useSharingGroups();
 
   const stats = {
     totalClients: clients.length,
@@ -93,6 +99,8 @@ const Index = () => {
           {activeView === 'documents' && <DocumentsView documents={documents} onUpload={uploadDocument} onDelete={deleteDocument} />}
           {activeView === 'custom_fields' && <CustomFieldsView fields={customFields} onAdd={addCustomField} onUpdate={updateCustomField} onDelete={deleteCustomField} />}
           {activeView === 'import_export' && <ImportExportView contacts={contacts} accounts={accounts} deals={deals} onImportContacts={bulkImportContacts} onImportAccounts={bulkImportAccounts} onImportDeals={bulkImportDeals} />}
+          {activeView === 'field_permissions' && <FieldPermissionsView permissions={fieldPermissions} onAdd={addFieldPermission} onUpdate={updateFieldPermission} onDelete={deleteFieldPermission} />}
+          {activeView === 'sharing_groups' && <SharingGroupsView groups={sharingGroups} onAdd={addSharingGroup} onUpdate={updateSharingGroup} onDelete={deleteSharingGroup} />}
           {activeView === 'followups' && <FollowUpsView clients={allClients} onMarkComplete={updateFollowUpStatus} onUpdateFollowUp={updateFollowUp} onDeleteFollowUp={deleteFollowUp} />}
           {activeView === 'logs' && <ActionLogsView actionLogs={actionLogs} onRestore={restoreFromLog} />}
           {activeView === 'admin' && isAdmin && <AdminUsersView />}

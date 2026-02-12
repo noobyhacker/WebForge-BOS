@@ -692,5 +692,121 @@ CREATE POLICY "custom_field_values_update_policy" ON public.custom_field_values 
 CREATE POLICY "custom_field_values_delete_policy" ON public.custom_field_values FOR DELETE TO authenticated USING (true);
 
 -- ============================================================
+-- Phase 7: Security Hardening
+-- ============================================================
+
+-- Entity Shares (generic sharing for contacts, accounts, deals)
+CREATE TABLE IF NOT EXISTS public.entity_shares (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  entity_type text NOT NULL,
+  entity_id uuid NOT NULL,
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  permission text NOT NULL DEFAULT 'view',
+  created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at timestamptz DEFAULT now() NOT NULL,
+  UNIQUE (entity_type, entity_id, user_id)
+);
+ALTER TABLE public.entity_shares ENABLE ROW LEVEL SECURITY;
+
+-- Helper function for entity share access
+CREATE OR REPLACE FUNCTION public.has_entity_access(_entity_type text, _entity_id uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.entity_shares
+    WHERE entity_type = _entity_type AND entity_id = _entity_id AND user_id = auth.uid()
+  )
+$$;
+
+DROP POLICY IF EXISTS "entity_shares_select_policy" ON public.entity_shares;
+DROP POLICY IF EXISTS "entity_shares_insert_policy" ON public.entity_shares;
+DROP POLICY IF EXISTS "entity_shares_update_policy" ON public.entity_shares;
+DROP POLICY IF EXISTS "entity_shares_delete_policy" ON public.entity_shares;
+
+CREATE POLICY "entity_shares_select_policy" ON public.entity_shares FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR user_id = auth.uid() OR created_by = auth.uid());
+CREATE POLICY "entity_shares_insert_policy" ON public.entity_shares FOR INSERT TO authenticated
+  WITH CHECK (public.has_role(auth.uid(), 'admin') OR created_by = auth.uid());
+CREATE POLICY "entity_shares_update_policy" ON public.entity_shares FOR UPDATE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR created_by = auth.uid())
+  WITH CHECK (public.has_role(auth.uid(), 'admin') OR created_by = auth.uid());
+CREATE POLICY "entity_shares_delete_policy" ON public.entity_shares FOR DELETE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR created_by = auth.uid());
+
+-- Field Permissions (admin-managed)
+CREATE TABLE IF NOT EXISTS public.field_permissions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  entity_type text NOT NULL,
+  field_name text NOT NULL,
+  role text NOT NULL DEFAULT 'user',
+  can_view boolean DEFAULT true,
+  can_edit boolean DEFAULT true,
+  created_at timestamptz DEFAULT now() NOT NULL,
+  updated_at timestamptz DEFAULT now() NOT NULL,
+  UNIQUE (entity_type, field_name, role)
+);
+ALTER TABLE public.field_permissions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "field_permissions_select_policy" ON public.field_permissions;
+DROP POLICY IF EXISTS "field_permissions_insert_policy" ON public.field_permissions;
+DROP POLICY IF EXISTS "field_permissions_update_policy" ON public.field_permissions;
+DROP POLICY IF EXISTS "field_permissions_delete_policy" ON public.field_permissions;
+
+CREATE POLICY "field_permissions_select_policy" ON public.field_permissions FOR SELECT TO authenticated USING (true);
+CREATE POLICY "field_permissions_insert_policy" ON public.field_permissions FOR INSERT TO authenticated
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "field_permissions_update_policy" ON public.field_permissions FOR UPDATE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "field_permissions_delete_policy" ON public.field_permissions FOR DELETE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+DO $$ BEGIN
+  CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.field_permissions FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Sharing Groups
+CREATE TABLE IF NOT EXISTS public.sharing_groups (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  description text DEFAULT '',
+  member_ids jsonb DEFAULT '[]',
+  created_at timestamptz DEFAULT now() NOT NULL,
+  updated_at timestamptz DEFAULT now() NOT NULL
+);
+ALTER TABLE public.sharing_groups ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "sharing_groups_select_policy" ON public.sharing_groups;
+DROP POLICY IF EXISTS "sharing_groups_insert_policy" ON public.sharing_groups;
+DROP POLICY IF EXISTS "sharing_groups_update_policy" ON public.sharing_groups;
+DROP POLICY IF EXISTS "sharing_groups_delete_policy" ON public.sharing_groups;
+
+CREATE POLICY "sharing_groups_select_policy" ON public.sharing_groups FOR SELECT TO authenticated USING (true);
+CREATE POLICY "sharing_groups_insert_policy" ON public.sharing_groups FOR INSERT TO authenticated
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "sharing_groups_update_policy" ON public.sharing_groups FOR UPDATE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "sharing_groups_delete_policy" ON public.sharing_groups FOR DELETE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+DO $$ BEGIN
+  CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.sharing_groups FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Update RLS on contacts, accounts, deals to include entity_shares access
+-- Contacts: add shared access
+DROP POLICY IF EXISTS "contacts_select_policy" ON public.contacts;
+CREATE POLICY "contacts_select_policy" ON public.contacts FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid() OR public.has_entity_access('contact', id));
+
+-- Accounts: add shared access
+DROP POLICY IF EXISTS "accounts_select_policy" ON public.accounts;
+CREATE POLICY "accounts_select_policy" ON public.accounts FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid() OR public.has_entity_access('account', id));
+
+-- Deals: add shared access
+DROP POLICY IF EXISTS "deals_select_policy" ON public.deals;
+CREATE POLICY "deals_select_policy" ON public.deals FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid() OR public.has_entity_access('deal', id));
+
+-- ============================================================
 -- Done! Run this migration in your Supabase SQL Editor.
 -- ============================================================
