@@ -167,6 +167,10 @@ export function useClients(userEmail: string = 'anonymous') {
       activeClients: clients.filter((c) => c.status === 'active').length,
       pendingFollowUps: allFollowUps.filter((f) => f.status === 'pending' || f.status === 'scheduled').length,
       overdueFollowUps: allFollowUps.filter((f) => f.status === 'overdue').length,
+      totalContacts: 0,
+      totalAccounts: 0,
+      totalDeals: 0,
+      totalPipelineValue: 0,
     };
   }, [clients]);
 
