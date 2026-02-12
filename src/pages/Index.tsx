@@ -11,6 +11,8 @@ import { DealsView } from '@/components/crm/DealsView';
 import { ActivitiesView } from '@/components/crm/ActivitiesView';
 import { ProductsView } from '@/components/crm/ProductsView';
 import { EmailTemplatesView } from '@/components/crm/EmailTemplatesView';
+import { AutomationRulesView } from '@/components/crm/AutomationRulesView';
+import { LeadScoringView } from '@/components/crm/LeadScoringView';
 import { useClients } from '@/hooks/useClients';
 import { useContacts } from '@/hooks/useContacts';
 import { useAccounts } from '@/hooks/useAccounts';
@@ -18,9 +20,11 @@ import { useDeals } from '@/hooks/useDeals';
 import { useActivities } from '@/hooks/useActivities';
 import { useProducts } from '@/hooks/useProducts';
 import { useEmailTemplates } from '@/hooks/useEmailTemplates';
+import { useAutomationRules } from '@/hooks/useAutomationRules';
+import { useLeadScoringRules } from '@/hooks/useLeadScoring';
 import { useAuth } from '@/contexts/AuthContext';
 
-type View = 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin' | 'contacts' | 'accounts' | 'deals' | 'activities' | 'products' | 'templates';
+type View = 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin' | 'contacts' | 'accounts' | 'deals' | 'activities' | 'products' | 'templates' | 'automation' | 'scoring';
 
 const Index = () => {
   const [activeView, setActiveView] = useState<View>('dashboard');
@@ -40,6 +44,8 @@ const Index = () => {
   const { activities, addActivity, updateActivity, deleteActivity } = useActivities();
   const { products, addProduct, updateProduct, deleteProduct } = useProducts();
   const { templates, addTemplate, updateTemplate, deleteTemplate } = useEmailTemplates();
+  const { rules: automationRules, addRule: addAutomationRule, updateRule: updateAutomationRule, deleteRule: deleteAutomationRule } = useAutomationRules();
+  const { rules: scoringRules, addRule: addScoringRule, updateRule: updateScoringRule, deleteRule: deleteScoringRule } = useLeadScoringRules();
 
   const stats = {
     totalClients: clients.length,
@@ -67,6 +73,8 @@ const Index = () => {
           {activeView === 'activities' && <ActivitiesView activities={activities} onAdd={addActivity} onUpdate={updateActivity} onDelete={deleteActivity} />}
           {activeView === 'products' && <ProductsView products={products} onAdd={addProduct} onUpdate={updateProduct} onDelete={deleteProduct} />}
           {activeView === 'templates' && <EmailTemplatesView templates={templates} onAdd={addTemplate} onUpdate={updateTemplate} onDelete={deleteTemplate} />}
+          {activeView === 'automation' && <AutomationRulesView rules={automationRules} onAdd={addAutomationRule} onUpdate={updateAutomationRule} onDelete={deleteAutomationRule} />}
+          {activeView === 'scoring' && <LeadScoringView rules={scoringRules} clients={clients} contacts={contacts} onAdd={addScoringRule} onUpdate={updateScoringRule} onDelete={deleteScoringRule} />}
           {activeView === 'followups' && <FollowUpsView clients={allClients} onMarkComplete={updateFollowUpStatus} onUpdateFollowUp={updateFollowUp} onDeleteFollowUp={deleteFollowUp} />}
           {activeView === 'logs' && <ActionLogsView actionLogs={actionLogs} onRestore={restoreFromLog} />}
           {activeView === 'admin' && isAdmin && <AdminUsersView />}

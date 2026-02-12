@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, Sun, Moon, Contact, Building2, Handshake, ListTodo, Package, Mail } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, Sun, Moon, Contact, Building2, Handshake, ListTodo, Package, Mail, Zap, TrendingUp } from 'lucide-react';
 import webforgeLogo from '@/assets/webforge-logo.png';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -49,7 +49,7 @@ function DarkModeToggle({ collapsed }: { collapsed: boolean }) {
   );
 }
 
-type View = 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin' | 'contacts' | 'accounts' | 'deals' | 'activities' | 'products' | 'templates';
+type View = 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin' | 'contacts' | 'accounts' | 'deals' | 'activities' | 'products' | 'templates' | 'automation' | 'scoring';
 
 interface SidebarProps {
   activeView: View;
@@ -67,6 +67,8 @@ const navItems = [
   { id: 'activities' as const, label: 'Activities', icon: ListTodo },
   { id: 'products' as const, label: 'Products', icon: Package },
   { id: 'templates' as const, label: 'Email Templates', icon: Mail },
+  { id: 'automation' as const, label: 'Automation', icon: Zap },
+  { id: 'scoring' as const, label: 'Lead Scoring', icon: TrendingUp },
   { id: 'followups' as const, label: 'Follow-ups', icon: Calendar },
   { id: 'logs' as const, label: 'Action Logs', icon: ClipboardList },
 ];
