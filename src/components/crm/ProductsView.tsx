@@ -11,16 +11,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { ConfirmDialog } from './ConfirmDialog';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProducts } from '@/hooks/useProducts';
 
-interface ProductsViewProps {
-  products: Product[];
-  onAdd: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  onUpdate: (id: string, updates: Partial<Product>) => void;
-  onDelete: (id: string) => void;
-}
-
-export function ProductsView({ products, onAdd, onUpdate, onDelete }: ProductsViewProps) {
+export function ProductsView() {
   const { isAdmin } = useAuth();
+  const { products, addProduct, updateProduct, deleteProduct } = useProducts();
+
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -30,9 +26,9 @@ export function ProductsView({ products, onAdd, onUpdate, onDelete }: ProductsVi
   const filtered = products.filter(p => `${p.name} ${p.sku}`.toLowerCase().includes(search.toLowerCase()));
   const resetForm = () => setForm({ name: '', description: '', price: 0, sku: '', isActive: true });
 
-  const handleAdd = async () => { await onAdd(form); setShowAdd(false); resetForm(); };
+  const handleAdd = async () => { await addProduct(form); setShowAdd(false); resetForm(); };
   const handleEdit = (p: Product) => { setForm({ name: p.name, description: p.description, price: p.price, sku: p.sku, isActive: p.isActive }); setEditId(p.id); };
-  const handleUpdate = () => { if (editId) { onUpdate(editId, form); setEditId(null); resetForm(); } };
+  const handleUpdate = () => { if (editId) { updateProduct(editId, form); setEditId(null); resetForm(); } };
 
   const formDialog = (open: boolean, onClose: () => void, onSubmit: () => void, title: string) => (
     <Dialog open={open} onOpenChange={o => { if (!o) { onClose(); resetForm(); } }}>
@@ -113,7 +109,7 @@ export function ProductsView({ products, onAdd, onUpdate, onDelete }: ProductsVi
         onOpenChange={o => { if (!o) setDeleteId(null); }}
         title="Delete Product"
         description="Are you sure you want to delete this product?"
-        onConfirm={() => { if (deleteId) { onDelete(deleteId); setDeleteId(null); } }}
+        onConfirm={() => { if (deleteId) { deleteProduct(deleteId); setDeleteId(null); } }}
       />
     </div>
   );

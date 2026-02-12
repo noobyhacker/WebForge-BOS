@@ -11,17 +11,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ConfirmDialog } from './ConfirmDialog';
 import { format } from 'date-fns';
+import { useActivities } from '@/hooks/useActivities';
 
 const typeIcons: Record<ActivityType, typeof Phone> = { call: Phone, email: Mail, meeting: Users, task: ListTodo };
 
-interface ActivitiesViewProps {
-  activities: Activity[];
-  onAdd: (activity: Omit<Activity, 'id' | 'createdAt' | 'ownerId' | 'entityName'>) => Promise<void>;
-  onUpdate: (id: string, updates: Partial<Activity>) => void;
-  onDelete: (id: string) => void;
-}
+export function ActivitiesView() {
+  const { activities, addActivity, updateActivity, deleteActivity } = useActivities();
 
-export function ActivitiesView({ activities, onAdd, onUpdate, onDelete }: ActivitiesViewProps) {
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -37,14 +33,12 @@ export function ActivitiesView({ activities, onAdd, onUpdate, onDelete }: Activi
 
   const resetForm = () => setForm({ type: 'task', subject: '', description: '', entityType: '', entityId: '', dueDate: '', status: 'pending', completedAt: undefined });
 
-  const handleAdd = async () => { await onAdd(form); setShowAdd(false); resetForm(); };
-
+  const handleAdd = async () => { await addActivity(form); setShowAdd(false); resetForm(); };
   const handleEdit = (a: Activity) => {
     setForm({ type: a.type, subject: a.subject, description: a.description, entityType: a.entityType, entityId: a.entityId, dueDate: a.dueDate ? a.dueDate.slice(0, 16) : '', status: a.status, completedAt: a.completedAt });
     setEditId(a.id);
   };
-
-  const handleUpdate = () => { if (editId) { onUpdate(editId, form); setEditId(null); resetForm(); } };
+  const handleUpdate = () => { if (editId) { updateActivity(editId, form); setEditId(null); resetForm(); } };
 
   const formDialog = (open: boolean, onClose: () => void, onSubmit: () => void, title: string) => (
     <Dialog open={open} onOpenChange={o => { if (!o) { onClose(); resetForm(); } }}>
@@ -129,7 +123,7 @@ export function ActivitiesView({ activities, onAdd, onUpdate, onDelete }: Activi
                   </div>
                   <div className="flex gap-1 flex-shrink-0">
                     {a.status === 'pending' && (
-                      <Button variant="ghost" size="sm" onClick={() => onUpdate(a.id, { status: 'completed' })} title="Mark complete">
+                      <Button variant="ghost" size="sm" onClick={() => updateActivity(a.id, { status: 'completed' })} title="Mark complete">
                         <CheckCircle2 className="h-4 w-4 text-green-600" />
                       </Button>
                     )}
@@ -155,7 +149,7 @@ export function ActivitiesView({ activities, onAdd, onUpdate, onDelete }: Activi
         onOpenChange={o => { if (!o) setDeleteId(null); }}
         title="Delete Activity"
         description="Are you sure you want to delete this activity?"
-        onConfirm={() => { if (deleteId) { onDelete(deleteId); setDeleteId(null); } }}
+        onConfirm={() => { if (deleteId) { deleteActivity(deleteId); setDeleteId(null); } }}
       />
     </div>
   );

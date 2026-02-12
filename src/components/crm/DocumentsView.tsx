@@ -5,9 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Paperclip, Trash2, Upload, ExternalLink, FileIcon } from 'lucide-react';
+import { Paperclip, Trash2, ExternalLink, FileIcon } from 'lucide-react';
 import { format } from 'date-fns';
-import type { Document } from '@/types/phase5';
+import { useDocuments } from '@/hooks/useDocuments';
 
 const ENTITY_TYPES = ['client', 'contact', 'account', 'deal', 'quote', 'invoice'];
 
@@ -17,13 +17,9 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-interface Props {
-  documents: Document[];
-  onUpload: (file: File, entityType: string, entityId: string) => void;
-  onDelete: (id: string, fileUrl: string) => void;
-}
+export function DocumentsView() {
+  const { documents, uploadDocument, deleteDocument } = useDocuments();
 
-export function DocumentsView({ documents, onUpload, onDelete }: Props) {
   const [entityType, setEntityType] = useState('client');
   const [entityId, setEntityId] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
@@ -31,9 +27,8 @@ export function DocumentsView({ documents, onUpload, onDelete }: Props) {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    if (!entityId.trim()) return;
-    onUpload(file, entityType, entityId);
+    if (!file || !entityId.trim()) return;
+    uploadDocument(file, entityType, entityId);
     if (fileRef.current) fileRef.current.value = '';
     setEntityId('');
   };
@@ -44,15 +39,11 @@ export function DocumentsView({ documents, onUpload, onDelete }: Props) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Paperclip className="h-6 w-6 text-primary" />
-            Documents
-          </h1>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2"><Paperclip className="h-6 w-6 text-primary" />Documents</h1>
           <p className="text-muted-foreground mt-1">Upload and manage files linked to CRM records</p>
         </div>
       </div>
 
-      {/* Upload section */}
       <Card>
         <CardContent className="py-4">
           <h3 className="font-semibold text-foreground mb-3">Upload Document</h3>
@@ -61,47 +52,26 @@ export function DocumentsView({ documents, onUpload, onDelete }: Props) {
               <Label>Entity Type</Label>
               <Select value={entityType} onValueChange={setEntityType}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {ENTITY_TYPES.map(t => <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>)}
-                </SelectContent>
+                <SelectContent>{ENTITY_TYPES.map(t => <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Entity ID</Label>
-              <Input value={entityId} onChange={e => setEntityId(e.target.value)} placeholder="Paste record ID" />
-            </div>
-            <div className="col-span-2">
-              <Label>File</Label>
-              <div className="flex gap-2">
-                <Input ref={fileRef} type="file" onChange={handleFileSelect} disabled={!entityId.trim()} />
-              </div>
-            </div>
+            <div><Label>Entity ID</Label><Input value={entityId} onChange={e => setEntityId(e.target.value)} placeholder="Paste record ID" /></div>
+            <div className="col-span-2"><Label>File</Label><div className="flex gap-2"><Input ref={fileRef} type="file" onChange={handleFileSelect} disabled={!entityId.trim()} /></div></div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Filter */}
       <div className="flex items-center gap-2">
         <Label className="text-sm">Filter:</Label>
         <Select value={filterType} onValueChange={setFilterType}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            {ENTITY_TYPES.map(t => <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>)}
-          </SelectContent>
+          <SelectContent><SelectItem value="all">All Types</SelectItem>{ENTITY_TYPES.map(t => <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>)}</SelectContent>
         </Select>
         <span className="text-sm text-muted-foreground">{filtered.length} documents</span>
       </div>
 
-      {/* Document list */}
       {filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Paperclip className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium text-foreground">No documents</h3>
-            <p className="text-muted-foreground mt-1">Upload files to link them to CRM records</p>
-          </CardContent>
-        </Card>
+        <Card><CardContent className="py-12 text-center"><Paperclip className="h-12 w-12 mx-auto text-muted-foreground mb-4" /><h3 className="text-lg font-medium text-foreground">No documents</h3><p className="text-muted-foreground mt-1">Upload files to link them to CRM records</p></CardContent></Card>
       ) : (
         <div className="space-y-2">
           {filtered.map(doc => (
@@ -119,12 +89,8 @@ export function DocumentsView({ documents, onUpload, onDelete }: Props) {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" asChild>
-                    <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a>
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => onDelete(doc.id, doc.fileUrl)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  <Button variant="ghost" size="icon" asChild><a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a></Button>
+                  <Button variant="ghost" size="icon" onClick={() => deleteDocument(doc.id, doc.fileUrl)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                 </div>
               </CardContent>
             </Card>

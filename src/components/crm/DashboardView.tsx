@@ -1,9 +1,14 @@
-import { DashboardStats, FollowUp, Deal, DealStage } from '@/types/crm';
+import { DealStage } from '@/types/crm';
 import { StatCard } from './StatCard';
 import { FollowUpItem } from './FollowUpItem';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, UserCheck, Clock, AlertTriangle, DollarSign, TrendingUp, Handshake, Contact, Building2 } from 'lucide-react';
+import { Users, UserCheck, Clock, DollarSign, TrendingUp, Handshake, Contact, Building2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { useClients } from '@/hooks/useClients';
+import { useDeals } from '@/hooks/useDeals';
+import { useContacts } from '@/hooks/useContacts';
+import { useAccounts } from '@/hooks/useAccounts';
+import { useAuth } from '@/contexts/AuthContext';
 
 const STAGE_CONFIG: Record<DealStage, { label: string; color: string }> = {
   prospecting: { label: 'Prospecting', color: 'hsl(221, 83%, 53%)' },
@@ -14,14 +19,24 @@ const STAGE_CONFIG: Record<DealStage, { label: string; color: string }> = {
   closed_lost: { label: 'Lost', color: 'hsl(0, 84%, 60%)' },
 };
 
-interface DashboardViewProps {
-  stats: DashboardStats;
-  upcomingFollowUps: (FollowUp & { clientName: string; clientCompany: string })[];
-  onMarkComplete: (clientId: string, followUpId: string, status: 'completed') => void;
-  deals: Deal[];
-}
+export function DashboardView() {
+  const { profile } = useAuth();
+  const { clients, allClients, upcomingFollowUps, updateFollowUpStatus } = useClients(profile?.email || 'anonymous');
+  const { deals } = useDeals();
+  const { contacts } = useContacts();
+  const { accounts } = useAccounts();
 
-export function DashboardView({ stats, upcomingFollowUps, onMarkComplete, deals }: DashboardViewProps) {
+  const stats = {
+    totalClients: clients.length,
+    activeClients: clients.filter(c => c.status === 'active').length,
+    pendingFollowUps: allClients.flatMap(c => c.followUps).filter(f => f.status === 'pending' || f.status === 'scheduled').length,
+    overdueFollowUps: allClients.flatMap(c => c.followUps).filter(f => f.status === 'overdue').length,
+    totalContacts: contacts.length,
+    totalAccounts: accounts.length,
+    totalDeals: deals.length,
+    totalPipelineValue: deals.filter(d => !['closed_won', 'closed_lost'].includes(d.stage)).reduce((s, d) => s + d.value, 0),
+  };
+
   // Pipeline data for bar chart
   const pipelineData = (Object.keys(STAGE_CONFIG) as DealStage[])
     .filter(s => s !== 'closed_lost')
@@ -32,20 +47,17 @@ export function DashboardView({ stats, upcomingFollowUps, onMarkComplete, deals 
       fill: STAGE_CONFIG[stage].color,
     }));
 
-  // Win rate
   const closedDeals = deals.filter(d => d.stage === 'closed_won' || d.stage === 'closed_lost');
   const winRate = closedDeals.length > 0
     ? Math.round((deals.filter(d => d.stage === 'closed_won').length / closedDeals.length) * 100)
     : 0;
 
-  // Pipeline totals
   const openDeals = deals.filter(d => !['closed_won', 'closed_lost'].includes(d.stage));
   const totalPipeline = openDeals.reduce((s, d) => s + d.value, 0);
   const weightedPipeline = openDeals.reduce((s, d) => s + d.value * d.probability / 100, 0);
   const wonRevenue = deals.filter(d => d.stage === 'closed_won').reduce((s, d) => s + d.value, 0);
   const avgDealSize = deals.length > 0 ? Math.round(deals.reduce((s, d) => s + d.value, 0) / deals.length) : 0;
 
-  // Stage distribution for pie chart
   const stageDistribution = (Object.keys(STAGE_CONFIG) as DealStage[]).map(stage => ({
     name: STAGE_CONFIG[stage].label,
     value: deals.filter(d => d.stage === stage).length,
@@ -82,7 +94,6 @@ export function DashboardView({ stats, upcomingFollowUps, onMarkComplete, deals 
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Pipeline Bar Chart */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Sales Pipeline</CardTitle>
@@ -109,7 +120,6 @@ export function DashboardView({ stats, upcomingFollowUps, onMarkComplete, deals 
           </CardContent>
         </Card>
 
-        {/* Stage Distribution Pie */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Deal Distribution</CardTitle>
@@ -147,7 +157,6 @@ export function DashboardView({ stats, upcomingFollowUps, onMarkComplete, deals 
 
       {/* Follow-ups + Quick Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Upcoming Follow-ups */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Upcoming Follow-ups</h2>
@@ -160,7 +169,7 @@ export function DashboardView({ stats, upcomingFollowUps, onMarkComplete, deals 
                   key={followUp.id}
                   followUp={followUp}
                   showClient
-                  onMarkComplete={(id) => onMarkComplete(followUp.clientId, id, 'completed')}
+                  onMarkComplete={(id) => updateFollowUpStatus(followUp.clientId, id, 'completed')}
                 />
               ))}
             </div>
@@ -173,7 +182,6 @@ export function DashboardView({ stats, upcomingFollowUps, onMarkComplete, deals 
           )}
         </div>
 
-        {/* Quick Stats */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Quick Stats</CardTitle>

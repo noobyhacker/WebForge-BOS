@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Deal, DealStage, Account, Contact } from '@/types/crm';
+import { Deal, DealStage } from '@/types/crm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,6 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ConfirmDialog } from './ConfirmDialog';
 import { EntityDetailPanel } from './EntityDetailPanel';
+import { useDeals } from '@/hooks/useDeals';
+import { useAccounts } from '@/hooks/useAccounts';
+import { useContacts } from '@/hooks/useContacts';
 
 const STAGES: { value: DealStage; label: string; color: string }[] = [
   { value: 'prospecting', label: 'Prospecting', color: 'bg-blue-500/10 text-blue-700 dark:text-blue-400' },
@@ -20,16 +23,11 @@ const STAGES: { value: DealStage; label: string; color: string }[] = [
   { value: 'closed_lost', label: 'Closed Lost', color: 'bg-red-500/10 text-red-700 dark:text-red-400' },
 ];
 
-interface DealsViewProps {
-  deals: Deal[];
-  accounts: Account[];
-  contacts: Contact[];
-  onAdd: (deal: Omit<Deal, 'id' | 'createdAt' | 'updatedAt' | 'ownerId' | 'accountName' | 'contactName'>) => Promise<void>;
-  onUpdate: (id: string, updates: Partial<Deal>) => void;
-  onDelete: (id: string) => void;
-}
+export function DealsView() {
+  const { deals, addDeal, updateDeal, deleteDeal } = useDeals();
+  const { accounts } = useAccounts();
+  const { contacts } = useContacts();
 
-export function DealsView({ deals, accounts, contacts, onAdd, onUpdate, onDelete }: DealsViewProps) {
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -42,9 +40,9 @@ export function DealsView({ deals, accounts, contacts, onAdd, onUpdate, onDelete
   const currentSelected = selectedDeal ? deals.find(d => d.id === selectedDeal.id) || null : null;
   const resetForm = () => setForm({ name: '', accountId: '', contactId: '', stage: 'prospecting', value: 0, probability: 20, expectedCloseDate: '' });
 
-  const handleAdd = async () => { await onAdd({ ...form, accountId: form.accountId || undefined, contactId: form.contactId || undefined }); setShowAdd(false); resetForm(); };
+  const handleAdd = async () => { await addDeal({ ...form, accountId: form.accountId || undefined, contactId: form.contactId || undefined }); setShowAdd(false); resetForm(); };
   const handleEdit = (d: Deal) => { setForm({ name: d.name, accountId: d.accountId || '', contactId: d.contactId || '', stage: d.stage, value: d.value, probability: d.probability, expectedCloseDate: d.expectedCloseDate }); setEditId(d.id); };
-  const handleUpdate = () => { if (editId) { onUpdate(editId, { ...form, accountId: form.accountId || undefined, contactId: form.contactId || undefined }); setEditId(null); resetForm(); } };
+  const handleUpdate = () => { if (editId) { updateDeal(editId, { ...form, accountId: form.accountId || undefined, contactId: form.contactId || undefined }); setEditId(null); resetForm(); } };
 
   const totalPipeline = deals.filter(d => !['closed_won', 'closed_lost'].includes(d.stage)).reduce((s, d) => s + d.value, 0);
   const weightedPipeline = deals.filter(d => !['closed_won', 'closed_lost'].includes(d.stage)).reduce((s, d) => s + d.value * d.probability / 100, 0);
@@ -184,7 +182,7 @@ export function DealsView({ deals, accounts, contacts, onAdd, onUpdate, onDelete
 
       {formDialog(showAdd, () => setShowAdd(false), handleAdd, 'Add Deal')}
       {formDialog(!!editId, () => setEditId(null), handleUpdate, 'Edit Deal')}
-      <ConfirmDialog open={!!deleteId} onOpenChange={o => { if (!o) setDeleteId(null); }} title="Delete Deal" description="Are you sure you want to delete this deal?" onConfirm={() => { if (deleteId) { onDelete(deleteId); setDeleteId(null); } }} />
+      <ConfirmDialog open={!!deleteId} onOpenChange={o => { if (!o) setDeleteId(null); }} title="Delete Deal" description="Are you sure you want to delete this deal?" onConfirm={() => { if (deleteId) { deleteDeal(deleteId); setDeleteId(null); } }} />
     </div>
   );
 }

@@ -4,7 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Receipt, Trash2, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { useState } from 'react';
-import type { Invoice, InvoiceStatus } from '@/types/phase5';
+import type { InvoiceStatus } from '@/types/phase5';
+import { useInvoices } from '@/hooks/useInvoices';
 
 const STATUS_COLORS: Record<InvoiceStatus, string> = {
   draft: 'bg-muted text-muted-foreground',
@@ -14,35 +15,20 @@ const STATUS_COLORS: Record<InvoiceStatus, string> = {
   cancelled: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
 };
 
-interface Props {
-  invoices: Invoice[];
-  onUpdateStatus: (id: string, status: InvoiceStatus) => void;
-  onMarkPaid: (id: string, amount: number) => void;
-  onDelete: (id: string) => void;
-}
-
-export function InvoicesView({ invoices, onUpdateStatus, onMarkPaid, onDelete }: Props) {
+export function InvoicesView() {
+  const { invoices, updateInvoiceStatus, markPaid, deleteInvoice } = useInvoices();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const formatCurrency = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <Receipt className="h-6 w-6 text-primary" />
-          Invoices
-        </h1>
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2"><Receipt className="h-6 w-6 text-primary" />Invoices</h1>
         <p className="text-muted-foreground mt-1">Manage invoices generated from accepted quotes</p>
       </div>
 
       {invoices.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Receipt className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium text-foreground">No invoices yet</h3>
-            <p className="text-muted-foreground mt-1">Generate invoices from accepted quotes</p>
-          </CardContent>
-        </Card>
+        <Card><CardContent className="py-12 text-center"><Receipt className="h-12 w-12 mx-auto text-muted-foreground mb-4" /><h3 className="text-lg font-medium text-foreground">No invoices yet</h3><p className="text-muted-foreground mt-1">Generate invoices from accepted quotes</p></CardContent></Card>
       ) : (
         <div className="space-y-3">
           {invoices.map(inv => (
@@ -63,40 +49,20 @@ export function InvoicesView({ invoices, onUpdateStatus, onMarkPaid, onDelete }:
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    {inv.status === 'draft' && (
-                      <Button variant="outline" size="sm" onClick={() => onUpdateStatus(inv.id, 'sent')}>Send</Button>
-                    )}
+                    {inv.status === 'draft' && <Button variant="outline" size="sm" onClick={() => updateInvoiceStatus(inv.id, 'sent')}>Send</Button>}
                     {(inv.status === 'sent' || inv.status === 'overdue') && (
-                      <Button variant="outline" size="sm" onClick={() => onMarkPaid(inv.id, inv.grandTotal)}>
-                        <DollarSign className="h-4 w-4 mr-1" />Mark Paid
-                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => markPaid(inv.id, inv.grandTotal)}><DollarSign className="h-4 w-4 mr-1" />Mark Paid</Button>
                     )}
-                    <Button variant="ghost" size="icon" onClick={() => onDelete(inv.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => deleteInvoice(inv.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                   </div>
                 </div>
                 {expandedId === inv.id && inv.lineItems.length > 0 && (
                   <div className="mt-4 border-t pt-3">
                     <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-muted-foreground">
-                          <th className="text-left pb-2">Product</th>
-                          <th className="text-right pb-2">Qty</th>
-                          <th className="text-right pb-2">Price</th>
-                          <th className="text-right pb-2">Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {inv.lineItems.map(li => (
-                          <tr key={li.id} className="border-t border-border">
-                            <td className="py-1 text-foreground">{li.productName}</td>
-                            <td className="py-1 text-right">{li.quantity}</td>
-                            <td className="py-1 text-right">{formatCurrency(li.unitPrice)}</td>
-                            <td className="py-1 text-right font-medium">{formatCurrency(li.total)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
+                      <thead><tr className="text-muted-foreground"><th className="text-left pb-2">Product</th><th className="text-right pb-2">Qty</th><th className="text-right pb-2">Price</th><th className="text-right pb-2">Total</th></tr></thead>
+                      <tbody>{inv.lineItems.map(li => (
+                        <tr key={li.id} className="border-t border-border"><td className="py-1 text-foreground">{li.productName}</td><td className="py-1 text-right">{li.quantity}</td><td className="py-1 text-right">{formatCurrency(li.unitPrice)}</td><td className="py-1 text-right font-medium">{formatCurrency(li.total)}</td></tr>
+                      ))}</tbody>
                     </table>
                   </div>
                 )}
