@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, Sun, Moon, Contact, Building2, Handshake, ListTodo, Package, Mail, Zap, TrendingUp, FileText, Receipt, Paperclip, Settings2, FileSpreadsheet } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, Sun, Moon, Contact, Building2, Handshake, ListTodo, Package, Mail, Zap, TrendingUp, FileText, Receipt, Paperclip, Settings2, FileSpreadsheet, Lock, UsersRound } from 'lucide-react';
 import webforgeLogo from '@/assets/webforge-logo.png';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -49,7 +49,7 @@ function DarkModeToggle({ collapsed }: { collapsed: boolean }) {
   );
 }
 
-type View = 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin' | 'contacts' | 'accounts' | 'deals' | 'activities' | 'products' | 'templates' | 'automation' | 'scoring' | 'quotes' | 'invoices' | 'documents' | 'custom_fields' | 'import_export';
+type View = 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin' | 'contacts' | 'accounts' | 'deals' | 'activities' | 'products' | 'templates' | 'automation' | 'scoring' | 'quotes' | 'invoices' | 'documents' | 'custom_fields' | 'import_export' | 'field_permissions' | 'sharing_groups';
 
 interface SidebarProps {
   activeView: View;
@@ -74,6 +74,8 @@ const navItems = [
   { id: 'documents' as const, label: 'Documents', icon: Paperclip },
   { id: 'custom_fields' as const, label: 'Custom Fields', icon: Settings2 },
   { id: 'import_export' as const, label: 'Import / Export', icon: FileSpreadsheet },
+  { id: 'field_permissions' as const, label: 'Permissions', icon: Lock },
+  { id: 'sharing_groups' as const, label: 'Sharing Groups', icon: UsersRound },
   { id: 'followups' as const, label: 'Follow-ups', icon: Calendar },
   { id: 'logs' as const, label: 'Action Logs', icon: ClipboardList },
 ];
