@@ -13,6 +13,9 @@ import { ProductsView } from '@/components/crm/ProductsView';
 import { EmailTemplatesView } from '@/components/crm/EmailTemplatesView';
 import { AutomationRulesView } from '@/components/crm/AutomationRulesView';
 import { LeadScoringView } from '@/components/crm/LeadScoringView';
+import { QuotesView } from '@/components/crm/QuotesView';
+import { InvoicesView } from '@/components/crm/InvoicesView';
+import { DocumentsView } from '@/components/crm/DocumentsView';
 import { useClients } from '@/hooks/useClients';
 import { useContacts } from '@/hooks/useContacts';
 import { useAccounts } from '@/hooks/useAccounts';
@@ -22,9 +25,12 @@ import { useProducts } from '@/hooks/useProducts';
 import { useEmailTemplates } from '@/hooks/useEmailTemplates';
 import { useAutomationRules } from '@/hooks/useAutomationRules';
 import { useLeadScoringRules } from '@/hooks/useLeadScoring';
+import { useQuotes } from '@/hooks/useQuotes';
+import { useInvoices } from '@/hooks/useInvoices';
+import { useDocuments } from '@/hooks/useDocuments';
 import { useAuth } from '@/contexts/AuthContext';
 
-type View = 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin' | 'contacts' | 'accounts' | 'deals' | 'activities' | 'products' | 'templates' | 'automation' | 'scoring';
+type View = 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin' | 'contacts' | 'accounts' | 'deals' | 'activities' | 'products' | 'templates' | 'automation' | 'scoring' | 'quotes' | 'invoices' | 'documents';
 
 const Index = () => {
   const [activeView, setActiveView] = useState<View>('dashboard');
@@ -46,6 +52,9 @@ const Index = () => {
   const { templates, addTemplate, updateTemplate, deleteTemplate } = useEmailTemplates();
   const { rules: automationRules, addRule: addAutomationRule, updateRule: updateAutomationRule, deleteRule: deleteAutomationRule } = useAutomationRules();
   const { rules: scoringRules, addRule: addScoringRule, updateRule: updateScoringRule, deleteRule: deleteScoringRule } = useLeadScoringRules();
+  const { quotes, addQuote, updateQuoteStatus, deleteQuote } = useQuotes();
+  const { invoices, generateFromQuote, updateInvoiceStatus, markPaid, deleteInvoice } = useInvoices();
+  const { documents, uploadDocument, deleteDocument } = useDocuments();
 
   const stats = {
     totalClients: clients.length,
@@ -75,6 +84,9 @@ const Index = () => {
           {activeView === 'templates' && <EmailTemplatesView templates={templates} onAdd={addTemplate} onUpdate={updateTemplate} onDelete={deleteTemplate} />}
           {activeView === 'automation' && <AutomationRulesView rules={automationRules} onAdd={addAutomationRule} onUpdate={updateAutomationRule} onDelete={deleteAutomationRule} />}
           {activeView === 'scoring' && <LeadScoringView rules={scoringRules} clients={clients} contacts={contacts} onAdd={addScoringRule} onUpdate={updateScoringRule} onDelete={deleteScoringRule} />}
+          {activeView === 'quotes' && <QuotesView quotes={quotes} deals={deals} products={products} onAdd={addQuote} onUpdateStatus={updateQuoteStatus} onDelete={deleteQuote} onGenerateInvoice={generateFromQuote} />}
+          {activeView === 'invoices' && <InvoicesView invoices={invoices} onUpdateStatus={updateInvoiceStatus} onMarkPaid={markPaid} onDelete={deleteInvoice} />}
+          {activeView === 'documents' && <DocumentsView documents={documents} onUpload={uploadDocument} onDelete={deleteDocument} />}
           {activeView === 'followups' && <FollowUpsView clients={allClients} onMarkComplete={updateFollowUpStatus} onUpdateFollowUp={updateFollowUp} onDeleteFollowUp={deleteFollowUp} />}
           {activeView === 'logs' && <ActionLogsView actionLogs={actionLogs} onRestore={restoreFromLog} />}
           {activeView === 'admin' && isAdmin && <AdminUsersView />}
