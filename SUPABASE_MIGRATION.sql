@@ -338,5 +338,61 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ============================================================
+-- Phase 3: Notes + Email Templates
+-- ============================================================
+
+-- Notes (polymorphic – attachable to any entity)
+CREATE TABLE IF NOT EXISTS public.notes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  entity_type text NOT NULL,
+  entity_id uuid NOT NULL,
+  content text NOT NULL,
+  author_id uuid REFERENCES auth.users(id) ON DELETE SET NULL NOT NULL,
+  created_at timestamptz DEFAULT now() NOT NULL,
+  updated_at timestamptz DEFAULT now() NOT NULL
+);
+ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "notes_select_policy" ON public.notes;
+DROP POLICY IF EXISTS "notes_insert_policy" ON public.notes;
+DROP POLICY IF EXISTS "notes_delete_policy" ON public.notes;
+
+CREATE POLICY "notes_select_policy" ON public.notes FOR SELECT TO authenticated USING (true);
+CREATE POLICY "notes_insert_policy" ON public.notes FOR INSERT TO authenticated WITH CHECK (author_id = auth.uid());
+CREATE POLICY "notes_delete_policy" ON public.notes FOR DELETE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR author_id = auth.uid());
+
+DO $$ BEGIN
+  CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.notes FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Email Templates
+CREATE TABLE IF NOT EXISTS public.email_templates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  subject text DEFAULT '',
+  body text DEFAULT '',
+  created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at timestamptz DEFAULT now() NOT NULL,
+  updated_at timestamptz DEFAULT now() NOT NULL
+);
+ALTER TABLE public.email_templates ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "email_templates_select_policy" ON public.email_templates;
+DROP POLICY IF EXISTS "email_templates_insert_policy" ON public.email_templates;
+DROP POLICY IF EXISTS "email_templates_update_policy" ON public.email_templates;
+DROP POLICY IF EXISTS "email_templates_delete_policy" ON public.email_templates;
+
+CREATE POLICY "email_templates_select_policy" ON public.email_templates FOR SELECT TO authenticated USING (true);
+CREATE POLICY "email_templates_insert_policy" ON public.email_templates FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "email_templates_update_policy" ON public.email_templates FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "email_templates_delete_policy" ON public.email_templates FOR DELETE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin') OR created_by = auth.uid());
+
+DO $$ BEGIN
+  CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.email_templates FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- ============================================================
 -- Done! Run this migration in your Supabase SQL Editor.
 -- ============================================================

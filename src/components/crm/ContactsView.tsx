@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ConfirmDialog } from './ConfirmDialog';
+import { EntityDetailPanel } from './EntityDetailPanel';
 
 interface ContactsViewProps {
   contacts: Contact[];
@@ -23,33 +24,22 @@ export function ContactsView({ contacts, accounts, onAdd, onUpdate, onDelete }: 
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [form, setForm] = useState<{ firstName: string; lastName: string; email: string; phone: string; accountId: string; status: 'active' | 'inactive' | 'prospect'; source: string; title: string }>({ firstName: '', lastName: '', email: '', phone: '', accountId: '', status: 'prospect', source: '', title: '' });
 
   const filtered = contacts.filter(c =>
     `${c.firstName} ${c.lastName} ${c.email} ${c.accountName}`.toLowerCase().includes(search.toLowerCase())
   );
 
+  const currentSelected = selectedContact ? contacts.find(c => c.id === selectedContact.id) || null : null;
   const resetForm = () => setForm({ firstName: '', lastName: '', email: '', phone: '', accountId: '', status: 'prospect', source: '', title: '' });
 
-  const handleAdd = async () => {
-    await onAdd({ ...form, accountId: form.accountId || undefined });
-    setShowAdd(false);
-    resetForm();
-  };
-
+  const handleAdd = async () => { await onAdd({ ...form, accountId: form.accountId || undefined }); setShowAdd(false); resetForm(); };
   const handleEdit = (c: Contact) => {
     setForm({ firstName: c.firstName, lastName: c.lastName, email: c.email, phone: c.phone, accountId: c.accountId || '', status: c.status, source: c.source, title: c.title });
     setEditId(c.id);
   };
-
-  const handleUpdate = () => {
-    if (editId) {
-      onUpdate(editId, { ...form, accountId: form.accountId || undefined });
-      setEditId(null);
-      resetForm();
-    }
-  };
-
+  const handleUpdate = () => { if (editId) { onUpdate(editId, { ...form, accountId: form.accountId || undefined }); setEditId(null); resetForm(); } };
   const statusColor = (s: string) => s === 'active' ? 'default' : s === 'inactive' ? 'secondary' : 'outline';
 
   const formDialog = (open: boolean, onClose: () => void, onSubmit: () => void, title: string) => (
@@ -93,64 +83,75 @@ export function ContactsView({ contacts, accounts, onAdd, onUpdate, onDelete }: 
   );
 
   return (
-    <div className="animate-fade-in">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Contacts</h1>
-          <p className="text-muted-foreground">Manage individual contacts and link them to accounts.</p>
+    <div className="flex h-full animate-fade-in">
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Contacts</h1>
+            <p className="text-muted-foreground">Manage individual contacts and link them to accounts.</p>
+          </div>
+          <Button onClick={() => setShowAdd(true)} className="gap-2"><Plus className="h-4 w-4" />Add Contact</Button>
         </div>
-        <Button onClick={() => setShowAdd(true)} className="gap-2"><Plus className="h-4 w-4" />Add Contact</Button>
-      </div>
 
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search contacts..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
-      </div>
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search contacts..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
+        </div>
 
-      {filtered.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map(c => (
-            <Card key={c.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="h-4 w-4 text-primary" />
+        {filtered.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 overflow-auto pb-4">
+            {filtered.map(c => (
+              <Card key={c.id} className={`hover:shadow-md transition-shadow cursor-pointer ${currentSelected?.id === c.id ? 'ring-2 ring-primary' : ''}`} onClick={() => setSelectedContact(c)}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><User className="h-4 w-4 text-primary" /></div>
+                      <div>
+                        <p className="font-semibold text-sm">{c.firstName} {c.lastName}</p>
+                        {c.title && <p className="text-xs text-muted-foreground">{c.title}</p>}
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold text-sm">{c.firstName} {c.lastName}</p>
-                      {c.title && <p className="text-xs text-muted-foreground">{c.title}</p>}
-                    </div>
+                    <Badge variant={statusColor(c.status)}>{c.status}</Badge>
                   </div>
-                  <Badge variant={statusColor(c.status)}>{c.status}</Badge>
-                </div>
-                {c.email && <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><Mail className="h-3 w-3" />{c.email}</p>}
-                {c.phone && <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><Phone className="h-3 w-3" />{c.phone}</p>}
-                {c.accountName && <p className="text-xs text-muted-foreground flex items-center gap-1"><Building2 className="h-3 w-3" />{c.accountName}</p>}
-                <div className="flex gap-1 mt-3">
-                  <Button variant="ghost" size="sm" onClick={() => handleEdit(c)}><Pencil className="h-3 w-3" /></Button>
-                  <Button variant="ghost" size="sm" onClick={() => setDeleteId(c.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12 text-muted-foreground">
-          <User className="h-12 w-12 mx-auto mb-3 opacity-50" />
-          <p>No contacts found</p>
+                  {c.email && <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><Mail className="h-3 w-3" />{c.email}</p>}
+                  {c.phone && <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><Phone className="h-3 w-3" />{c.phone}</p>}
+                  {c.accountName && <p className="text-xs text-muted-foreground flex items-center gap-1"><Building2 className="h-3 w-3" />{c.accountName}</p>}
+                  <div className="flex gap-1 mt-3" onClick={e => e.stopPropagation()}>
+                    <Button variant="ghost" size="sm" onClick={() => handleEdit(c)}><Pencil className="h-3 w-3" /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => setDeleteId(c.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 text-muted-foreground">
+            <User className="h-12 w-12 mx-auto mb-3 opacity-50" /><p>No contacts found</p>
+          </div>
+        )}
+      </div>
+
+      {/* Detail Panel */}
+      {currentSelected && (
+        <div className="w-96 border-l bg-card flex-shrink-0 ml-4">
+          <EntityDetailPanel
+            entityType="contact"
+            entityId={currentSelected.id}
+            entityName={`${currentSelected.firstName} ${currentSelected.lastName}`}
+            onClose={() => setSelectedContact(null)}
+          >
+            <div className="space-y-1 text-sm">
+              {currentSelected.email && <p className="text-muted-foreground"><Mail className="h-3 w-3 inline mr-1" />{currentSelected.email}</p>}
+              {currentSelected.phone && <p className="text-muted-foreground"><Phone className="h-3 w-3 inline mr-1" />{currentSelected.phone}</p>}
+              {currentSelected.accountName && <p className="text-muted-foreground"><Building2 className="h-3 w-3 inline mr-1" />{currentSelected.accountName}</p>}
+            </div>
+          </EntityDetailPanel>
         </div>
       )}
 
       {formDialog(showAdd, () => setShowAdd(false), handleAdd, 'Add Contact')}
       {formDialog(!!editId, () => setEditId(null), handleUpdate, 'Edit Contact')}
-      <ConfirmDialog
-        open={!!deleteId}
-        onOpenChange={(o) => { if (!o) setDeleteId(null); }}
-        title="Delete Contact"
-        description="Are you sure? This cannot be undone."
-        onConfirm={() => { if (deleteId) { onDelete(deleteId); setDeleteId(null); } }}
-      />
+      <ConfirmDialog open={!!deleteId} onOpenChange={o => { if (!o) setDeleteId(null); }} title="Delete Contact" description="Are you sure? This cannot be undone." onConfirm={() => { if (deleteId) { onDelete(deleteId); setDeleteId(null); } }} />
     </div>
   );
 }
