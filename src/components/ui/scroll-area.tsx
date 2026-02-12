@@ -1,5 +1,6 @@
 import * as React from "react";
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
+import { ChevronUp, ChevronDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -24,13 +25,22 @@ const ScrollBar = React.forwardRef<
     orientation={orientation}
     className={cn(
       "flex touch-none select-none transition-colors",
-      orientation === "vertical" && "h-full w-2.5 border-l border-l-transparent p-[1px]",
-      orientation === "horizontal" && "h-2.5 flex-col border-t border-t-transparent p-[1px]",
+      orientation === "vertical" &&
+        "h-full w-3.5 border-l border-l-border/50 p-0",
+      orientation === "horizontal" &&
+        "h-3.5 flex-col border-t border-t-border/50 p-0",
+      "bg-muted/60",
       className,
     )}
     {...props}
   >
-    <ScrollAreaPrimitive.ScrollAreaThumb className="relative flex-1 rounded-full bg-border" />
+    <ScrollAreaPrimitive.ScrollAreaThumb
+      className={cn(
+        "relative flex-1 rounded-sm",
+        "bg-foreground/25 hover:bg-foreground/40 transition-colors",
+        "border border-border/30"
+      )}
+    />
   </ScrollAreaPrimitive.ScrollAreaScrollbar>
 ));
 ScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName;

@@ -139,3 +139,45 @@
     @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium;
   }
 }
+
+/* Custom native scrollbar styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--foreground) / 0.25) hsl(var(--muted) / 0.6);
+}
+
+*::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+*::-webkit-scrollbar-track {
+  background: hsl(var(--muted) / 0.6);
+  border-left: 1px solid hsl(var(--border) / 0.5);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: hsl(var(--foreground) / 0.25);
+  border: 1px solid hsl(var(--border) / 0.3);
+  border-radius: 2px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--foreground) / 0.4);
+}
+
+*::-webkit-scrollbar-button:single-button {
+  display: block;
+  height: 14px;
+  width: 14px;
+  background-color: hsl(var(--muted));
+  border: 1px solid hsl(var(--border) / 0.5);
+}
+
+*::-webkit-scrollbar-button:single-button:vertical:decrement {
+  background: hsl(var(--muted)) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3'%3E%3Cpath d='M18 15l-6-6-6 6'/%3E%3C/svg%3E") center no-repeat;
+}
+
+*::-webkit-scrollbar-button:single-button:vertical:increment {
+  background: hsl(var(--muted)) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") center no-repeat;
+}
