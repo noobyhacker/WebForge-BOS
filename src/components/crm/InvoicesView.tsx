@@ -1,7 +1,8 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Receipt, Trash2, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
+import { Receipt, Trash2, DollarSign, ChevronDown, ChevronUp, Download } from 'lucide-react';
+import { generateInvoicePdf } from '@/lib/generatePdf';
 import { format } from 'date-fns';
 import { useState } from 'react';
 import type { InvoiceStatus } from '@/types/phase5';
@@ -53,6 +54,7 @@ export function InvoicesView() {
                     {(inv.status === 'sent' || inv.status === 'overdue') && (
                       <Button variant="outline" size="sm" onClick={() => markPaid(inv.id, inv.grandTotal)}><DollarSign className="h-4 w-4 mr-1" />Mark Paid</Button>
                     )}
+                    <Button variant="ghost" size="icon" onClick={() => generateInvoicePdf(inv)} title="Download PDF"><Download className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => deleteInvoice(inv.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                   </div>
                 </div>

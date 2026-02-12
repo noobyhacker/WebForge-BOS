@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, FileText, Send, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, FileText, Send, Check, X, ChevronDown, ChevronUp, Download } from 'lucide-react';
+import { generateQuotePdf } from '@/lib/generatePdf';
 import { format } from 'date-fns';
 import type { QuoteStatus, QuoteLineItem, Quote } from '@/types/phase5';
 import { useQuotes } from '@/hooks/useQuotes';
@@ -147,6 +148,7 @@ export function QuotesView() {
                       </>
                     )}
                     {q.status === 'accepted' && <Button variant="outline" size="sm" onClick={() => generateFromQuote(q)}>Generate Invoice</Button>}
+                    <Button variant="ghost" size="icon" onClick={() => generateQuotePdf(q)} title="Download PDF"><Download className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => deleteQuote(q.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                   </div>
                 </div>
