@@ -8,15 +8,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { ConfirmDialog } from './ConfirmDialog';
 import { Plus, Pencil, Trash2, Mail, Search } from 'lucide-react';
+import { useEmailTemplates } from '@/hooks/useEmailTemplates';
 
-interface EmailTemplatesViewProps {
-  templates: EmailTemplate[];
-  onAdd: (template: Omit<EmailTemplate, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  onUpdate: (id: string, updates: Partial<EmailTemplate>) => void;
-  onDelete: (id: string) => void;
-}
+export function EmailTemplatesView() {
+  const { templates, addTemplate, updateTemplate, deleteTemplate } = useEmailTemplates();
 
-export function EmailTemplatesView({ templates, onAdd, onUpdate, onDelete }: EmailTemplatesViewProps) {
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -26,9 +22,9 @@ export function EmailTemplatesView({ templates, onAdd, onUpdate, onDelete }: Ema
   const filtered = templates.filter(t => `${t.name} ${t.subject}`.toLowerCase().includes(search.toLowerCase()));
   const resetForm = () => setForm({ name: '', subject: '', body: '' });
 
-  const handleAdd = async () => { await onAdd(form); setShowAdd(false); resetForm(); };
+  const handleAdd = async () => { await addTemplate(form); setShowAdd(false); resetForm(); };
   const handleEdit = (t: EmailTemplate) => { setForm({ name: t.name, subject: t.subject, body: t.body }); setEditId(t.id); };
-  const handleUpdate = () => { if (editId) { onUpdate(editId, form); setEditId(null); resetForm(); } };
+  const handleUpdate = () => { if (editId) { updateTemplate(editId, form); setEditId(null); resetForm(); } };
 
   const formDialog = (open: boolean, onClose: () => void, onSubmit: () => void, title: string) => (
     <Dialog open={open} onOpenChange={o => { if (!o) { onClose(); resetForm(); } }}>
@@ -54,12 +50,10 @@ export function EmailTemplatesView({ templates, onAdd, onUpdate, onDelete }: Ema
         </div>
         <Button onClick={() => setShowAdd(true)} className="gap-2"><Plus className="h-4 w-4" />Add Template</Button>
       </div>
-
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input placeholder="Search templates..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
       </div>
-
       {filtered.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map(t => (
@@ -67,9 +61,7 @@ export function EmailTemplatesView({ templates, onAdd, onUpdate, onDelete }: Ema
               <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Mail className="h-4 w-4 text-primary" />
-                    </div>
+                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><Mail className="h-4 w-4 text-primary" /></div>
                     <p className="font-semibold text-sm">{t.name}</p>
                   </div>
                 </div>
@@ -85,20 +77,12 @@ export function EmailTemplatesView({ templates, onAdd, onUpdate, onDelete }: Ema
         </div>
       ) : (
         <div className="text-center py-12 text-muted-foreground">
-          <Mail className="h-12 w-12 mx-auto mb-3 opacity-50" />
-          <p>No email templates yet</p>
+          <Mail className="h-12 w-12 mx-auto mb-3 opacity-50" /><p>No email templates yet</p>
         </div>
       )}
-
       {formDialog(showAdd, () => setShowAdd(false), handleAdd, 'Add Email Template')}
       {formDialog(!!editId, () => setEditId(null), handleUpdate, 'Edit Email Template')}
-      <ConfirmDialog
-        open={!!deleteId}
-        onOpenChange={o => { if (!o) setDeleteId(null); }}
-        title="Delete Template"
-        description="Are you sure you want to delete this email template?"
-        onConfirm={() => { if (deleteId) { onDelete(deleteId); setDeleteId(null); } }}
-      />
+      <ConfirmDialog open={!!deleteId} onOpenChange={o => { if (!o) setDeleteId(null); }} title="Delete Template" description="Are you sure you want to delete this email template?" onConfirm={() => { if (deleteId) { deleteTemplate(deleteId); setDeleteId(null); } }} />
     </div>
   );
 }

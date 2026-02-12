@@ -7,6 +7,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useState, useEffect } from 'react';
 import { Switch } from '@/components/ui/switch';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 function DarkModeToggle({ collapsed }: { collapsed: boolean }) {
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
@@ -49,49 +50,50 @@ function DarkModeToggle({ collapsed }: { collapsed: boolean }) {
   );
 }
 
-type View = 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin' | 'contacts' | 'accounts' | 'deals' | 'activities' | 'products' | 'templates' | 'automation' | 'scoring' | 'quotes' | 'invoices' | 'documents' | 'custom_fields' | 'import_export' | 'field_permissions' | 'sharing_groups';
+const navItems = [
+  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/clients', label: 'Clients', icon: Users },
+  { path: '/contacts', label: 'Contacts', icon: Contact },
+  { path: '/accounts', label: 'Accounts', icon: Building2 },
+  { path: '/deals', label: 'Deals', icon: Handshake },
+  { path: '/activities', label: 'Activities', icon: ListTodo },
+  { path: '/products', label: 'Products', icon: Package },
+  { path: '/templates', label: 'Email Templates', icon: Mail },
+  { path: '/automation', label: 'Automation', icon: Zap },
+  { path: '/scoring', label: 'Lead Scoring', icon: TrendingUp },
+  { path: '/quotes', label: 'Quotes', icon: FileText },
+  { path: '/invoices', label: 'Invoices', icon: Receipt },
+  { path: '/documents', label: 'Documents', icon: Paperclip },
+  { path: '/custom-fields', label: 'Custom Fields', icon: Settings2 },
+  { path: '/import-export', label: 'Import / Export', icon: FileSpreadsheet },
+  { path: '/permissions', label: 'Permissions', icon: Lock },
+  { path: '/sharing-groups', label: 'Sharing Groups', icon: UsersRound },
+  { path: '/followups', label: 'Follow-ups', icon: Calendar },
+  { path: '/logs', label: 'Action Logs', icon: ClipboardList },
+];
 
 interface SidebarProps {
-  activeView: View;
-  onViewChange: (view: View) => void;
   collapsed: boolean;
   onCollapse: (collapsed: boolean) => void;
 }
 
-const navItems = [
-  { id: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'clients' as const, label: 'Clients', icon: Users },
-  { id: 'contacts' as const, label: 'Contacts', icon: Contact },
-  { id: 'accounts' as const, label: 'Accounts', icon: Building2 },
-  { id: 'deals' as const, label: 'Deals', icon: Handshake },
-  { id: 'activities' as const, label: 'Activities', icon: ListTodo },
-  { id: 'products' as const, label: 'Products', icon: Package },
-  { id: 'templates' as const, label: 'Email Templates', icon: Mail },
-  { id: 'automation' as const, label: 'Automation', icon: Zap },
-  { id: 'scoring' as const, label: 'Lead Scoring', icon: TrendingUp },
-  { id: 'quotes' as const, label: 'Quotes', icon: FileText },
-  { id: 'invoices' as const, label: 'Invoices', icon: Receipt },
-  { id: 'documents' as const, label: 'Documents', icon: Paperclip },
-  { id: 'custom_fields' as const, label: 'Custom Fields', icon: Settings2 },
-  { id: 'import_export' as const, label: 'Import / Export', icon: FileSpreadsheet },
-  { id: 'field_permissions' as const, label: 'Permissions', icon: Lock },
-  { id: 'sharing_groups' as const, label: 'Sharing Groups', icon: UsersRound },
-  { id: 'followups' as const, label: 'Follow-ups', icon: Calendar },
-  { id: 'logs' as const, label: 'Action Logs', icon: ClipboardList },
-];
-
 function SidebarContent({ 
-  activeView, 
-  onViewChange, 
   collapsed, 
   onCollapse,
   onNavigate 
 }: SidebarProps & { onNavigate?: () => void }) {
   const { isAdmin, signOut, profile } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleNavClick = (view: View) => {
-    onViewChange(view);
+  const handleNavClick = (path: string) => {
+    navigate(path);
     onNavigate?.();
+  };
+
+  const isActive = (path: string) => {
+    if (path === '/') return location.pathname === '/';
+    return location.pathname.startsWith(path);
   };
 
   return (
@@ -117,11 +119,11 @@ function SidebarContent({
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {navItems.map((item) => (
           <button
-            key={item.id}
-            onClick={() => handleNavClick(item.id)}
+            key={item.path}
+            onClick={() => handleNavClick(item.path)}
             className={cn(
               'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-              activeView === item.id
+              isActive(item.path)
                 ? 'bg-sidebar-primary text-sidebar-primary-foreground'
                 : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
             )}
@@ -134,10 +136,10 @@ function SidebarContent({
         {/* Admin Section */}
         {isAdmin && (
           <button
-            onClick={() => handleNavClick('admin')}
+            onClick={() => handleNavClick('/admin')}
             className={cn(
               'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-              activeView === 'admin'
+              isActive('/admin')
                 ? 'bg-sidebar-primary text-sidebar-primary-foreground'
                 : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
             )}
@@ -171,7 +173,7 @@ function SidebarContent({
   );
 }
 
-export function Sidebar({ activeView, onViewChange, collapsed, onCollapse }: SidebarProps) {
+export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
 
@@ -189,8 +191,6 @@ export function Sidebar({ activeView, onViewChange, collapsed, onCollapse }: Sid
         </SheetTrigger>
         <SheetContent side="left" className="p-0 w-64 bg-sidebar">
           <SidebarContent
-            activeView={activeView}
-            onViewChange={onViewChange}
             collapsed={false}
             onCollapse={onCollapse}
             onNavigate={() => setOpen(false)}
@@ -208,8 +208,6 @@ export function Sidebar({ activeView, onViewChange, collapsed, onCollapse }: Sid
       )}
     >
       <SidebarContent
-        activeView={activeView}
-        onViewChange={onViewChange}
         collapsed={collapsed}
         onCollapse={onCollapse}
       />

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Contact, Account } from '@/types/crm';
+import { Contact } from '@/types/crm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,16 +10,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ConfirmDialog } from './ConfirmDialog';
 import { EntityDetailPanel } from './EntityDetailPanel';
+import { useContacts } from '@/hooks/useContacts';
+import { useAccounts } from '@/hooks/useAccounts';
 
-interface ContactsViewProps {
-  contacts: Contact[];
-  accounts: Account[];
-  onAdd: (contact: Omit<Contact, 'id' | 'createdAt' | 'updatedAt' | 'ownerId' | 'accountName'>) => Promise<void>;
-  onUpdate: (id: string, updates: Partial<Contact>) => void;
-  onDelete: (id: string) => void;
-}
+export function ContactsView() {
+  const { contacts, addContact, updateContact, deleteContact } = useContacts();
+  const { accounts } = useAccounts();
 
-export function ContactsView({ contacts, accounts, onAdd, onUpdate, onDelete }: ContactsViewProps) {
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -34,12 +31,12 @@ export function ContactsView({ contacts, accounts, onAdd, onUpdate, onDelete }: 
   const currentSelected = selectedContact ? contacts.find(c => c.id === selectedContact.id) || null : null;
   const resetForm = () => setForm({ firstName: '', lastName: '', email: '', phone: '', accountId: '', status: 'prospect', source: '', title: '' });
 
-  const handleAdd = async () => { await onAdd({ ...form, accountId: form.accountId || undefined }); setShowAdd(false); resetForm(); };
+  const handleAdd = async () => { await addContact({ ...form, accountId: form.accountId || undefined }); setShowAdd(false); resetForm(); };
   const handleEdit = (c: Contact) => {
     setForm({ firstName: c.firstName, lastName: c.lastName, email: c.email, phone: c.phone, accountId: c.accountId || '', status: c.status, source: c.source, title: c.title });
     setEditId(c.id);
   };
-  const handleUpdate = () => { if (editId) { onUpdate(editId, { ...form, accountId: form.accountId || undefined }); setEditId(null); resetForm(); } };
+  const handleUpdate = () => { if (editId) { updateContact(editId, { ...form, accountId: form.accountId || undefined }); setEditId(null); resetForm(); } };
   const statusColor = (s: string) => s === 'active' ? 'default' : s === 'inactive' ? 'secondary' : 'outline';
 
   const formDialog = (open: boolean, onClose: () => void, onSubmit: () => void, title: string) => (
@@ -131,15 +128,9 @@ export function ContactsView({ contacts, accounts, onAdd, onUpdate, onDelete }: 
         )}
       </div>
 
-      {/* Detail Panel */}
       {currentSelected && (
         <div className="w-96 border-l bg-card flex-shrink-0 ml-4">
-          <EntityDetailPanel
-            entityType="contact"
-            entityId={currentSelected.id}
-            entityName={`${currentSelected.firstName} ${currentSelected.lastName}`}
-            onClose={() => setSelectedContact(null)}
-          >
+          <EntityDetailPanel entityType="contact" entityId={currentSelected.id} entityName={`${currentSelected.firstName} ${currentSelected.lastName}`} onClose={() => setSelectedContact(null)}>
             <div className="space-y-1 text-sm">
               {currentSelected.email && <p className="text-muted-foreground"><Mail className="h-3 w-3 inline mr-1" />{currentSelected.email}</p>}
               {currentSelected.phone && <p className="text-muted-foreground"><Phone className="h-3 w-3 inline mr-1" />{currentSelected.phone}</p>}
@@ -151,7 +142,7 @@ export function ContactsView({ contacts, accounts, onAdd, onUpdate, onDelete }: 
 
       {formDialog(showAdd, () => setShowAdd(false), handleAdd, 'Add Contact')}
       {formDialog(!!editId, () => setEditId(null), handleUpdate, 'Edit Contact')}
-      <ConfirmDialog open={!!deleteId} onOpenChange={o => { if (!o) setDeleteId(null); }} title="Delete Contact" description="Are you sure? This cannot be undone." onConfirm={() => { if (deleteId) { onDelete(deleteId); setDeleteId(null); } }} />
+      <ConfirmDialog open={!!deleteId} onOpenChange={o => { if (!o) setDeleteId(null); }} title="Delete Contact" description="Are you sure? This cannot be undone." onConfirm={() => { if (deleteId) { deleteContact(deleteId); setDeleteId(null); } }} />
     </div>
   );
 }

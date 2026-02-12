@@ -8,15 +8,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { ConfirmDialog } from './ConfirmDialog';
 import { EntityDetailPanel } from './EntityDetailPanel';
+import { useAccounts } from '@/hooks/useAccounts';
 
-interface AccountsViewProps {
-  accounts: Account[];
-  onAdd: (account: Omit<Account, 'id' | 'createdAt' | 'updatedAt' | 'ownerId'>) => Promise<void>;
-  onUpdate: (id: string, updates: Partial<Account>) => void;
-  onDelete: (id: string) => void;
-}
+export function AccountsView() {
+  const { accounts, addAccount, updateAccount, deleteAccount } = useAccounts();
 
-export function AccountsView({ accounts, onAdd, onUpdate, onDelete }: AccountsViewProps) {
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -28,9 +24,9 @@ export function AccountsView({ accounts, onAdd, onUpdate, onDelete }: AccountsVi
   const currentSelected = selectedAccount ? accounts.find(a => a.id === selectedAccount.id) || null : null;
   const resetForm = () => setForm({ name: '', industry: '', website: '', phone: '', address: '' });
 
-  const handleAdd = async () => { await onAdd(form); setShowAdd(false); resetForm(); };
+  const handleAdd = async () => { await addAccount(form); setShowAdd(false); resetForm(); };
   const handleEdit = (a: Account) => { setForm({ name: a.name, industry: a.industry, website: a.website, phone: a.phone, address: a.address }); setEditId(a.id); };
-  const handleUpdate = () => { if (editId) { onUpdate(editId, form); setEditId(null); resetForm(); } };
+  const handleUpdate = () => { if (editId) { updateAccount(editId, form); setEditId(null); resetForm(); } };
 
   const formDialog = (open: boolean, onClose: () => void, onSubmit: () => void, title: string) => (
     <Dialog open={open} onOpenChange={o => { if (!o) { onClose(); resetForm(); } }}>
@@ -110,7 +106,7 @@ export function AccountsView({ accounts, onAdd, onUpdate, onDelete }: AccountsVi
 
       {formDialog(showAdd, () => setShowAdd(false), handleAdd, 'Add Account')}
       {formDialog(!!editId, () => setEditId(null), handleUpdate, 'Edit Account')}
-      <ConfirmDialog open={!!deleteId} onOpenChange={o => { if (!o) setDeleteId(null); }} title="Delete Account" description="This will unlink all contacts. Continue?" onConfirm={() => { if (deleteId) { onDelete(deleteId); setDeleteId(null); } }} />
+      <ConfirmDialog open={!!deleteId} onOpenChange={o => { if (!o) setDeleteId(null); }} title="Delete Account" description="This will unlink all contacts. Continue?" onConfirm={() => { if (deleteId) { deleteAccount(deleteId); setDeleteId(null); } }} />
     </div>
   );
 }

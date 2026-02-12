@@ -1,56 +1,37 @@
 import { useState } from 'react';
-import { Client, FollowUp, FollowUpStatus } from '@/types/crm';
+import { FollowUp, FollowUpStatus } from '@/types/crm';
 import { FollowUpItem } from './FollowUpItem';
 import { EditFollowUpDialog } from './EditFollowUpDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { useClients } from '@/hooks/useClients';
+import { useAuth } from '@/contexts/AuthContext';
 
-interface FollowUpsViewProps {
-  clients: Client[];
-  onMarkComplete: (clientId: string, followUpId: string, status: 'completed') => void;
-  onUpdateFollowUp: (clientId: string, followUpId: string, updates: Partial<Omit<FollowUp, 'id' | 'clientId'>>) => void;
-  onDeleteFollowUp: (clientId: string, followUpId: string) => void;
-}
+export function FollowUpsView() {
+  const { profile } = useAuth();
+  const { allClients, updateFollowUpStatus, updateFollowUp, deleteFollowUp } = useClients(profile?.email || 'anonymous');
 
-export function FollowUpsView({ clients, onMarkComplete, onUpdateFollowUp, onDeleteFollowUp }: FollowUpsViewProps) {
   const [editingFollowUp, setEditingFollowUp] = useState<(FollowUp & { clientId: string }) | null>(null);
 
-  const allFollowUps = clients.flatMap((c) =>
-    c.followUps.map((f) => ({
-      ...f,
-      clientName: c.name,
-      clientCompany: c.company,
-    }))
+  const allFollowUps = allClients.flatMap((c) =>
+    c.followUps.map((f) => ({ ...f, clientName: c.name, clientCompany: c.company }))
   );
 
   const overdueFollowUps = allFollowUps.filter((f) => f.status === 'overdue');
   const pendingFollowUps = allFollowUps.filter((f) => f.status === 'pending' || f.status === 'scheduled');
   const completedFollowUps = allFollowUps.filter((f) => f.status === 'completed');
 
-  const sortedPending = [...pendingFollowUps].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
+  const sortedPending = [...pendingFollowUps].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const sortedCompleted = [...completedFollowUps].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  const sortedCompleted = [...completedFollowUps].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-
-  const handleEditFollowUp = (followUp: FollowUp) => {
-    setEditingFollowUp({ ...followUp, clientId: followUp.clientId });
-  };
+  const handleEditFollowUp = (followUp: FollowUp) => setEditingFollowUp({ ...followUp, clientId: followUp.clientId });
 
   const handleSaveFollowUp = (updates: { date: string; notes: string; type: 'call' | 'email' | 'meeting' | 'task'; status: FollowUpStatus }) => {
-    if (editingFollowUp) {
-      onUpdateFollowUp(editingFollowUp.clientId, editingFollowUp.id, updates);
-      setEditingFollowUp(null);
-    }
+    if (editingFollowUp) { updateFollowUp(editingFollowUp.clientId, editingFollowUp.id, updates); setEditingFollowUp(null); }
   };
 
   const handleDeleteFollowUp = () => {
-    if (editingFollowUp) {
-      onDeleteFollowUp(editingFollowUp.clientId, editingFollowUp.id);
-      setEditingFollowUp(null);
-    }
+    if (editingFollowUp) { deleteFollowUp(editingFollowUp.clientId, editingFollowUp.id); setEditingFollowUp(null); }
   };
 
   return (
@@ -62,100 +43,36 @@ export function FollowUpsView({ clients, onMarkComplete, onUpdateFollowUp, onDel
 
       <Tabs defaultValue="pending" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="pending" className="gap-2">
-            <Clock className="h-4 w-4" />
-            Pending ({pendingFollowUps.length})
-          </TabsTrigger>
-          <TabsTrigger value="overdue" className="gap-2">
-            <AlertCircle className="h-4 w-4" />
-            Overdue ({overdueFollowUps.length})
-          </TabsTrigger>
-          <TabsTrigger value="completed" className="gap-2">
-            <CheckCircle2 className="h-4 w-4" />
-            Completed ({completedFollowUps.length})
-          </TabsTrigger>
+          <TabsTrigger value="pending" className="gap-2"><Clock className="h-4 w-4" />Pending ({pendingFollowUps.length})</TabsTrigger>
+          <TabsTrigger value="overdue" className="gap-2"><AlertCircle className="h-4 w-4" />Overdue ({overdueFollowUps.length})</TabsTrigger>
+          <TabsTrigger value="completed" className="gap-2"><CheckCircle2 className="h-4 w-4" />Completed ({completedFollowUps.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pending" className="space-y-2">
-          {sortedPending.length > 0 ? (
-            sortedPending.map((followUp) => (
-              <FollowUpItem
-                key={followUp.id}
-                followUp={followUp}
-                showClient
-                onMarkComplete={(id) => onMarkComplete(followUp.clientId, id, 'completed')}
-                onEdit={handleEditFollowUp}
-              />
-            ))
-          ) : (
-            <EmptyState
-              icon={Clock}
-              title="No pending follow-ups"
-              description="You're all caught up!"
-            />
-          )}
+          {sortedPending.length > 0 ? sortedPending.map((followUp) => (
+            <FollowUpItem key={followUp.id} followUp={followUp} showClient onMarkComplete={(id) => updateFollowUpStatus(followUp.clientId, id, 'completed')} onEdit={handleEditFollowUp} />
+          )) : <EmptyState icon={Clock} title="No pending follow-ups" description="You're all caught up!" />}
         </TabsContent>
 
         <TabsContent value="overdue" className="space-y-2">
-          {overdueFollowUps.length > 0 ? (
-            overdueFollowUps.map((followUp) => (
-              <FollowUpItem
-                key={followUp.id}
-                followUp={followUp}
-                showClient
-                onMarkComplete={(id) => onMarkComplete(followUp.clientId, id, 'completed')}
-                onEdit={handleEditFollowUp}
-              />
-            ))
-          ) : (
-            <EmptyState
-              icon={AlertCircle}
-              title="No overdue follow-ups"
-              description="Great job staying on top of things!"
-            />
-          )}
+          {overdueFollowUps.length > 0 ? overdueFollowUps.map((followUp) => (
+            <FollowUpItem key={followUp.id} followUp={followUp} showClient onMarkComplete={(id) => updateFollowUpStatus(followUp.clientId, id, 'completed')} onEdit={handleEditFollowUp} />
+          )) : <EmptyState icon={AlertCircle} title="No overdue follow-ups" description="Great job staying on top of things!" />}
         </TabsContent>
 
         <TabsContent value="completed" className="space-y-2">
-          {sortedCompleted.length > 0 ? (
-            sortedCompleted.map((followUp) => (
-              <FollowUpItem
-                key={followUp.id}
-                followUp={followUp}
-                showClient
-                onEdit={handleEditFollowUp}
-              />
-            ))
-          ) : (
-            <EmptyState
-              icon={CheckCircle2}
-              title="No completed follow-ups"
-              description="Complete your first follow-up to see it here."
-            />
-          )}
+          {sortedCompleted.length > 0 ? sortedCompleted.map((followUp) => (
+            <FollowUpItem key={followUp.id} followUp={followUp} showClient onEdit={handleEditFollowUp} />
+          )) : <EmptyState icon={CheckCircle2} title="No completed follow-ups" description="Complete your first follow-up to see it here." />}
         </TabsContent>
       </Tabs>
 
-      <EditFollowUpDialog
-        open={!!editingFollowUp}
-        onOpenChange={(open) => !open && setEditingFollowUp(null)}
-        followUp={editingFollowUp}
-        onSave={handleSaveFollowUp}
-        onDelete={handleDeleteFollowUp}
-      />
+      <EditFollowUpDialog open={!!editingFollowUp} onOpenChange={(open) => !open && setEditingFollowUp(null)} followUp={editingFollowUp} onSave={handleSaveFollowUp} onDelete={handleDeleteFollowUp} />
     </div>
   );
 }
 
-function EmptyState({
-  icon: Icon,
-  title,
-  description,
-}: {
-  icon: React.ElementType;
-  title: string;
-  description: string;
-}) {
+function EmptyState({ icon: Icon, title, description }: { icon: React.ElementType; title: string; description: string }) {
   return (
     <div className="text-center py-12 bg-card rounded-lg border">
       <Icon className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
