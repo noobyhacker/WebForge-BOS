@@ -129,6 +129,46 @@ export function useInvoices() {
     }
   };
 
+  const updateInvoice = async (id: string, updates: {
+    dealName?: string; accountName?: string; contactName?: string;
+    issueDate?: string; dueDate?: string; notes?: string;
+    lineItems?: Omit<QuoteLineItem, 'id' | 'quoteId'>[];
+  }) => {
+    const lineItems = updates.lineItems;
+    const subtotal = lineItems ? lineItems.reduce((s, li) => s + li.quantity * li.unitPrice, 0) : undefined;
+    const totalTax = lineItems ? lineItems.reduce((s, li) => s + li.tax, 0) : undefined;
+    const grandTotal = subtotal !== undefined && totalTax !== undefined ? subtotal + totalTax : undefined;
+
+    const dbUpdates: any = {};
+    if (updates.dealName !== undefined) dbUpdates.deal_name = updates.dealName;
+    if (updates.accountName !== undefined) dbUpdates.account_name = updates.accountName;
+    if (updates.contactName !== undefined) dbUpdates.contact_name = updates.contactName;
+    if (updates.issueDate !== undefined) dbUpdates.issue_date = updates.issueDate;
+    if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate;
+    if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+    if (subtotal !== undefined) dbUpdates.subtotal = subtotal;
+    if (totalTax !== undefined) dbUpdates.total_tax = totalTax;
+    if (grandTotal !== undefined) dbUpdates.grand_total = grandTotal;
+
+    const { error } = await supabase.from('invoices').update(dbUpdates).eq('id', id);
+    if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
+
+    if (lineItems) {
+      await supabase.from('invoice_line_items').delete().eq('invoice_id', id);
+      if (lineItems.length > 0) {
+        await supabase.from('invoice_line_items').insert(
+          lineItems.map(li => ({
+            invoice_id: id, product_id: li.productId || null, product_name: li.productName,
+            description: li.description, quantity: li.quantity, unit_price: li.unitPrice,
+            discount: li.discount, tax: li.tax, total: li.quantity * li.unitPrice - li.discount + li.tax,
+          }))
+        );
+      }
+    }
+    toast({ title: 'Invoice updated' });
+    fetchInvoices();
+  };
+
   const deleteInvoice = async (id: string) => {
     const { error } = await supabase.from('invoices').delete().eq('id', id);
     if (error) {
@@ -139,5 +179,5 @@ export function useInvoices() {
     }
   };
 
-  return { invoices, loading, generateFromQuote, updateInvoiceStatus, markPaid, deleteInvoice };
+  return { invoices, loading, generateFromQuote, updateInvoice, updateInvoiceStatus, markPaid, deleteInvoice };
 }
