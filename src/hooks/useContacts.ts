@@ -76,5 +76,23 @@ export function useContacts() {
     await fetchContacts();
   }, [user, fetchContacts]);
 
-  return { contacts, loading, addContact, updateContact, deleteContact, refetch: fetchContacts };
+  const bulkImportContacts = useCallback(async (rows: Omit<Contact, 'id' | 'createdAt' | 'updatedAt' | 'ownerId' | 'accountName'>[]) => {
+    if (!user) return;
+    const inserts = rows.map(r => ({
+      first_name: r.firstName,
+      last_name: r.lastName,
+      email: r.email,
+      phone: r.phone,
+      account_id: r.accountId || null,
+      owner_id: user.id,
+      status: r.status || 'prospect',
+      source: r.source || '',
+      title: r.title || '',
+    }));
+    const { error } = await supabase.from('contacts').insert(inserts);
+    if (error) { console.error('Error bulk importing contacts:', error); throw error; }
+    await fetchContacts();
+  }, [user, fetchContacts]);
+
+  return { contacts, loading, addContact, updateContact, deleteContact, bulkImportContacts, refetch: fetchContacts };
 }

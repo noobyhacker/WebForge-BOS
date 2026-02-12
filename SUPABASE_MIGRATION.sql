@@ -636,5 +636,61 @@ CREATE POLICY "documents_storage_delete" ON storage.objects FOR DELETE TO authen
   USING (bucket_id = 'documents' AND (auth.uid())::text = (storage.foldername(name))[1]);
 
 -- ============================================================
+-- Phase 6: Custom Fields
+-- ============================================================
+
+-- Custom Field Definitions
+CREATE TABLE IF NOT EXISTS public.custom_fields (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  label text NOT NULL,
+  field_type text NOT NULL DEFAULT 'text',
+  entity_type text NOT NULL DEFAULT 'client',
+  options jsonb DEFAULT '[]',
+  is_required boolean DEFAULT false,
+  sort_order int DEFAULT 0,
+  created_at timestamptz DEFAULT now() NOT NULL,
+  updated_at timestamptz DEFAULT now() NOT NULL
+);
+ALTER TABLE public.custom_fields ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "custom_fields_select_policy" ON public.custom_fields;
+DROP POLICY IF EXISTS "custom_fields_insert_policy" ON public.custom_fields;
+DROP POLICY IF EXISTS "custom_fields_update_policy" ON public.custom_fields;
+DROP POLICY IF EXISTS "custom_fields_delete_policy" ON public.custom_fields;
+
+CREATE POLICY "custom_fields_select_policy" ON public.custom_fields FOR SELECT TO authenticated USING (true);
+CREATE POLICY "custom_fields_insert_policy" ON public.custom_fields FOR INSERT TO authenticated
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "custom_fields_update_policy" ON public.custom_fields FOR UPDATE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "custom_fields_delete_policy" ON public.custom_fields FOR DELETE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+DO $$ BEGIN
+  CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.custom_fields FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Custom Field Values
+CREATE TABLE IF NOT EXISTS public.custom_field_values (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  field_id uuid REFERENCES public.custom_fields(id) ON DELETE CASCADE NOT NULL,
+  entity_id uuid NOT NULL,
+  value text DEFAULT '',
+  UNIQUE (field_id, entity_id)
+);
+ALTER TABLE public.custom_field_values ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "custom_field_values_select_policy" ON public.custom_field_values;
+DROP POLICY IF EXISTS "custom_field_values_insert_policy" ON public.custom_field_values;
+DROP POLICY IF EXISTS "custom_field_values_update_policy" ON public.custom_field_values;
+DROP POLICY IF EXISTS "custom_field_values_delete_policy" ON public.custom_field_values;
+
+CREATE POLICY "custom_field_values_select_policy" ON public.custom_field_values FOR SELECT TO authenticated USING (true);
+CREATE POLICY "custom_field_values_insert_policy" ON public.custom_field_values FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "custom_field_values_update_policy" ON public.custom_field_values FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "custom_field_values_delete_policy" ON public.custom_field_values FOR DELETE TO authenticated USING (true);
+
+-- ============================================================
 -- Done! Run this migration in your Supabase SQL Editor.
 -- ============================================================
