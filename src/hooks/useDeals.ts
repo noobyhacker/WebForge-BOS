@@ -74,5 +74,22 @@ export function useDeals() {
     await fetchDeals();
   }, [user, fetchDeals]);
 
-  return { deals, loading, addDeal, updateDeal, deleteDeal, refetch: fetchDeals };
+  const bulkImportDeals = useCallback(async (rows: Omit<Deal, 'id' | 'createdAt' | 'updatedAt' | 'ownerId' | 'accountName' | 'contactName'>[]) => {
+    if (!user) return;
+    const inserts = rows.map(r => ({
+      name: r.name,
+      account_id: r.accountId || null,
+      contact_id: r.contactId || null,
+      owner_id: user.id,
+      stage: r.stage || 'prospecting',
+      value: r.value || 0,
+      probability: r.probability || 0,
+      expected_close_date: r.expectedCloseDate || null,
+    }));
+    const { error } = await supabase.from('deals').insert(inserts);
+    if (error) { console.error('Error bulk importing deals:', error); throw error; }
+    await fetchDeals();
+  }, [user, fetchDeals]);
+
+  return { deals, loading, addDeal, updateDeal, deleteDeal, bulkImportDeals, refetch: fetchDeals };
 }

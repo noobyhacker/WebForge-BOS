@@ -16,6 +16,8 @@ import { LeadScoringView } from '@/components/crm/LeadScoringView';
 import { QuotesView } from '@/components/crm/QuotesView';
 import { InvoicesView } from '@/components/crm/InvoicesView';
 import { DocumentsView } from '@/components/crm/DocumentsView';
+import { CustomFieldsView } from '@/components/crm/CustomFieldsView';
+import { ImportExportView } from '@/components/crm/ImportExportView';
 import { useClients } from '@/hooks/useClients';
 import { useContacts } from '@/hooks/useContacts';
 import { useAccounts } from '@/hooks/useAccounts';
@@ -28,9 +30,10 @@ import { useLeadScoringRules } from '@/hooks/useLeadScoring';
 import { useQuotes } from '@/hooks/useQuotes';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useDocuments } from '@/hooks/useDocuments';
+import { useCustomFields } from '@/hooks/useCustomFields';
 import { useAuth } from '@/contexts/AuthContext';
 
-type View = 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin' | 'contacts' | 'accounts' | 'deals' | 'activities' | 'products' | 'templates' | 'automation' | 'scoring' | 'quotes' | 'invoices' | 'documents';
+type View = 'dashboard' | 'clients' | 'followups' | 'logs' | 'admin' | 'contacts' | 'accounts' | 'deals' | 'activities' | 'products' | 'templates' | 'automation' | 'scoring' | 'quotes' | 'invoices' | 'documents' | 'custom_fields' | 'import_export';
 
 const Index = () => {
   const [activeView, setActiveView] = useState<View>('dashboard');
@@ -44,9 +47,9 @@ const Index = () => {
     updateFollowUpStatus, addFollowUp, updateFollowUp, deleteFollowUp, restoreFromLog,
   } = useClients(profile?.email || 'anonymous');
 
-  const { contacts, addContact, updateContact, deleteContact } = useContacts();
-  const { accounts, addAccount, updateAccount, deleteAccount } = useAccounts();
-  const { deals, addDeal, updateDeal, deleteDeal } = useDeals();
+  const { contacts, addContact, updateContact, deleteContact, bulkImportContacts } = useContacts();
+  const { accounts, addAccount, updateAccount, deleteAccount, bulkImportAccounts } = useAccounts();
+  const { deals, addDeal, updateDeal, deleteDeal, bulkImportDeals } = useDeals();
   const { activities, addActivity, updateActivity, deleteActivity } = useActivities();
   const { products, addProduct, updateProduct, deleteProduct } = useProducts();
   const { templates, addTemplate, updateTemplate, deleteTemplate } = useEmailTemplates();
@@ -55,6 +58,7 @@ const Index = () => {
   const { quotes, addQuote, updateQuoteStatus, deleteQuote } = useQuotes();
   const { invoices, generateFromQuote, updateInvoiceStatus, markPaid, deleteInvoice } = useInvoices();
   const { documents, uploadDocument, deleteDocument } = useDocuments();
+  const { fields: customFields, addField: addCustomField, updateField: updateCustomField, deleteField: deleteCustomField } = useCustomFields();
 
   const stats = {
     totalClients: clients.length,
@@ -87,6 +91,8 @@ const Index = () => {
           {activeView === 'quotes' && <QuotesView quotes={quotes} deals={deals} products={products} onAdd={addQuote} onUpdateStatus={updateQuoteStatus} onDelete={deleteQuote} onGenerateInvoice={generateFromQuote} />}
           {activeView === 'invoices' && <InvoicesView invoices={invoices} onUpdateStatus={updateInvoiceStatus} onMarkPaid={markPaid} onDelete={deleteInvoice} />}
           {activeView === 'documents' && <DocumentsView documents={documents} onUpload={uploadDocument} onDelete={deleteDocument} />}
+          {activeView === 'custom_fields' && <CustomFieldsView fields={customFields} onAdd={addCustomField} onUpdate={updateCustomField} onDelete={deleteCustomField} />}
+          {activeView === 'import_export' && <ImportExportView contacts={contacts} accounts={accounts} deals={deals} onImportContacts={bulkImportContacts} onImportAccounts={bulkImportAccounts} onImportDeals={bulkImportDeals} />}
           {activeView === 'followups' && <FollowUpsView clients={allClients} onMarkComplete={updateFollowUpStatus} onUpdateFollowUp={updateFollowUp} onDeleteFollowUp={deleteFollowUp} />}
           {activeView === 'logs' && <ActionLogsView actionLogs={actionLogs} onRestore={restoreFromLog} />}
           {activeView === 'admin' && isAdmin && <AdminUsersView />}

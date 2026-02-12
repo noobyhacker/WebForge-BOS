@@ -66,5 +66,20 @@ export function useAccounts() {
     await fetchAccounts();
   }, [user, fetchAccounts]);
 
-  return { accounts, loading, addAccount, updateAccount, deleteAccount, refetch: fetchAccounts };
+  const bulkImportAccounts = useCallback(async (rows: Omit<Account, 'id' | 'createdAt' | 'updatedAt' | 'ownerId'>[]) => {
+    if (!user) return;
+    const inserts = rows.map(r => ({
+      name: r.name,
+      industry: r.industry || '',
+      website: r.website || '',
+      phone: r.phone || '',
+      address: r.address || '',
+      owner_id: user.id,
+    }));
+    const { error } = await supabase.from('accounts').insert(inserts);
+    if (error) { console.error('Error bulk importing accounts:', error); throw error; }
+    await fetchAccounts();
+  }, [user, fetchAccounts]);
+
+  return { accounts, loading, addAccount, updateAccount, deleteAccount, bulkImportAccounts, refetch: fetchAccounts };
 }
