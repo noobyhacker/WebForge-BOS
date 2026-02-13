@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Deal, DealStage } from '@/types/crm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, DollarSign, Trash2, Pencil, TrendingUp } from 'lucide-react';
+import { Search, Plus, DollarSign, Trash2, Pencil, TrendingUp, GripVertical } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,6 +13,7 @@ import { EntityDetailPanel } from './EntityDetailPanel';
 import { useDeals } from '@/hooks/useDeals';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useContacts } from '@/hooks/useContacts';
+import { cn } from '@/lib/utils';
 
 const STAGES: { value: DealStage; label: string; color: string }[] = [
   { value: 'prospecting', label: 'Prospecting', color: 'bg-blue-500/10 text-blue-700 dark:text-blue-400' },
@@ -36,6 +37,10 @@ export function DealsView() {
   const [viewMode, setViewMode] = useState<'list' | 'pipeline'>('pipeline');
   const [form, setForm] = useState({ name: '', accountId: '' as string | undefined, contactId: '' as string | undefined, stage: 'prospecting' as DealStage, value: 0, probability: 20, expectedCloseDate: '' });
 
+  // Drag-and-drop state
+  const [draggedDealId, setDraggedDealId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<DealStage | null>(null);
+
   const filtered = deals.filter(d => `${d.name} ${d.accountName} ${d.contactName}`.toLowerCase().includes(search.toLowerCase()));
   const currentSelected = selectedDeal ? deals.find(d => d.id === selectedDeal.id) || null : null;
   const resetForm = () => setForm({ name: '', accountId: '', contactId: '', stage: 'prospecting', value: 0, probability: 20, expectedCloseDate: '' });
@@ -43,6 +48,47 @@ export function DealsView() {
   const handleAdd = async () => { await addDeal({ ...form, accountId: form.accountId || undefined, contactId: form.contactId || undefined }); setShowAdd(false); resetForm(); };
   const handleEdit = (d: Deal) => { setForm({ name: d.name, accountId: d.accountId || '', contactId: d.contactId || '', stage: d.stage, value: d.value, probability: d.probability, expectedCloseDate: d.expectedCloseDate }); setEditId(d.id); };
   const handleUpdate = () => { if (editId) { updateDeal(editId, { ...form, accountId: form.accountId || undefined, contactId: form.contactId || undefined }); setEditId(null); resetForm(); } };
+
+  // Drag handlers
+  const handleDragStart = useCallback((e: React.DragEvent, dealId: string) => {
+    setDraggedDealId(dealId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', dealId);
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '0.5';
+    }
+  }, []);
+
+  const handleDragEnd = useCallback((e: React.DragEvent) => {
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '1';
+    }
+    setDraggedDealId(null);
+    setDropTarget(null);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, stage: DealStage) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDropTarget(stage);
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setDropTarget(null);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent, targetStage: DealStage) => {
+    e.preventDefault();
+    const dealId = e.dataTransfer.getData('text/plain');
+    if (dealId) {
+      const deal = deals.find(d => d.id === dealId);
+      if (deal && deal.stage !== targetStage) {
+        updateDeal(dealId, { stage: targetStage });
+      }
+    }
+    setDraggedDealId(null);
+    setDropTarget(null);
+  }, [deals, updateDeal]);
 
   const totalPipeline = deals.filter(d => !['closed_won', 'closed_lost'].includes(d.stage)).reduce((s, d) => s + d.value, 0);
   const weightedPipeline = deals.filter(d => !['closed_won', 'closed_lost'].includes(d.stage)).reduce((s, d) => s + d.value * d.probability / 100, 0);
@@ -112,8 +158,18 @@ export function DealsView() {
             {STAGES.map(stage => {
               const stageDeals = filtered.filter(d => d.stage === stage.value);
               const stageTotal = stageDeals.reduce((s, d) => s + d.value, 0);
+              const isOver = dropTarget === stage.value && draggedDealId !== null;
               return (
-                <div key={stage.value} className="min-w-[260px] flex-1">
+                <div
+                  key={stage.value}
+                  className={cn(
+                    'min-w-[260px] flex-1 rounded-lg p-2 transition-colors',
+                    isOver && 'bg-primary/10 ring-2 ring-primary/30'
+                  )}
+                  onDragOver={(e) => handleDragOver(e, stage.value)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, stage.value)}
+                >
                   <div className="mb-2 px-1">
                     <div className="flex items-center justify-between">
                       <span className={`text-xs font-semibold px-2 py-1 rounded ${stage.color}`}>{stage.label}</span>
@@ -121,17 +177,33 @@ export function DealsView() {
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">${stageTotal.toLocaleString()}</p>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-h-[60px]">
                     {stageDeals.map(d => (
-                      <Card key={d.id} className={`hover:shadow-md transition-shadow cursor-pointer ${currentSelected?.id === d.id ? 'ring-2 ring-primary' : ''}`} onClick={() => openDetail(d)}>
+                      <Card
+                        key={d.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, d.id)}
+                        onDragEnd={handleDragEnd}
+                        className={cn(
+                          'hover:shadow-md transition-all cursor-grab active:cursor-grabbing',
+                          currentSelected?.id === d.id && 'ring-2 ring-primary',
+                          draggedDealId === d.id && 'opacity-50'
+                        )}
+                        onClick={() => openDetail(d)}
+                      >
                         <CardContent className="p-3">
-                          <p className="font-medium text-sm truncate">{d.name}</p>
-                          <div className="flex items-center justify-between mt-1">
-                            <span className="text-sm font-semibold text-primary flex items-center gap-1"><DollarSign className="h-3 w-3" />{d.value.toLocaleString()}</span>
-                            <span className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" />{d.probability}%</span>
+                          <div className="flex items-start gap-2">
+                            <GripVertical className="h-4 w-4 text-muted-foreground/40 mt-0.5 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{d.name}</p>
+                              <div className="flex items-center justify-between mt-1">
+                                <span className="text-sm font-semibold text-primary flex items-center gap-1"><DollarSign className="h-3 w-3" />{d.value.toLocaleString()}</span>
+                                <span className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" />{d.probability}%</span>
+                              </div>
+                              {d.accountName && <p className="text-xs text-muted-foreground mt-1 truncate">{d.accountName}</p>}
+                              {d.expectedCloseDate && <p className="text-xs text-muted-foreground">Close: {d.expectedCloseDate}</p>}
+                            </div>
                           </div>
-                          {d.accountName && <p className="text-xs text-muted-foreground mt-1 truncate">{d.accountName}</p>}
-                          {d.expectedCloseDate && <p className="text-xs text-muted-foreground">Close: {d.expectedCloseDate}</p>}
                         </CardContent>
                       </Card>
                     ))}
