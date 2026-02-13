@@ -10,7 +10,11 @@ import { Switch } from '@/components/ui/switch';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 function DarkModeToggle({ collapsed }: { collapsed: boolean }) {
-  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    // Default to dark mode if no preference saved
+    return saved ? saved === 'dark' : true;
+  });
 
   useEffect(() => {
     if (isDark) {
@@ -21,13 +25,6 @@ function DarkModeToggle({ collapsed }: { collapsed: boolean }) {
       localStorage.setItem('theme', 'light');
     }
   }, [isDark]);
-
-  useEffect(() => {
-    const saved = localStorage.getItem('theme');
-    if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      setIsDark(true);
-    }
-  }, []);
 
   return (
     <button
