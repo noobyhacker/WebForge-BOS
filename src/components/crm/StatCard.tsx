@@ -53,7 +53,7 @@ export function StatCard({ title, value, icon: Icon, trend, sparklineData, varia
     >
       {/* Sparkline wave background */}
       {chartData && chartData.length > 0 && (
-        <div className="absolute bottom-0 left-0 right-0 h-16 opacity-20 pointer-events-none">
+        <div className="absolute bottom-0 left-0 right-0 h-16 opacity-30 dark:opacity-20 pointer-events-none">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
               <defs>
