@@ -15,6 +15,9 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   isAdmin: boolean;
+  isSalesManager: boolean;
+  isSales: boolean;
+  userRole: string;
   isApproved: boolean;
   loading: boolean;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null }>;
@@ -30,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
@@ -55,8 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('Error fetching roles:', roleError);
       }
 
-      const hasAdminRole = roleData?.some(r => r.role === 'admin') ?? false;
-      setIsAdmin(hasAdminRole);
+      const roles = roleData?.map(r => r.role) || [];
+      setIsAdmin(roles.includes('admin'));
+      setUserRoles(roles);
     } catch (error) {
       console.error('Error in fetchProfile:', error);
     }
@@ -81,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setProfile(null);
           setIsAdmin(false);
+          setUserRoles([]);
         }
         setLoading(false);
       }
@@ -122,9 +128,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setProfile(null);
     setIsAdmin(false);
+    setUserRoles([]);
   };
 
   const isApproved = profile?.is_approved ?? false;
+  const isSalesManager = userRoles.includes('sales_manager');
+  const isSales = userRoles.includes('sales');
+  const userRole = isAdmin ? 'Admin' : isSalesManager ? 'Sales Manager' : isSales ? 'Sales' : 'User';
 
   return (
     <AuthContext.Provider
@@ -133,6 +143,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         profile,
         isAdmin,
+        isSalesManager,
+        isSales,
+        userRole,
         isApproved,
         loading,
         signUp,

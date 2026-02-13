@@ -1,13 +1,14 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Receipt, Trash2, DollarSign, ChevronDown, ChevronUp, Download, Eye } from 'lucide-react';
+import { Receipt, Trash2, DollarSign, ChevronDown, ChevronUp, Download, Eye, UserCircle } from 'lucide-react';
 import { generateInvoicePdf } from '@/lib/generatePdf';
 import { DocumentPreviewDialog } from './DocumentPreviewDialog';
 import { format } from 'date-fns';
 import { useState } from 'react';
 import type { InvoiceStatus, Invoice } from '@/types/phase5';
 import { useInvoices } from '@/hooks/useInvoices';
+import { useProfilesMap } from '@/hooks/useProfilesMap';
 
 const STATUS_COLORS: Record<InvoiceStatus, string> = {
   draft: 'bg-muted text-muted-foreground',
@@ -19,6 +20,7 @@ const STATUS_COLORS: Record<InvoiceStatus, string> = {
 
 export function InvoicesView() {
   const { invoices, updateInvoice, updateInvoiceStatus, markPaid, deleteInvoice } = useInvoices();
+  const { getOwnerName } = useProfilesMap();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
   const formatCurrency = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
@@ -49,6 +51,7 @@ export function InvoicesView() {
                       <span>Total: {formatCurrency(inv.grandTotal)}</span>
                       <span>Paid: {formatCurrency(inv.paidAmount)}</span>
                       <span>Due: {format(new Date(inv.dueDate), 'MMM d, yyyy')}</span>
+                      <span className="flex items-center gap-1"><UserCircle className="h-3 w-3" />{getOwnerName(inv.ownerId)}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">

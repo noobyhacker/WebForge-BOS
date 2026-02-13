@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, User, Mail, Phone, Building2, Trash2, Pencil } from 'lucide-react';
+import { Search, Plus, User, Mail, Phone, Building2, Trash2, Pencil, UserCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -12,10 +12,12 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { EntityDetailPanel } from './EntityDetailPanel';
 import { useContacts } from '@/hooks/useContacts';
 import { useAccounts } from '@/hooks/useAccounts';
+import { useProfilesMap } from '@/hooks/useProfilesMap';
 
 export function ContactsView() {
   const { contacts, addContact, updateContact, deleteContact } = useContacts();
   const { accounts } = useAccounts();
+  const { getOwnerName, getOwnerRole } = useProfilesMap();
 
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
@@ -113,6 +115,7 @@ export function ContactsView() {
                   {c.email && <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><Mail className="h-3 w-3" />{c.email}</p>}
                   {c.phone && <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><Phone className="h-3 w-3" />{c.phone}</p>}
                   {c.accountName && <p className="text-xs text-muted-foreground flex items-center gap-1"><Building2 className="h-3 w-3" />{c.accountName}</p>}
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><UserCircle className="h-3 w-3" />Owner: {getOwnerName(c.ownerId)} · {getOwnerRole(c.ownerId)}</p>
                   <div className="flex gap-1 mt-3" onClick={e => e.stopPropagation()}>
                     <Button variant="ghost" size="sm" onClick={() => handleEdit(c)}><Pencil className="h-3 w-3" /></Button>
                     <Button variant="ghost" size="sm" onClick={() => setDeleteId(c.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>

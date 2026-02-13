@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, DollarSign, Trash2, Pencil, TrendingUp, GripVertical } from 'lucide-react';
+import { Search, Plus, DollarSign, Trash2, Pencil, TrendingUp, GripVertical, UserCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,6 +13,7 @@ import { EntityDetailPanel } from './EntityDetailPanel';
 import { useDeals } from '@/hooks/useDeals';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useContacts } from '@/hooks/useContacts';
+import { useProfilesMap } from '@/hooks/useProfilesMap';
 import { cn } from '@/lib/utils';
 
 const STAGES: { value: DealStage; label: string; color: string }[] = [
@@ -28,7 +29,7 @@ export function DealsView() {
   const { deals, addDeal, updateDeal, deleteDeal } = useDeals();
   const { accounts } = useAccounts();
   const { contacts } = useContacts();
-
+  const { getOwnerName, getOwnerRole } = useProfilesMap();
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -202,6 +203,7 @@ export function DealsView() {
                               </div>
                               {d.accountName && <p className="text-xs text-muted-foreground mt-1 truncate">{d.accountName}</p>}
                               {d.expectedCloseDate && <p className="text-xs text-muted-foreground">Close: {d.expectedCloseDate}</p>}
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><UserCircle className="h-3 w-3" />{getOwnerName(d.ownerId)}</p>
                             </div>
                           </div>
                         </CardContent>
@@ -226,6 +228,7 @@ export function DealsView() {
                     <p className="text-lg font-bold text-primary">${d.value.toLocaleString()}</p>
                     <p className="text-xs text-muted-foreground">Probability: {d.probability}%</p>
                     {d.accountName && <p className="text-xs text-muted-foreground">{d.accountName}</p>}
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><UserCircle className="h-3 w-3" />Owner: {getOwnerName(d.ownerId)} · {getOwnerRole(d.ownerId)}</p>
                     <div className="flex gap-1 mt-3" onClick={e => e.stopPropagation()}>
                       <Button variant="ghost" size="sm" onClick={() => handleEdit(d)}><Pencil className="h-3 w-3" /></Button>
                       <Button variant="ghost" size="sm" onClick={() => setDeleteId(d.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
@@ -247,6 +250,7 @@ export function DealsView() {
               <p className="text-muted-foreground">Probability: {currentSelected.probability}%</p>
               {currentSelected.accountName && <p className="text-muted-foreground">Account: {currentSelected.accountName}</p>}
               {currentSelected.contactName && <p className="text-muted-foreground">Contact: {currentSelected.contactName}</p>}
+              <p className="text-muted-foreground flex items-center gap-1"><UserCircle className="h-3 w-3" />Owner: {getOwnerName(currentSelected.ownerId)} ({getOwnerRole(currentSelected.ownerId)})</p>
             </div>
           </EntityDetailPanel>
         </div>

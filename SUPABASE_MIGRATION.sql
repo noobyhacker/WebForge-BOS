@@ -808,5 +808,18 @@ CREATE POLICY "deals_select_policy" ON public.deals FOR SELECT TO authenticated
   USING (public.has_role(auth.uid(), 'admin') OR owner_id = auth.uid() OR public.has_entity_access('deal', id));
 
 -- ============================================================
+-- Phase 8: Sales Roles
+-- ============================================================
+
+-- Add sales and sales_manager to the app_role enum
+DO $$ BEGIN
+  ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'sales';
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'sales_manager';
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- ============================================================
 -- Done! Run this migration in your Supabase SQL Editor.
 -- ============================================================
