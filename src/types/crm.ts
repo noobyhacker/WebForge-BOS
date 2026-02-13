@@ -107,6 +107,7 @@ export interface Deal {
   value: number;
   probability: number;
   expectedCloseDate: string;
+  lostReason?: string;
   createdAt: string;
   updatedAt: string;
 }

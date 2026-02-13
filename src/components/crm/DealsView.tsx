@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, DollarSign, Trash2, Pencil, TrendingUp, GripVertical, UserCircle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Search, Plus, DollarSign, Trash2, Pencil, TrendingUp, GripVertical, UserCircle, ArrowRight, Clock } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,7 +15,9 @@ import { useDeals } from '@/hooks/useDeals';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useContacts } from '@/hooks/useContacts';
 import { useProfilesMap } from '@/hooks/useProfilesMap';
+import { useDealStageHistory } from '@/hooks/useDealStageHistory';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 const STAGES: { value: DealStage; label: string; color: string }[] = [
   { value: 'prospecting', label: 'Prospecting', color: 'bg-blue-500/10 text-blue-700 dark:text-blue-400' },
@@ -25,11 +28,14 @@ const STAGES: { value: DealStage; label: string; color: string }[] = [
   { value: 'closed_lost', label: 'Closed Lost', color: 'bg-red-500/10 text-red-700 dark:text-red-400' },
 ];
 
+const getStageName = (stage: string) => STAGES.find(s => s.value === stage)?.label || stage;
+
 export function DealsView() {
   const { deals, addDeal, updateDeal, deleteDeal } = useDeals();
   const { accounts } = useAccounts();
   const { contacts } = useContacts();
   const { getOwnerName, getOwnerRole } = useProfilesMap();
+
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -42,9 +48,41 @@ export function DealsView() {
   const [draggedDealId, setDraggedDealId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<DealStage | null>(null);
 
+  // Lost reason dialog state
+  const [lostReasonDialog, setLostReasonDialog] = useState<{ dealId: string; fromStage: DealStage } | null>(null);
+  const [lostReason, setLostReason] = useState('');
+
+  // Stage history
+  const { history: stageHistory, addHistoryEntry } = useDealStageHistory(selectedDeal?.id || null);
+
   const filtered = deals.filter(d => `${d.name} ${d.accountName} ${d.contactName}`.toLowerCase().includes(search.toLowerCase()));
   const currentSelected = selectedDeal ? deals.find(d => d.id === selectedDeal.id) || null : null;
   const resetForm = () => setForm({ name: '', accountId: '', contactId: '', stage: 'prospecting', value: 0, probability: 20, expectedCloseDate: '' });
+
+  // Stage change handler that records history and handles lost reason
+  const changeDealStage = useCallback(async (dealId: string, fromStage: DealStage, toStage: DealStage, note?: string) => {
+    await updateDeal(dealId, { 
+      stage: toStage, 
+      ...(toStage === 'closed_lost' && note ? { lostReason: note } : {}) 
+    });
+    await addHistoryEntry({ dealId, fromStage, toStage, note });
+  }, [updateDeal, addHistoryEntry]);
+
+  const handleStageChange = useCallback((dealId: string, fromStage: DealStage, toStage: DealStage) => {
+    if (toStage === 'closed_lost') {
+      setLostReasonDialog({ dealId, fromStage });
+      setLostReason('');
+    } else {
+      changeDealStage(dealId, fromStage, toStage);
+    }
+  }, [changeDealStage]);
+
+  const handleLostReasonSubmit = async () => {
+    if (!lostReasonDialog || !lostReason.trim()) return;
+    await changeDealStage(lostReasonDialog.dealId, lostReasonDialog.fromStage, 'closed_lost', lostReason.trim());
+    setLostReasonDialog(null);
+    setLostReason('');
+  };
 
   const handleAdd = async () => { await addDeal({ ...form, accountId: form.accountId || undefined, contactId: form.contactId || undefined }); setShowAdd(false); resetForm(); };
   const handleEdit = (d: Deal) => { setForm({ name: d.name, accountId: d.accountId || '', contactId: d.contactId || '', stage: d.stage, value: d.value, probability: d.probability, expectedCloseDate: d.expectedCloseDate }); setEditId(d.id); };
@@ -84,12 +122,12 @@ export function DealsView() {
     if (dealId) {
       const deal = deals.find(d => d.id === dealId);
       if (deal && deal.stage !== targetStage) {
-        updateDeal(dealId, { stage: targetStage });
+        handleStageChange(dealId, deal.stage, targetStage);
       }
     }
     setDraggedDealId(null);
     setDropTarget(null);
-  }, [deals, updateDeal]);
+  }, [deals, handleStageChange]);
 
   const totalPipeline = deals.filter(d => !['closed_won', 'closed_lost'].includes(d.stage)).reduce((s, d) => s + d.value, 0);
   const weightedPipeline = deals.filter(d => !['closed_won', 'closed_lost'].includes(d.stage)).reduce((s, d) => s + d.value * d.probability / 100, 0);
@@ -229,6 +267,7 @@ export function DealsView() {
                     <p className="text-xs text-muted-foreground">Probability: {d.probability}%</p>
                     {d.accountName && <p className="text-xs text-muted-foreground">{d.accountName}</p>}
                     <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><UserCircle className="h-3 w-3" />Owner: {getOwnerName(d.ownerId)} · {getOwnerRole(d.ownerId)}</p>
+                    {d.lostReason && <p className="text-xs text-destructive mt-1">Lost: {d.lostReason}</p>}
                     <div className="flex gap-1 mt-3" onClick={e => e.stopPropagation()}>
                       <Button variant="ghost" size="sm" onClick={() => handleEdit(d)}><Pencil className="h-3 w-3" /></Button>
                       <Button variant="ghost" size="sm" onClick={() => setDeleteId(d.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
@@ -251,6 +290,36 @@ export function DealsView() {
               {currentSelected.accountName && <p className="text-muted-foreground">Account: {currentSelected.accountName}</p>}
               {currentSelected.contactName && <p className="text-muted-foreground">Contact: {currentSelected.contactName}</p>}
               <p className="text-muted-foreground flex items-center gap-1"><UserCircle className="h-3 w-3" />Owner: {getOwnerName(currentSelected.ownerId)} ({getOwnerRole(currentSelected.ownerId)})</p>
+              {currentSelected.lostReason && (
+                <p className="text-destructive font-medium">Lost Reason: {currentSelected.lostReason}</p>
+              )}
+
+              {/* Stage History Timeline */}
+              {stageHistory.length > 0 && (
+                <div className="mt-4 pt-3 border-t">
+                  <p className="font-semibold text-foreground mb-2 flex items-center gap-1"><Clock className="h-3.5 w-3.5" />Stage History</p>
+                  <div className="relative pl-4 space-y-3">
+                    <div className="absolute left-[7px] top-1 bottom-1 w-px bg-border" />
+                    {stageHistory.map((h) => (
+                      <div key={h.id} className="relative">
+                        <div className="absolute -left-4 top-1 h-2.5 w-2.5 rounded-full bg-primary border-2 border-background" />
+                        <div>
+                          <div className="flex items-center gap-1 text-xs">
+                            <span className="font-medium text-foreground">{getStageName(h.fromStage)}</span>
+                            <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                            <span className="font-medium text-foreground">{getStageName(h.toStage)}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(h.createdAt), 'MMM d, yyyy h:mm a')}
+                            {h.changedBy && ` · ${getOwnerName(h.changedBy)}`}
+                          </p>
+                          {h.note && <p className="text-xs text-muted-foreground mt-0.5 italic">"{h.note}"</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </EntityDetailPanel>
         </div>
@@ -259,6 +328,31 @@ export function DealsView() {
       {formDialog(showAdd, () => setShowAdd(false), handleAdd, 'Add Deal')}
       {formDialog(!!editId, () => setEditId(null), handleUpdate, 'Edit Deal')}
       <ConfirmDialog open={!!deleteId} onOpenChange={o => { if (!o) setDeleteId(null); }} title="Delete Deal" description="Are you sure you want to delete this deal?" onConfirm={() => { if (deleteId) { deleteDeal(deleteId); setDeleteId(null); } }} />
+
+      {/* Lost Reason Dialog */}
+      <Dialog open={!!lostReasonDialog} onOpenChange={o => { if (!o) { setLostReasonDialog(null); setLostReason(''); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Why was this deal lost?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Please provide a reason for marking this deal as lost. This helps improve future sales strategies.</p>
+            <div>
+              <Label>Reason *</Label>
+              <Textarea
+                value={lostReason}
+                onChange={e => setLostReason(e.target.value)}
+                placeholder="e.g. Budget constraints, Chose competitor, Timing not right..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setLostReasonDialog(null); setLostReason(''); }}>Cancel</Button>
+            <Button variant="destructive" onClick={handleLostReasonSubmit} disabled={!lostReason.trim()}>Mark as Lost</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -821,5 +821,30 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ============================================================
+-- Phase 9: Deal Stage History & Lost Reason
+-- ============================================================
+
+-- Add lost_reason column to deals
+ALTER TABLE public.deals ADD COLUMN IF NOT EXISTS lost_reason text DEFAULT '';
+
+-- Deal stage history table
+CREATE TABLE IF NOT EXISTS public.deal_stage_history (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id uuid REFERENCES public.deals(id) ON DELETE CASCADE NOT NULL,
+  from_stage text NOT NULL,
+  to_stage text NOT NULL,
+  changed_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  note text DEFAULT '',
+  created_at timestamptz DEFAULT now() NOT NULL
+);
+ALTER TABLE public.deal_stage_history ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "deal_stage_history_select_policy" ON public.deal_stage_history;
+DROP POLICY IF EXISTS "deal_stage_history_insert_policy" ON public.deal_stage_history;
+
+CREATE POLICY "deal_stage_history_select_policy" ON public.deal_stage_history FOR SELECT TO authenticated USING (true);
+CREATE POLICY "deal_stage_history_insert_policy" ON public.deal_stage_history FOR INSERT TO authenticated WITH CHECK (true);
+
+-- ============================================================
 -- Done! Run this migration in your Supabase SQL Editor.
 -- ============================================================
