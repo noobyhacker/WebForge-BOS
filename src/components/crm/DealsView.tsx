@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Search, Plus, DollarSign, Trash2, Pencil, TrendingUp, GripVertical, UserCircle, ArrowRight, Clock, Archive, BarChart3, Trophy, XCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -19,7 +20,7 @@ import { useProfilesMap } from '@/hooks/useProfilesMap';
 import { useDealStageHistory } from '@/hooks/useDealStageHistory';
 import { cn } from '@/lib/utils';
 import { format, subDays, isAfter } from 'date-fns';
-import { AreaChart, Area, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
+import { XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
 
 const STAGES: { value: DealStage; label: string; color: string }[] = [
   { value: 'prospecting', label: 'Prospecting', color: 'bg-blue-500/10 text-blue-700 dark:text-blue-400' },
@@ -30,7 +31,6 @@ const STAGES: { value: DealStage; label: string; color: string }[] = [
   { value: 'closed_lost', label: 'Closed Lost', color: 'bg-red-500/10 text-red-700 dark:text-red-400' },
 ];
 
-const ACTIVE_STAGES: DealStage[] = ['prospecting', 'qualification', 'proposal', 'negotiation'];
 const CLOSED_STAGES: DealStage[] = ['closed_won', 'closed_lost'];
 const PIE_COLORS = ['hsl(217, 91%, 60%)', 'hsl(271, 91%, 65%)', 'hsl(45, 93%, 47%)', 'hsl(24, 95%, 53%)', 'hsl(142, 71%, 45%)', 'hsl(0, 84%, 60%)'];
 
@@ -56,6 +56,9 @@ export function DealsView() {
   const [draggedDealId, setDraggedDealId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<DealStage | null>(null);
 
+  // Bulk archive selection
+  const [selectedForArchive, setSelectedForArchive] = useState<Set<string>>(new Set());
+
   // Lost reason dialog state
   const [lostReasonDialog, setLostReasonDialog] = useState<{ dealId: string; fromStage: DealStage } | null>(null);
   const [lostReason, setLostReason] = useState('');
@@ -65,14 +68,15 @@ export function DealsView() {
 
   // Filtered deals by tab
   const cutoffDate = useMemo(() => subDays(new Date(), activeDaysFilter), [activeDaysFilter]);
-  const activeDeals = useMemo(() => deals.filter(d => ACTIVE_STAGES.includes(d.stage) && isAfter(new Date(d.createdAt), cutoffDate)), [deals, cutoffDate]);
-  const archivedDeals = useMemo(() => deals.filter(d => CLOSED_STAGES.includes(d.stage)), [deals]);
+  // Active = non-archived deals (including recently closed ones still visible in pipeline)
+  const nonArchivedDeals = useMemo(() => deals.filter(d => isAfter(new Date(d.createdAt), cutoffDate)), [deals, cutoffDate]);
+  const archivedDeals = useMemo(() => deals.filter(d => CLOSED_STAGES.includes(d.stage) && !isAfter(new Date(d.createdAt), cutoffDate)), [deals, cutoffDate]);
 
   const searchFiltered = useCallback((list: Deal[]) =>
     list.filter(d => `${d.name} ${d.accountName} ${d.contactName}`.toLowerCase().includes(search.toLowerCase())),
   [search]);
 
-  const filtered = searchFiltered(activeTab === 'active' ? activeDeals : activeTab === 'archived' ? archivedDeals : deals);
+  const filtered = searchFiltered(activeTab === 'active' ? nonArchivedDeals : activeTab === 'archived' ? archivedDeals : deals);
   const currentSelected = selectedDeal ? deals.find(d => d.id === selectedDeal.id) || null : null;
   const resetForm = () => setForm({ name: '', accountId: '', contactId: '', stage: 'prospecting', value: 0, probability: 20, expectedCloseDate: '' });
 
@@ -104,6 +108,33 @@ export function DealsView() {
   const handleAdd = async () => { await addDeal({ ...form, accountId: form.accountId || undefined, contactId: form.contactId || undefined }); setShowAdd(false); resetForm(); };
   const handleEdit = (d: Deal) => { setForm({ name: d.name, accountId: d.accountId || '', contactId: d.contactId || '', stage: d.stage, value: d.value, probability: d.probability, expectedCloseDate: d.expectedCloseDate }); setEditId(d.id); };
   const handleUpdate = () => { if (editId) { updateDeal(editId, { ...form, accountId: form.accountId || undefined, contactId: form.contactId || undefined }); setEditId(null); resetForm(); } };
+
+  // Bulk archive toggle
+  const toggleArchiveSelection = useCallback((dealId: string) => {
+    setSelectedForArchive(prev => {
+      const next = new Set(prev);
+      if (next.has(dealId)) next.delete(dealId);
+      else next.add(dealId);
+      return next;
+    });
+  }, []);
+
+  const closedDealsInPipeline = useMemo(() => filtered.filter(d => CLOSED_STAGES.includes(d.stage)), [filtered]);
+
+  const selectAllClosed = useCallback(() => {
+    setSelectedForArchive(new Set(closedDealsInPipeline.map(d => d.id)));
+  }, [closedDealsInPipeline]);
+
+  const clearSelection = useCallback(() => setSelectedForArchive(new Set()), []);
+
+  // "Archive" = delete from active view. Here we just bulk-delete selected deals.
+  // In a real app this might set an "archived" flag. For now we delete them.
+  const handleBulkArchive = useCallback(async () => {
+    for (const id of selectedForArchive) {
+      await deleteDeal(id);
+    }
+    setSelectedForArchive(new Set());
+  }, [selectedForArchive, deleteDeal]);
 
   // Drag handlers
   const handleDragStart = useCallback((e: React.DragEvent, dealId: string) => {
@@ -138,31 +169,28 @@ export function DealsView() {
     setDropTarget(null);
   }, [deals, handleStageChange]);
 
-  const totalPipeline = activeDeals.reduce((s, d) => s + d.value, 0);
-  const weightedPipeline = activeDeals.reduce((s, d) => s + d.value * d.probability / 100, 0);
+  const activeStageDeals = useMemo(() => filtered.filter(d => !CLOSED_STAGES.includes(d.stage)), [filtered]);
+  const totalPipeline = activeStageDeals.reduce((s, d) => s + d.value, 0);
+  const weightedPipeline = activeStageDeals.reduce((s, d) => s + d.value * d.probability / 100, 0);
 
   // Analytics data
   const analytics = useMemo(() => {
     const wonDeals = deals.filter(d => d.stage === 'closed_won');
     const lostDeals = deals.filter(d => d.stage === 'closed_lost');
     const totalRevenue = wonDeals.reduce((s, d) => s + d.value, 0);
-    const totalLost = lostDeals.reduce((s, d) => s + d.value, 0);
     const winRate = wonDeals.length + lostDeals.length > 0
       ? Math.round((wonDeals.length / (wonDeals.length + lostDeals.length)) * 100) : 0;
     const avgDealSize = wonDeals.length > 0 ? Math.round(totalRevenue / wonDeals.length) : 0;
 
-    // Stage distribution for pie chart
     const stageDistribution = STAGES.map(s => ({
       name: s.label,
       value: deals.filter(d => d.stage === s.value).length,
     })).filter(s => s.value > 0);
 
-    // Monthly revenue trend (last 6 months)
     const monthlyData: { month: string; won: number; lost: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date();
       d.setMonth(d.getMonth() - i);
-      const monthStr = format(d, 'MMM yyyy');
       const monthDeals = deals.filter(deal => {
         const dealDate = new Date(deal.updatedAt || deal.createdAt);
         return dealDate.getMonth() === d.getMonth() && dealDate.getFullYear() === d.getFullYear();
@@ -174,13 +202,11 @@ export function DealsView() {
       });
     }
 
-    // Value by stage for bar chart
     const valueByStage = STAGES.map(s => ({
       stage: s.label,
       value: deals.filter(d => d.stage === s.value).reduce((sum, d) => sum + d.value, 0),
     }));
 
-    // Top lost reasons
     const lostReasons = lostDeals
       .filter(d => d.lostReason)
       .reduce<Record<string, number>>((acc, d) => {
@@ -193,7 +219,7 @@ export function DealsView() {
       .slice(0, 5)
       .map(([reason, count]) => ({ reason, count }));
 
-    return { wonDeals, lostDeals, totalRevenue, totalLost, winRate, avgDealSize, stageDistribution, monthlyData, valueByStage, topLostReasons };
+    return { wonDeals, lostDeals, totalRevenue, winRate, avgDealSize, stageDistribution, monthlyData, valueByStage, topLostReasons };
   }, [deals]);
 
   const openDetail = (d: Deal) => setSelectedDeal(d);
@@ -272,19 +298,19 @@ export function DealsView() {
           <Button onClick={() => setShowAdd(true)} className="gap-2"><Plus className="h-4 w-4" />Add Deal</Button>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+        <Tabs value={activeTab} onValueChange={v => { setActiveTab(v); setSelectedForArchive(new Set()); }} className="flex-1 flex flex-col min-h-0">
           <TabsList className="mb-4 w-fit">
-            <TabsTrigger value="active" className="gap-1.5"><TrendingUp className="h-3.5 w-3.5" />Active ({activeDeals.length})</TabsTrigger>
+            <TabsTrigger value="active" className="gap-1.5"><TrendingUp className="h-3.5 w-3.5" />Active ({nonArchivedDeals.length})</TabsTrigger>
             <TabsTrigger value="archived" className="gap-1.5"><Archive className="h-3.5 w-3.5" />Archived ({archivedDeals.length})</TabsTrigger>
             <TabsTrigger value="analytics" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" />Analytics</TabsTrigger>
           </TabsList>
 
-          {/* ── Active Deals ── */}
+          {/* ── Active Deals (full pipeline with all 6 stages) ── */}
           <TabsContent value="active" className="flex-1 flex flex-col min-h-0 mt-0">
             <div className="flex items-center gap-2 mb-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search active deals..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
+                <Input placeholder="Search deals..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
               </div>
               <div className="flex gap-1">
                 {([30, 60, 90] as const).map(d => (
@@ -297,15 +323,33 @@ export function DealsView() {
               </div>
             </div>
 
+            {/* Bulk archive bar */}
+            {closedDealsInPipeline.length > 0 && viewMode === 'pipeline' && (
+              <div className="flex items-center gap-2 mb-3 p-2 rounded-lg bg-muted/50 border">
+                <Archive className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">{closedDealsInPipeline.length} closed deal(s) in pipeline</span>
+                <Button variant="ghost" size="sm" className="text-xs h-6" onClick={selectAllClosed}>Select All</Button>
+                {selectedForArchive.size > 0 && (
+                  <>
+                    <Button variant="ghost" size="sm" className="text-xs h-6" onClick={clearSelection}>Clear</Button>
+                    <Button variant="destructive" size="sm" className="text-xs h-6 gap-1 ml-auto" onClick={handleBulkArchive}>
+                      <Trash2 className="h-3 w-3" />Archive {selectedForArchive.size} deal(s)
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
+
             {viewMode === 'pipeline' ? (
               <div className="flex gap-3 overflow-x-auto pb-4 flex-1">
-                {STAGES.filter(s => ACTIVE_STAGES.includes(s.value)).map(stage => {
+                {STAGES.map(stage => {
                   const stageDeals = filtered.filter(d => d.stage === stage.value);
                   const stageTotal = stageDeals.reduce((s, d) => s + d.value, 0);
                   const isOver = dropTarget === stage.value && draggedDealId !== null;
+                  const isClosed = CLOSED_STAGES.includes(stage.value);
                   return (
                     <div key={stage.value}
-                      className={cn('min-w-[260px] flex-1 rounded-lg p-2 transition-colors', isOver && 'bg-primary/10 ring-2 ring-primary/30')}
+                      className={cn('min-w-[220px] flex-1 rounded-lg p-2 transition-colors', isOver && 'bg-primary/10 ring-2 ring-primary/30')}
                       onDragOver={(e) => handleDragOver(e, stage.value)}
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, stage.value)}
@@ -324,12 +368,18 @@ export function DealsView() {
                             onDragEnd={handleDragEnd}
                             className={cn('hover:shadow-md transition-all cursor-grab active:cursor-grabbing',
                               currentSelected?.id === d.id && 'ring-2 ring-primary',
-                              draggedDealId === d.id && 'opacity-50'
+                              draggedDealId === d.id && 'opacity-50',
+                              selectedForArchive.has(d.id) && 'ring-2 ring-destructive'
                             )}
                             onClick={() => openDetail(d)}
                           >
                             <CardContent className="p-3">
                               <div className="flex items-start gap-2">
+                                {isClosed && (
+                                  <div className="flex-shrink-0 mt-0.5" onClick={e => { e.stopPropagation(); toggleArchiveSelection(d.id); }}>
+                                    <Checkbox checked={selectedForArchive.has(d.id)} />
+                                  </div>
+                                )}
                                 <GripVertical className="h-4 w-4 text-muted-foreground/40 mt-0.5 flex-shrink-0" />
                                 <div className="flex-1 min-w-0">
                                   <p className="font-medium text-sm truncate">{d.name}</p>
@@ -340,6 +390,7 @@ export function DealsView() {
                                   {d.accountName && <p className="text-xs text-muted-foreground mt-1 truncate">{d.accountName}</p>}
                                   {d.expectedCloseDate && <p className="text-xs text-muted-foreground">Close: {d.expectedCloseDate}</p>}
                                   <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><UserCircle className="h-3 w-3" />{getOwnerName(d.ownerId)}</p>
+                                  {d.lostReason && <p className="text-xs text-destructive mt-0.5 truncate">Lost: {d.lostReason}</p>}
                                 </div>
                               </div>
                             </CardContent>
@@ -398,7 +449,7 @@ export function DealsView() {
           </TabsContent>
 
           {/* ── Analytics ── */}
-          <TabsContent value="analytics" className="flex-1 overflow-auto pb-4 mt-0">
+          <TabsContent value="analytics" className="flex-1 overflow-auto mt-0">
             {/* KPI Summary */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <Card><CardContent className="p-4 text-center">
@@ -419,7 +470,7 @@ export function DealsView() {
               </CardContent></Card>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-4">
               {/* Won vs Lost Trend */}
               <Card>
                 <CardContent className="p-4">
