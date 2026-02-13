@@ -3,15 +3,17 @@ import { Account } from '@/types/crm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Search, Plus, Building2, Globe, Phone, MapPin, Trash2, Pencil } from 'lucide-react';
+import { Search, Plus, Building2, Globe, Phone, MapPin, Trash2, Pencil, UserCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { ConfirmDialog } from './ConfirmDialog';
 import { EntityDetailPanel } from './EntityDetailPanel';
 import { useAccounts } from '@/hooks/useAccounts';
+import { useProfilesMap } from '@/hooks/useProfilesMap';
 
 export function AccountsView() {
   const { accounts, addAccount, updateAccount, deleteAccount } = useAccounts();
+  const { getOwnerName, getOwnerRole } = useProfilesMap();
 
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
@@ -77,6 +79,7 @@ export function AccountsView() {
                   {a.website && <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><Globe className="h-3 w-3" />{a.website}</p>}
                   {a.phone && <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><Phone className="h-3 w-3" />{a.phone}</p>}
                   {a.address && <p className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" />{a.address}</p>}
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><UserCircle className="h-3 w-3" />Owner: {getOwnerName(a.ownerId)} · {getOwnerRole(a.ownerId)}</p>
                   <div className="flex gap-1 mt-3" onClick={e => e.stopPropagation()}>
                     <Button variant="ghost" size="sm" onClick={() => handleEdit(a)}><Pencil className="h-3 w-3" /></Button>
                     <Button variant="ghost" size="sm" onClick={() => setDeleteId(a.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>

@@ -129,39 +129,27 @@ export const AdminUsersView = () => {
     }
   };
 
-  const toggleAdminRole = async (userId: string, isCurrentlyAdmin: boolean) => {
-    if (isCurrentlyAdmin) {
-      // Remove admin role
+  const setRole = async (userId: string, role: string, add: boolean) => {
+    if (add) {
+      const { error } = await supabase
+        .from('user_roles')
+        .insert({ user_id: userId, role });
+      if (error) {
+        toast({ title: 'Error adding role', description: error.message, variant: 'destructive' });
+      } else {
+        toast({ title: `${role} role granted` });
+        fetchUsers();
+      }
+    } else {
       const { error } = await supabase
         .from('user_roles')
         .delete()
         .eq('user_id', userId)
-        .eq('role', 'admin');
-
+        .eq('role', role);
       if (error) {
-        toast({
-          title: 'Error removing admin role',
-          description: error.message,
-          variant: 'destructive',
-        });
+        toast({ title: 'Error removing role', description: error.message, variant: 'destructive' });
       } else {
-        toast({ title: 'Admin role removed' });
-        fetchUsers();
-      }
-    } else {
-      // Add admin role
-      const { error } = await supabase
-        .from('user_roles')
-        .insert({ user_id: userId, role: 'admin' });
-
-      if (error) {
-        toast({
-          title: 'Error adding admin role',
-          description: error.message,
-          variant: 'destructive',
-        });
-      } else {
-        toast({ title: 'Admin role granted' });
+        toast({ title: `${role} role removed` });
         fetchUsers();
       }
     }
@@ -173,7 +161,7 @@ export const AdminUsersView = () => {
     if (confirmAction.type === 'revoke') {
       revokeApproval(confirmAction.userId);
     } else if (confirmAction.type === 'toggleAdmin') {
-      toggleAdminRole(confirmAction.userId, confirmAction.isAdmin ?? false);
+      setRole(confirmAction.userId, 'admin', !(confirmAction.isAdmin ?? false));
     }
     setConfirmAction(null);
   };
@@ -256,13 +244,15 @@ export const AdminUsersView = () => {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
+                <TableHead>Roles</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {approvedUsers.map(u => {
                 const isAdmin = u.roles.includes('admin');
+                const isSalesManager = u.roles.includes('sales_manager');
+                const isSales = u.roles.includes('sales');
                 const isCurrentUser = u.id === user?.id;
 
                 return (
@@ -275,29 +265,24 @@ export const AdminUsersView = () => {
                     </TableCell>
                     <TableCell>{u.email}</TableCell>
                     <TableCell>
-                      {isAdmin ? (
-                        <Badge className="gap-1">
-                          <Shield className="h-3 w-3" />
-                          Admin
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary">User</Badge>
-                      )}
+                      <div className="flex flex-wrap gap-1">
+                        {isAdmin && <Badge className="gap-1"><Shield className="h-3 w-3" />Admin</Badge>}
+                        {isSalesManager && <Badge variant="secondary" className="bg-amber-500/10 text-amber-700 dark:text-amber-400">Sales Manager</Badge>}
+                        {isSales && <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 dark:text-blue-400">Sales</Badge>}
+                        {!isAdmin && !isSalesManager && !isSales && <Badge variant="secondary">User</Badge>}
+                      </div>
                     </TableCell>
-                    <TableCell className="text-right space-x-2">
+                    <TableCell className="text-right">
                       {!isCurrentUser && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant={isAdmin ? 'outline' : 'secondary'}
-                            onClick={() => setConfirmAction({
-                              type: 'toggleAdmin',
-                              userId: u.id,
-                              userName: u.full_name || u.email || 'User',
-                              isAdmin,
-                            })}
-                          >
-                            {isAdmin ? 'Remove Admin' : 'Make Admin'}
+                        <div className="flex flex-wrap justify-end gap-1">
+                          <Button size="sm" variant={isAdmin ? 'default' : 'outline'} onClick={() => setRole(u.id, 'admin', !isAdmin)}>
+                            {isAdmin ? '✓ Admin' : 'Admin'}
+                          </Button>
+                          <Button size="sm" variant={isSalesManager ? 'default' : 'outline'} onClick={() => setRole(u.id, 'sales_manager', !isSalesManager)}>
+                            {isSalesManager ? '✓ Manager' : 'Manager'}
+                          </Button>
+                          <Button size="sm" variant={isSales ? 'default' : 'outline'} onClick={() => setRole(u.id, 'sales', !isSales)}>
+                            {isSales ? '✓ Sales' : 'Sales'}
                           </Button>
                           <Button 
                             size="sm" 
@@ -310,7 +295,7 @@ export const AdminUsersView = () => {
                           >
                             <X className="h-4 w-4" />
                           </Button>
-                        </>
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>
