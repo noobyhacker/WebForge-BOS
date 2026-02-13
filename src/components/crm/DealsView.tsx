@@ -1,11 +1,12 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Deal, DealStage } from '@/types/crm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Search, Plus, DollarSign, Trash2, Pencil, TrendingUp, GripVertical, UserCircle, ArrowRight, Clock } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Search, Plus, DollarSign, Trash2, Pencil, TrendingUp, GripVertical, UserCircle, ArrowRight, Clock, Archive, BarChart3, Trophy, XCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -17,7 +18,8 @@ import { useContacts } from '@/hooks/useContacts';
 import { useProfilesMap } from '@/hooks/useProfilesMap';
 import { useDealStageHistory } from '@/hooks/useDealStageHistory';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, subDays, isAfter } from 'date-fns';
+import { AreaChart, Area, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
 
 const STAGES: { value: DealStage; label: string; color: string }[] = [
   { value: 'prospecting', label: 'Prospecting', color: 'bg-blue-500/10 text-blue-700 dark:text-blue-400' },
@@ -27,6 +29,10 @@ const STAGES: { value: DealStage; label: string; color: string }[] = [
   { value: 'closed_won', label: 'Closed Won', color: 'bg-green-500/10 text-green-700 dark:text-green-400' },
   { value: 'closed_lost', label: 'Closed Lost', color: 'bg-red-500/10 text-red-700 dark:text-red-400' },
 ];
+
+const ACTIVE_STAGES: DealStage[] = ['prospecting', 'qualification', 'proposal', 'negotiation'];
+const CLOSED_STAGES: DealStage[] = ['closed_won', 'closed_lost'];
+const PIE_COLORS = ['hsl(217, 91%, 60%)', 'hsl(271, 91%, 65%)', 'hsl(45, 93%, 47%)', 'hsl(24, 95%, 53%)', 'hsl(142, 71%, 45%)', 'hsl(0, 84%, 60%)'];
 
 const getStageName = (stage: string) => STAGES.find(s => s.value === stage)?.label || stage;
 
@@ -42,6 +48,8 @@ export function DealsView() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'pipeline'>('pipeline');
+  const [activeTab, setActiveTab] = useState('active');
+  const [activeDaysFilter, setActiveDaysFilter] = useState<30 | 60 | 90>(90);
   const [form, setForm] = useState({ name: '', accountId: '' as string | undefined, contactId: '' as string | undefined, stage: 'prospecting' as DealStage, value: 0, probability: 20, expectedCloseDate: '' });
 
   // Drag-and-drop state
@@ -55,15 +63,24 @@ export function DealsView() {
   // Stage history
   const { history: stageHistory, addHistoryEntry } = useDealStageHistory(selectedDeal?.id || null);
 
-  const filtered = deals.filter(d => `${d.name} ${d.accountName} ${d.contactName}`.toLowerCase().includes(search.toLowerCase()));
+  // Filtered deals by tab
+  const cutoffDate = useMemo(() => subDays(new Date(), activeDaysFilter), [activeDaysFilter]);
+  const activeDeals = useMemo(() => deals.filter(d => ACTIVE_STAGES.includes(d.stage) && isAfter(new Date(d.createdAt), cutoffDate)), [deals, cutoffDate]);
+  const archivedDeals = useMemo(() => deals.filter(d => CLOSED_STAGES.includes(d.stage)), [deals]);
+
+  const searchFiltered = useCallback((list: Deal[]) =>
+    list.filter(d => `${d.name} ${d.accountName} ${d.contactName}`.toLowerCase().includes(search.toLowerCase())),
+  [search]);
+
+  const filtered = searchFiltered(activeTab === 'active' ? activeDeals : activeTab === 'archived' ? archivedDeals : deals);
   const currentSelected = selectedDeal ? deals.find(d => d.id === selectedDeal.id) || null : null;
   const resetForm = () => setForm({ name: '', accountId: '', contactId: '', stage: 'prospecting', value: 0, probability: 20, expectedCloseDate: '' });
 
-  // Stage change handler that records history and handles lost reason
+  // Stage change handler
   const changeDealStage = useCallback(async (dealId: string, fromStage: DealStage, toStage: DealStage, note?: string) => {
-    await updateDeal(dealId, { 
-      stage: toStage, 
-      ...(toStage === 'closed_lost' && note ? { lostReason: note } : {}) 
+    await updateDeal(dealId, {
+      stage: toStage,
+      ...(toStage === 'closed_lost' && note ? { lostReason: note } : {})
     });
     await addHistoryEntry({ dealId, fromStage, toStage, note });
   }, [updateDeal, addHistoryEntry]);
@@ -93,15 +110,11 @@ export function DealsView() {
     setDraggedDealId(dealId);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', dealId);
-    if (e.currentTarget instanceof HTMLElement) {
-      e.currentTarget.style.opacity = '0.5';
-    }
+    if (e.currentTarget instanceof HTMLElement) e.currentTarget.style.opacity = '0.5';
   }, []);
 
   const handleDragEnd = useCallback((e: React.DragEvent) => {
-    if (e.currentTarget instanceof HTMLElement) {
-      e.currentTarget.style.opacity = '1';
-    }
+    if (e.currentTarget instanceof HTMLElement) e.currentTarget.style.opacity = '1';
     setDraggedDealId(null);
     setDropTarget(null);
   }, []);
@@ -112,25 +125,79 @@ export function DealsView() {
     setDropTarget(stage);
   }, []);
 
-  const handleDragLeave = useCallback(() => {
-    setDropTarget(null);
-  }, []);
+  const handleDragLeave = useCallback(() => setDropTarget(null), []);
 
   const handleDrop = useCallback((e: React.DragEvent, targetStage: DealStage) => {
     e.preventDefault();
     const dealId = e.dataTransfer.getData('text/plain');
     if (dealId) {
       const deal = deals.find(d => d.id === dealId);
-      if (deal && deal.stage !== targetStage) {
-        handleStageChange(dealId, deal.stage, targetStage);
-      }
+      if (deal && deal.stage !== targetStage) handleStageChange(dealId, deal.stage, targetStage);
     }
     setDraggedDealId(null);
     setDropTarget(null);
   }, [deals, handleStageChange]);
 
-  const totalPipeline = deals.filter(d => !['closed_won', 'closed_lost'].includes(d.stage)).reduce((s, d) => s + d.value, 0);
-  const weightedPipeline = deals.filter(d => !['closed_won', 'closed_lost'].includes(d.stage)).reduce((s, d) => s + d.value * d.probability / 100, 0);
+  const totalPipeline = activeDeals.reduce((s, d) => s + d.value, 0);
+  const weightedPipeline = activeDeals.reduce((s, d) => s + d.value * d.probability / 100, 0);
+
+  // Analytics data
+  const analytics = useMemo(() => {
+    const wonDeals = deals.filter(d => d.stage === 'closed_won');
+    const lostDeals = deals.filter(d => d.stage === 'closed_lost');
+    const totalRevenue = wonDeals.reduce((s, d) => s + d.value, 0);
+    const totalLost = lostDeals.reduce((s, d) => s + d.value, 0);
+    const winRate = wonDeals.length + lostDeals.length > 0
+      ? Math.round((wonDeals.length / (wonDeals.length + lostDeals.length)) * 100) : 0;
+    const avgDealSize = wonDeals.length > 0 ? Math.round(totalRevenue / wonDeals.length) : 0;
+
+    // Stage distribution for pie chart
+    const stageDistribution = STAGES.map(s => ({
+      name: s.label,
+      value: deals.filter(d => d.stage === s.value).length,
+    })).filter(s => s.value > 0);
+
+    // Monthly revenue trend (last 6 months)
+    const monthlyData: { month: string; won: number; lost: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const monthStr = format(d, 'MMM yyyy');
+      const monthDeals = deals.filter(deal => {
+        const dealDate = new Date(deal.updatedAt || deal.createdAt);
+        return dealDate.getMonth() === d.getMonth() && dealDate.getFullYear() === d.getFullYear();
+      });
+      monthlyData.push({
+        month: format(d, 'MMM'),
+        won: monthDeals.filter(deal => deal.stage === 'closed_won').reduce((s, deal) => s + deal.value, 0),
+        lost: monthDeals.filter(deal => deal.stage === 'closed_lost').reduce((s, deal) => s + deal.value, 0),
+      });
+    }
+
+    // Value by stage for bar chart
+    const valueByStage = STAGES.map(s => ({
+      stage: s.label,
+      value: deals.filter(d => d.stage === s.value).reduce((sum, d) => sum + d.value, 0),
+    }));
+
+    // Top lost reasons
+    const lostReasons = lostDeals
+      .filter(d => d.lostReason)
+      .reduce<Record<string, number>>((acc, d) => {
+        const reason = d.lostReason || 'No reason';
+        acc[reason] = (acc[reason] || 0) + 1;
+        return acc;
+      }, {});
+    const topLostReasons = Object.entries(lostReasons)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([reason, count]) => ({ reason, count }));
+
+    return { wonDeals, lostDeals, totalRevenue, totalLost, winRate, avgDealSize, stageDistribution, monthlyData, valueByStage, topLostReasons };
+  }, [deals]);
+
+  const openDetail = (d: Deal) => setSelectedDeal(d);
+  const formatCurrency = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 
   const formDialog = (open: boolean, onClose: () => void, onSubmit: () => void, title: string) => (
     <Dialog open={open} onOpenChange={o => { if (!o) { onClose(); resetForm(); } }}>
@@ -170,7 +237,29 @@ export function DealsView() {
     </Dialog>
   );
 
-  const openDetail = (d: Deal) => setSelectedDeal(d);
+  // Shared deal card renderer
+  const renderDealCard = (d: Deal) => {
+    const stageInfo = STAGES.find(s => s.value === d.stage);
+    return (
+      <Card key={d.id} className={`hover:shadow-md transition-shadow cursor-pointer ${currentSelected?.id === d.id ? 'ring-2 ring-primary' : ''}`} onClick={() => openDetail(d)}>
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between mb-2">
+            <p className="font-semibold text-sm">{d.name}</p>
+            <Badge className={stageInfo?.color}>{stageInfo?.label}</Badge>
+          </div>
+          <p className="text-lg font-bold text-primary">${d.value.toLocaleString()}</p>
+          <p className="text-xs text-muted-foreground">Probability: {d.probability}%</p>
+          {d.accountName && <p className="text-xs text-muted-foreground">{d.accountName}</p>}
+          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><UserCircle className="h-3 w-3" />Owner: {getOwnerName(d.ownerId)} · {getOwnerRole(d.ownerId)}</p>
+          {d.lostReason && <p className="text-xs text-destructive mt-1">Lost: {d.lostReason}</p>}
+          <div className="flex gap-1 mt-3" onClick={e => e.stopPropagation()}>
+            <Button variant="ghost" size="sm" onClick={() => handleEdit(d)}><Pencil className="h-3 w-3" /></Button>
+            <Button variant="ghost" size="sm" onClick={() => setDeleteId(d.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="flex h-full animate-fade-in">
@@ -178,108 +267,232 @@ export function DealsView() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Deals</h1>
-            <p className="text-muted-foreground">Pipeline: <span className="font-semibold text-foreground">${totalPipeline.toLocaleString()}</span> · Weighted: <span className="font-semibold text-foreground">${weightedPipeline.toLocaleString()}</span></p>
+            <p className="text-muted-foreground">Pipeline: <span className="font-semibold text-foreground">{formatCurrency(totalPipeline)}</span> · Weighted: <span className="font-semibold text-foreground">{formatCurrency(weightedPipeline)}</span></p>
           </div>
-          <div className="flex gap-2">
-            <Button variant={viewMode === 'pipeline' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('pipeline')}>Pipeline</Button>
-            <Button variant={viewMode === 'list' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('list')}>List</Button>
-            <Button onClick={() => setShowAdd(true)} className="gap-2"><Plus className="h-4 w-4" />Add Deal</Button>
-          </div>
+          <Button onClick={() => setShowAdd(true)} className="gap-2"><Plus className="h-4 w-4" />Add Deal</Button>
         </div>
 
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search deals..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
-        </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+          <TabsList className="mb-4 w-fit">
+            <TabsTrigger value="active" className="gap-1.5"><TrendingUp className="h-3.5 w-3.5" />Active ({activeDeals.length})</TabsTrigger>
+            <TabsTrigger value="archived" className="gap-1.5"><Archive className="h-3.5 w-3.5" />Archived ({archivedDeals.length})</TabsTrigger>
+            <TabsTrigger value="analytics" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" />Analytics</TabsTrigger>
+          </TabsList>
 
-        {viewMode === 'pipeline' ? (
-          <div className="flex gap-3 overflow-x-auto pb-4">
-            {STAGES.map(stage => {
-              const stageDeals = filtered.filter(d => d.stage === stage.value);
-              const stageTotal = stageDeals.reduce((s, d) => s + d.value, 0);
-              const isOver = dropTarget === stage.value && draggedDealId !== null;
-              return (
-                <div
-                  key={stage.value}
-                  className={cn(
-                    'min-w-[260px] flex-1 rounded-lg p-2 transition-colors',
-                    isOver && 'bg-primary/10 ring-2 ring-primary/30'
-                  )}
-                  onDragOver={(e) => handleDragOver(e, stage.value)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, stage.value)}
-                >
-                  <div className="mb-2 px-1">
-                    <div className="flex items-center justify-between">
-                      <span className={`text-xs font-semibold px-2 py-1 rounded ${stage.color}`}>{stage.label}</span>
-                      <span className="text-xs text-muted-foreground">{stageDeals.length}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">${stageTotal.toLocaleString()}</p>
-                  </div>
-                  <div className="space-y-2 min-h-[60px]">
-                    {stageDeals.map(d => (
-                      <Card
-                        key={d.id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, d.id)}
-                        onDragEnd={handleDragEnd}
-                        className={cn(
-                          'hover:shadow-md transition-all cursor-grab active:cursor-grabbing',
-                          currentSelected?.id === d.id && 'ring-2 ring-primary',
-                          draggedDealId === d.id && 'opacity-50'
-                        )}
-                        onClick={() => openDetail(d)}
-                      >
-                        <CardContent className="p-3">
-                          <div className="flex items-start gap-2">
-                            <GripVertical className="h-4 w-4 text-muted-foreground/40 mt-0.5 flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">{d.name}</p>
-                              <div className="flex items-center justify-between mt-1">
-                                <span className="text-sm font-semibold text-primary flex items-center gap-1"><DollarSign className="h-3 w-3" />{d.value.toLocaleString()}</span>
-                                <span className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" />{d.probability}%</span>
+          {/* ── Active Deals ── */}
+          <TabsContent value="active" className="flex-1 flex flex-col min-h-0 mt-0">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Search active deals..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
+              </div>
+              <div className="flex gap-1">
+                {([30, 60, 90] as const).map(d => (
+                  <Button key={d} variant={activeDaysFilter === d ? 'default' : 'outline'} size="sm" onClick={() => setActiveDaysFilter(d)}>{d}d</Button>
+                ))}
+              </div>
+              <div className="flex gap-1">
+                <Button variant={viewMode === 'pipeline' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('pipeline')}>Pipeline</Button>
+                <Button variant={viewMode === 'list' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('list')}>List</Button>
+              </div>
+            </div>
+
+            {viewMode === 'pipeline' ? (
+              <div className="flex gap-3 overflow-x-auto pb-4 flex-1">
+                {STAGES.filter(s => ACTIVE_STAGES.includes(s.value)).map(stage => {
+                  const stageDeals = filtered.filter(d => d.stage === stage.value);
+                  const stageTotal = stageDeals.reduce((s, d) => s + d.value, 0);
+                  const isOver = dropTarget === stage.value && draggedDealId !== null;
+                  return (
+                    <div key={stage.value}
+                      className={cn('min-w-[260px] flex-1 rounded-lg p-2 transition-colors', isOver && 'bg-primary/10 ring-2 ring-primary/30')}
+                      onDragOver={(e) => handleDragOver(e, stage.value)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, stage.value)}
+                    >
+                      <div className="mb-2 px-1">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs font-semibold px-2 py-1 rounded ${stage.color}`}>{stage.label}</span>
+                          <span className="text-xs text-muted-foreground">{stageDeals.length}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">{formatCurrency(stageTotal)}</p>
+                      </div>
+                      <div className="space-y-2 min-h-[60px]">
+                        {stageDeals.map(d => (
+                          <Card key={d.id} draggable
+                            onDragStart={(e) => handleDragStart(e, d.id)}
+                            onDragEnd={handleDragEnd}
+                            className={cn('hover:shadow-md transition-all cursor-grab active:cursor-grabbing',
+                              currentSelected?.id === d.id && 'ring-2 ring-primary',
+                              draggedDealId === d.id && 'opacity-50'
+                            )}
+                            onClick={() => openDetail(d)}
+                          >
+                            <CardContent className="p-3">
+                              <div className="flex items-start gap-2">
+                                <GripVertical className="h-4 w-4 text-muted-foreground/40 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm truncate">{d.name}</p>
+                                  <div className="flex items-center justify-between mt-1">
+                                    <span className="text-sm font-semibold text-primary flex items-center gap-1"><DollarSign className="h-3 w-3" />{d.value.toLocaleString()}</span>
+                                    <span className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" />{d.probability}%</span>
+                                  </div>
+                                  {d.accountName && <p className="text-xs text-muted-foreground mt-1 truncate">{d.accountName}</p>}
+                                  {d.expectedCloseDate && <p className="text-xs text-muted-foreground">Close: {d.expectedCloseDate}</p>}
+                                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><UserCircle className="h-3 w-3" />{getOwnerName(d.ownerId)}</p>
+                                </div>
                               </div>
-                              {d.accountName && <p className="text-xs text-muted-foreground mt-1 truncate">{d.accountName}</p>}
-                              {d.expectedCloseDate && <p className="text-xs text-muted-foreground">Close: {d.expectedCloseDate}</p>}
-                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><UserCircle className="h-3 w-3" />{getOwnerName(d.ownerId)}</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 overflow-auto pb-4">
+                {filtered.map(renderDealCard)}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ── Archived Deals ── */}
+          <TabsContent value="archived" className="flex-1 flex flex-col min-h-0 mt-0">
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search archived deals..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center"><Trophy className="h-5 w-5 text-green-600 dark:text-green-400" /></div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">{archivedDeals.filter(d => d.stage === 'closed_won').length}</p>
+                    <p className="text-xs text-muted-foreground">Won · {formatCurrency(archivedDeals.filter(d => d.stage === 'closed_won').reduce((s, d) => s + d.value, 0))}</p>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 overflow-auto pb-4">
-            {filtered.map(d => {
-              const stageInfo = STAGES.find(s => s.value === d.stage);
-              return (
-                <Card key={d.id} className={`hover:shadow-md transition-shadow cursor-pointer ${currentSelected?.id === d.id ? 'ring-2 ring-primary' : ''}`} onClick={() => openDetail(d)}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <p className="font-semibold text-sm">{d.name}</p>
-                      <Badge className={stageInfo?.color}>{stageInfo?.label}</Badge>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center"><XCircle className="h-5 w-5 text-red-600 dark:text-red-400" /></div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">{archivedDeals.filter(d => d.stage === 'closed_lost').length}</p>
+                    <p className="text-xs text-muted-foreground">Lost · {formatCurrency(archivedDeals.filter(d => d.stage === 'closed_lost').reduce((s, d) => s + d.value, 0))}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {filtered.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 overflow-auto pb-4">
+                {filtered.map(renderDealCard)}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <Archive className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No archived deals found</p>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ── Analytics ── */}
+          <TabsContent value="analytics" className="flex-1 overflow-auto pb-4 mt-0">
+            {/* KPI Summary */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <Card><CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-foreground">{deals.length}</p>
+                <p className="text-xs text-muted-foreground">Total Deals</p>
+              </CardContent></Card>
+              <Card><CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.winRate}%</p>
+                <p className="text-xs text-muted-foreground">Win Rate</p>
+              </CardContent></Card>
+              <Card><CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-primary">{formatCurrency(analytics.totalRevenue)}</p>
+                <p className="text-xs text-muted-foreground">Revenue (Won)</p>
+              </CardContent></Card>
+              <Card><CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-foreground">{formatCurrency(analytics.avgDealSize)}</p>
+                <p className="text-xs text-muted-foreground">Avg Deal Size</p>
+              </CardContent></Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Won vs Lost Trend */}
+              <Card>
+                <CardContent className="p-4">
+                  <h3 className="font-semibold text-foreground mb-3">Won vs Lost (6 months)</h3>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={analytics.monthlyData}>
+                      <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                      <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
+                      <RechartsTooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }} formatter={(v: number) => formatCurrency(v)} />
+                      <Bar dataKey="won" name="Won" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="lost" name="Lost" fill="hsl(0, 84%, 60%)" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Stage Distribution */}
+              <Card>
+                <CardContent className="p-4">
+                  <h3 className="font-semibold text-foreground mb-3">Deal Distribution by Stage</h3>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <Pie data={analytics.stageDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, value }) => `${name} (${value})`}>
+                        {analytics.stageDistribution.map((_, i) => (
+                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Legend />
+                      <RechartsTooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Value by Stage */}
+              <Card>
+                <CardContent className="p-4">
+                  <h3 className="font-semibold text-foreground mb-3">Pipeline Value by Stage</h3>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={analytics.valueByStage} layout="vertical">
+                      <XAxis type="number" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
+                      <YAxis type="category" dataKey="stage" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" width={100} />
+                      <RechartsTooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }} formatter={(v: number) => formatCurrency(v)} />
+                      <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Top Lost Reasons */}
+              <Card>
+                <CardContent className="p-4">
+                  <h3 className="font-semibold text-foreground mb-3">Top Reasons for Lost Deals</h3>
+                  {analytics.topLostReasons.length > 0 ? (
+                    <div className="space-y-3">
+                      {analytics.topLostReasons.map((r, i) => (
+                        <div key={i} className="flex items-center justify-between">
+                          <p className="text-sm text-foreground truncate flex-1 mr-2">{r.reason}</p>
+                          <Badge variant="secondary">{r.count}</Badge>
+                        </div>
+                      ))}
                     </div>
-                    <p className="text-lg font-bold text-primary">${d.value.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">Probability: {d.probability}%</p>
-                    {d.accountName && <p className="text-xs text-muted-foreground">{d.accountName}</p>}
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><UserCircle className="h-3 w-3" />Owner: {getOwnerName(d.ownerId)} · {getOwnerRole(d.ownerId)}</p>
-                    {d.lostReason && <p className="text-xs text-destructive mt-1">Lost: {d.lostReason}</p>}
-                    <div className="flex gap-1 mt-3" onClick={e => e.stopPropagation()}>
-                      <Button variant="ghost" size="sm" onClick={() => handleEdit(d)}><Pencil className="h-3 w-3" /></Button>
-                      <Button variant="ghost" size="sm" onClick={() => setDeleteId(d.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+                  ) : (
+                    <p className="text-sm text-muted-foreground py-8 text-center">No lost deals with reasons recorded yet</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
+      {/* Detail Panel */}
       {currentSelected && (
         <div className="w-96 border-l bg-card flex-shrink-0 ml-4">
           <EntityDetailPanel entityType="deal" entityId={currentSelected.id} entityName={currentSelected.name} onClose={() => setSelectedDeal(null)}>
@@ -294,7 +507,6 @@ export function DealsView() {
                 <p className="text-destructive font-medium">Lost Reason: {currentSelected.lostReason}</p>
               )}
 
-              {/* Stage History Timeline */}
               {stageHistory.length > 0 && (
                 <div className="mt-4 pt-3 border-t">
                   <p className="font-semibold text-foreground mb-2 flex items-center gap-1"><Clock className="h-3.5 w-3.5" />Stage History</p>
@@ -332,19 +544,12 @@ export function DealsView() {
       {/* Lost Reason Dialog */}
       <Dialog open={!!lostReasonDialog} onOpenChange={o => { if (!o) { setLostReasonDialog(null); setLostReason(''); } }}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Why was this deal lost?</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Why was this deal lost?</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">Please provide a reason for marking this deal as lost. This helps improve future sales strategies.</p>
+            <p className="text-sm text-muted-foreground">Please provide a reason for marking this deal as lost.</p>
             <div>
               <Label>Reason *</Label>
-              <Textarea
-                value={lostReason}
-                onChange={e => setLostReason(e.target.value)}
-                placeholder="e.g. Budget constraints, Chose competitor, Timing not right..."
-                rows={3}
-              />
+              <Textarea value={lostReason} onChange={e => setLostReason(e.target.value)} placeholder="e.g. Budget constraints, Chose competitor, Timing not right..." rows={3} />
             </div>
           </div>
           <DialogFooter>
