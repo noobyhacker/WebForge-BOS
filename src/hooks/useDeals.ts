@@ -28,6 +28,7 @@ export function useDeals() {
         value: Number(d.value) || 0,
         probability: d.probability || 0,
         expectedCloseDate: d.expected_close_date || '',
+        lostReason: d.lost_reason || '',
         createdAt: d.created_at,
         updatedAt: d.updated_at,
       })));
@@ -62,6 +63,7 @@ export function useDeals() {
     if (updates.value !== undefined) dbUpdates.value = updates.value;
     if (updates.probability !== undefined) dbUpdates.probability = updates.probability;
     if (updates.expectedCloseDate !== undefined) dbUpdates.expected_close_date = updates.expectedCloseDate || null;
+    if (updates.lostReason !== undefined) dbUpdates.lost_reason = updates.lostReason;
     const { error } = await supabase.from('deals').update(dbUpdates).eq('id', id);
     if (error) { console.error('Error updating deal:', error); return; }
     await fetchDeals();
