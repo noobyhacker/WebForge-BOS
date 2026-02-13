@@ -22,14 +22,14 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
 
   return (
     <div className="relative">
-      <div className="absolute left-4 top-0 bottom-0 w-px bg-border" />
+      <div className="absolute left-[11px] top-0 bottom-0 w-px bg-border" />
       <div className="space-y-4">
         {activities.map(a => {
           const Icon = typeIcons[a.type];
           const isCompleted = a.status === 'completed';
           return (
             <div key={a.id} className="relative pl-10">
-              <div className={`absolute left-2 top-1 h-5 w-5 rounded-full flex items-center justify-center ${isCompleted ? 'bg-success/20' : 'bg-primary/20'}`}>
+              <div className={`absolute left-[1px] top-3 h-[22px] w-[22px] rounded-full flex items-center justify-center ${isCompleted ? 'bg-success/20' : 'bg-primary/20'}`}>
                 {isCompleted ? <CheckCircle2 className="h-3 w-3 text-success" /> : <Icon className="h-3 w-3 text-primary" />}
               </div>
               <Card className="border-0 shadow-none bg-muted/50">

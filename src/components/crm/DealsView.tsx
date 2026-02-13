@@ -510,11 +510,11 @@ export function DealsView() {
               {stageHistory.length > 0 && (
                 <div className="mt-4 pt-3 border-t">
                   <p className="font-semibold text-foreground mb-2 flex items-center gap-1"><Clock className="h-3.5 w-3.5" />Stage History</p>
-                  <div className="relative pl-4 space-y-3">
-                    <div className="absolute left-[7px] top-1 bottom-1 w-px bg-border" />
+                  <div className="relative pl-5 space-y-3">
+                    <div className="absolute left-[9px] top-1 bottom-1 w-px bg-border" />
                     {stageHistory.map((h) => (
                       <div key={h.id} className="relative">
-                        <div className="absolute -left-4 top-1 h-2.5 w-2.5 rounded-full bg-primary border-2 border-background" />
+                        <div className="absolute -left-5 top-1.5 h-2.5 w-2.5 rounded-full bg-primary border-2 border-background" />
                         <div>
                           <div className="flex items-center gap-1 text-xs">
                             <span className="font-medium text-foreground">{getStageName(h.fromStage)}</span>
