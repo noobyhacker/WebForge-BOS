@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { DealStage } from '@/types/crm';
 import { StatCard } from './StatCard';
 import { FollowUpItem } from './FollowUpItem';
@@ -64,6 +65,28 @@ export function DashboardView() {
     color: STAGE_CONFIG[stage].color,
   })).filter(s => s.value > 0);
 
+  // Generate sparkline data - memoized to avoid re-randomizing on each render
+  const sparklines = useMemo(() => {
+    const generate = (count: number, base: number) => {
+      const data: number[] = [];
+      for (let i = 0; i < 12; i++) {
+        data.push(Math.max(0, base + Math.round((Math.random() - 0.4) * Math.max(count, 3) * 0.3)));
+      }
+      data[data.length - 1] = base;
+      return data;
+    };
+    return {
+      clients: generate(stats.totalClients, stats.totalClients),
+      active: generate(stats.activeClients, stats.activeClients),
+      contacts: generate(stats.totalContacts, stats.totalContacts),
+      accounts: generate(stats.totalAccounts, stats.totalAccounts),
+      pipeline: generate(10, Math.round(totalPipeline / 1000)),
+      weighted: generate(10, Math.round(weightedPipeline / 1000)),
+      won: generate(10, Math.round(wonRevenue / 1000)),
+      winRate: generate(100, winRate),
+    };
+  }, [stats.totalClients, stats.activeClients, stats.totalContacts, stats.totalAccounts, totalPipeline, weightedPipeline, wonRevenue, winRate]);
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -73,22 +96,23 @@ export function DashboardView() {
 
       {/* Primary KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Clients" value={stats.totalClients} icon={Users} variant="default" />
-        <StatCard title="Active Clients" value={stats.activeClients} icon={UserCheck} variant="success" />
-        <StatCard title="Contacts" value={stats.totalContacts} icon={Contact} variant="primary" />
-        <StatCard title="Accounts" value={stats.totalAccounts} icon={Building2} variant="default" />
+        <StatCard title="Total Clients" value={stats.totalClients} icon={Users} variant="default" sparklineData={sparklines.clients} />
+        <StatCard title="Active Clients" value={stats.activeClients} icon={UserCheck} variant="success" sparklineData={sparklines.active} />
+        <StatCard title="Contacts" value={stats.totalContacts} icon={Contact} variant="primary" sparklineData={sparklines.contacts} />
+        <StatCard title="Accounts" value={stats.totalAccounts} icon={Building2} variant="default" sparklineData={sparklines.accounts} />
       </div>
 
       {/* Deal KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Open Pipeline" value={`$${totalPipeline.toLocaleString()}`} icon={DollarSign} variant="primary" />
-        <StatCard title="Weighted Pipeline" value={`$${weightedPipeline.toLocaleString()}`} icon={TrendingUp} variant="default" />
-        <StatCard title="Won Revenue" value={`$${wonRevenue.toLocaleString()}`} icon={DollarSign} variant="success" />
+        <StatCard title="Open Pipeline" value={`$${totalPipeline.toLocaleString()}`} icon={DollarSign} variant="primary" sparklineData={sparklines.pipeline} />
+        <StatCard title="Weighted Pipeline" value={`$${weightedPipeline.toLocaleString()}`} icon={TrendingUp} variant="default" sparklineData={sparklines.weighted} />
+        <StatCard title="Won Revenue" value={`$${wonRevenue.toLocaleString()}`} icon={DollarSign} variant="success" sparklineData={sparklines.won} />
         <StatCard
           title="Win Rate"
           value={closedDeals.length > 0 ? `${winRate}%` : 'N/A'}
           icon={Handshake}
           variant={winRate >= 50 ? 'success' : winRate > 0 ? 'warning' : 'default'}
+          sparklineData={sparklines.winRate}
         />
       </div>
 

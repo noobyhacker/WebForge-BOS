@@ -76,9 +76,9 @@ export function EntityDetailPanel({ entityType, entityId, entityName, onClose, c
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="font-semibold text-lg truncate">{entityName}</h2>
-        <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
+      <div className="flex items-center justify-between p-4 border-b gap-2">
+        <h2 className="font-semibold text-lg truncate min-w-0">{entityName}</h2>
+        <Button variant="ghost" size="icon" className="flex-shrink-0 h-8 w-8" onClick={onClose}><X className="h-4 w-4" /></Button>
       </div>
 
       {/* Extra entity info */}

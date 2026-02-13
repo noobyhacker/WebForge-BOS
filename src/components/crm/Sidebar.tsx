@@ -34,9 +34,9 @@ function DarkModeToggle({ collapsed }: { collapsed: boolean }) {
       type="button"
       onClick={() => setIsDark(!isDark)}
       className={cn(
-        'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors',
+        'w-full flex items-center gap-3 py-2.5 rounded-lg cursor-pointer transition-colors',
         'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-        collapsed && 'justify-center'
+        collapsed ? 'justify-center px-2' : 'px-3'
       )}
     >
       {isDark ? <Moon className="h-5 w-5 text-sidebar-foreground flex-shrink-0" /> : <Sun className="h-5 w-5 text-sidebar-foreground flex-shrink-0" />}
@@ -99,14 +99,17 @@ function SidebarContent({
   return (
     <div className="h-full flex flex-col">
       {/* Logo */}
-      <div className="h-20 flex items-center justify-between px-4 border-b border-sidebar-border">
+      <div className={cn(
+        "h-20 flex items-center border-b border-sidebar-border",
+        collapsed ? "justify-center px-2" : "justify-between px-4"
+      )}>
         {!collapsed && (
           <img src={webforgeLogo} alt="WebForge" className="h-14 object-contain" />
         )}
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 text-sidebar-foreground hidden md:flex"
+          className="h-8 w-8 text-sidebar-foreground hidden md:flex flex-shrink-0"
           onClick={() => onCollapse(!collapsed)}
         >
           <ChevronLeft
@@ -122,7 +125,8 @@ function SidebarContent({
             key={item.path}
             onClick={() => handleNavClick(item.path)}
             className={cn(
-              'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+              'w-full flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+              collapsed ? 'justify-center px-2' : 'px-3',
               isActive(item.path)
                 ? 'bg-sidebar-primary text-sidebar-primary-foreground'
                 : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
@@ -138,7 +142,8 @@ function SidebarContent({
           <button
             onClick={() => handleNavClick('/admin')}
             className={cn(
-              'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+              'w-full flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+              collapsed ? 'justify-center px-2' : 'px-3',
               isActive('/admin')
                 ? 'bg-sidebar-primary text-sidebar-primary-foreground'
                 : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
@@ -161,7 +166,8 @@ function SidebarContent({
         <button
           onClick={signOut}
           className={cn(
-            'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+            'w-full flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+            collapsed ? 'justify-center px-2' : 'px-3',
             'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
           )}
         >

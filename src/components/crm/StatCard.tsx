@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
+import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 
 interface StatCardProps {
   title: string;
@@ -9,6 +10,7 @@ interface StatCardProps {
     value: number;
     isPositive: boolean;
   };
+  sparklineData?: number[];
   variant?: 'default' | 'primary' | 'warning' | 'success' | 'destructive';
   className?: string;
 }
@@ -29,16 +31,52 @@ const iconVariantStyles = {
   destructive: 'bg-destructive/10 text-destructive',
 };
 
-export function StatCard({ title, value, icon: Icon, trend, variant = 'default', className }: StatCardProps) {
+const sparklineColors = {
+  default: 'hsl(var(--muted-foreground))',
+  primary: 'hsl(var(--primary))',
+  warning: 'hsl(var(--warning))',
+  success: 'hsl(var(--success))',
+  destructive: 'hsl(var(--destructive))',
+};
+
+export function StatCard({ title, value, icon: Icon, trend, sparklineData, variant = 'default', className }: StatCardProps) {
+  const chartData = sparklineData?.map((v, i) => ({ value: v, index: i }));
+  const color = sparklineColors[variant];
+
   return (
     <div
       className={cn(
-        'rounded-lg border p-5 transition-all hover:shadow-sm',
+        'rounded-lg border p-5 transition-all hover:shadow-sm relative overflow-hidden',
         variantStyles[variant],
         className
       )}
     >
-      <div className="flex items-start justify-between">
+      {/* Sparkline wave background */}
+      {chartData && chartData.length > 0 && (
+        <div className="absolute bottom-0 left-0 right-0 h-16 opacity-20 pointer-events-none">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id={`wave-${variant}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={color} stopOpacity={0.6} />
+                  <stop offset="100%" stopColor={color} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke={color}
+                strokeWidth={1.5}
+                fill={`url(#wave-${variant})`}
+                isAnimationActive={true}
+                animationDuration={1200}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      <div className="flex items-start justify-between relative z-10">
         <div className="space-y-1">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
           <p className="text-2xl font-semibold tracking-tight">{value}</p>
