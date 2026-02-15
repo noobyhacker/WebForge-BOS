@@ -11,6 +11,7 @@ import { Plus, Trash2, Star, TrendingUp, PackagePlus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { calculateLeadScore, useLeadScoringRules } from '@/hooks/useLeadScoring';
 import { toast } from 'sonner';
+import { PresetPickerDialog } from './PresetPickerDialog';
 
 const PRESET_SCORING_RULES = [
   { name: 'Has email address', field: 'email', operator: 'exists' as const, value: '', points: 10, entityType: 'client' as const },
@@ -39,6 +40,7 @@ export function LeadScoringView() {
   const { contacts } = useContacts();
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [showPresets, setShowPresets] = useState(false);
   const [name, setName] = useState('');
   const [entityType, setEntityType] = useState<'client' | 'contact'>('client');
   const [field, setField] = useState('');
@@ -62,12 +64,12 @@ export function LeadScoringView() {
     setName(''); setField(''); setOperator('equals'); setValue(''); setPoints(10); setDialogOpen(false);
   };
 
-  const handleLoadPresets = async () => {
+  const handleLoadPresets = async (indices: number[]) => {
     try {
-      for (const preset of PRESET_SCORING_RULES) {
-        await addRule({ ...preset, isActive: true });
+      for (const i of indices) {
+        await addRule({ ...PRESET_SCORING_RULES[i], isActive: true });
       }
-      toast.success(`Loaded ${PRESET_SCORING_RULES.length} preset scoring rules`);
+      toast.success(`Loaded ${indices.length} preset rule${indices.length > 1 ? 's' : ''}`);
     } catch { toast.error('Failed to load presets'); }
   };
 
@@ -85,7 +87,7 @@ export function LeadScoringView() {
           <p className="text-muted-foreground mt-1">Configure scoring rules and view ranked leads</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleLoadPresets} className="gap-2"><PackagePlus className="h-4 w-4" />Load Presets</Button>
+          <Button variant="outline" onClick={() => setShowPresets(true)} className="gap-2"><PackagePlus className="h-4 w-4" />Load Presets</Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />New Rule</Button></DialogTrigger>
           <DialogContent>
@@ -201,6 +203,13 @@ export function LeadScoringView() {
           )}
         </div>
       </div>
+      <PresetPickerDialog
+        open={showPresets}
+        onOpenChange={setShowPresets}
+        title="Load Lead Scoring Presets"
+        presets={PRESET_SCORING_RULES.map(r => ({ name: r.name, description: `${r.entityType} → ${r.field} ${r.operator} (+${r.points} pts)` }))}
+        onLoad={handleLoadPresets}
+      />
     </div>
   );
 }
