@@ -12,6 +12,7 @@ import { Plus, Trash2, Zap, Play, Pause, PackagePlus } from 'lucide-react';
 import type { AutomationTrigger, AutomationAction, AutomationEntityType } from '@/types/phase4';
 import { useAutomationRules } from '@/hooks/useAutomationRules';
 import { toast } from 'sonner';
+import { PresetPickerDialog } from './PresetPickerDialog';
 
 const PRESET_AUTOMATION_RULES = [
   {
@@ -82,6 +83,7 @@ export function AutomationRulesView() {
   const { rules, addRule, updateRule, deleteRule } = useAutomationRules();
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [showPresets, setShowPresets] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [entityType, setEntityType] = useState<AutomationEntityType>('deal');
@@ -109,12 +111,12 @@ export function AutomationRulesView() {
     setDialogOpen(false);
   };
 
-  const handleLoadPresets = async () => {
+  const handleLoadPresets = async (indices: number[]) => {
     try {
-      for (const preset of PRESET_AUTOMATION_RULES) {
-        await addRule(preset);
+      for (const i of indices) {
+        await addRule(PRESET_AUTOMATION_RULES[i]);
       }
-      toast.success(`Loaded ${PRESET_AUTOMATION_RULES.length} preset automation rules`);
+      toast.success(`Loaded ${indices.length} preset rule${indices.length > 1 ? 's' : ''}`);
     } catch { toast.error('Failed to load presets'); }
   };
 
@@ -128,7 +130,7 @@ export function AutomationRulesView() {
           <p className="text-muted-foreground mt-1">Configure rules that trigger actions automatically</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleLoadPresets} className="gap-2"><PackagePlus className="h-4 w-4" />Load Presets</Button>
+          <Button variant="outline" onClick={() => setShowPresets(true)} className="gap-2"><PackagePlus className="h-4 w-4" />Load Presets</Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />New Rule</Button></DialogTrigger>
           <DialogContent className="max-w-lg">
@@ -211,6 +213,13 @@ export function AutomationRulesView() {
           ))}
         </div>
       )}
+      <PresetPickerDialog
+        open={showPresets}
+        onOpenChange={setShowPresets}
+        title="Load Automation Presets"
+        presets={PRESET_AUTOMATION_RULES.map(r => ({ name: r.name, description: r.description }))}
+        onLoad={handleLoadPresets}
+      />
     </div>
   );
 }

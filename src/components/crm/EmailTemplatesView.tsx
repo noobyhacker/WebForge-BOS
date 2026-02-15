@@ -10,6 +10,7 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { Plus, Pencil, Trash2, Mail, Search, PackagePlus } from 'lucide-react';
 import { useEmailTemplates } from '@/hooks/useEmailTemplates';
 import { toast } from 'sonner';
+import { PresetPickerDialog } from './PresetPickerDialog';
 
 const PRESET_TEMPLATES = [
   {
@@ -47,6 +48,7 @@ export function EmailTemplatesView() {
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', subject: '', body: '' });
+  const [showPresets, setShowPresets] = useState(false);
 
   const filtered = templates.filter(t => `${t.name} ${t.subject}`.toLowerCase().includes(search.toLowerCase()));
   const resetForm = () => setForm({ name: '', subject: '', body: '' });
@@ -70,12 +72,12 @@ export function EmailTemplatesView() {
     </Dialog>
   );
 
-  const handleLoadPresets = async () => {
+  const handleLoadPresets = async (indices: number[]) => {
     try {
-      for (const preset of PRESET_TEMPLATES) {
-        await addTemplate(preset);
+      for (const i of indices) {
+        await addTemplate(PRESET_TEMPLATES[i]);
       }
-      toast.success(`Loaded ${PRESET_TEMPLATES.length} preset templates`);
+      toast.success(`Loaded ${indices.length} preset template${indices.length > 1 ? 's' : ''}`);
     } catch { toast.error('Failed to load presets'); }
   };
 
@@ -87,7 +89,7 @@ export function EmailTemplatesView() {
           <p className="text-muted-foreground">Reusable email templates for communication.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleLoadPresets} className="gap-2"><PackagePlus className="h-4 w-4" />Load Presets</Button>
+          <Button variant="outline" onClick={() => setShowPresets(true)} className="gap-2"><PackagePlus className="h-4 w-4" />Load Presets</Button>
           <Button onClick={() => setShowAdd(true)} className="gap-2"><Plus className="h-4 w-4" />Add Template</Button>
         </div>
       </div>
@@ -124,6 +126,13 @@ export function EmailTemplatesView() {
       {formDialog(showAdd, () => setShowAdd(false), handleAdd, 'Add Email Template')}
       {formDialog(!!editId, () => setEditId(null), handleUpdate, 'Edit Email Template')}
       <ConfirmDialog open={!!deleteId} onOpenChange={o => { if (!o) setDeleteId(null); }} title="Delete Template" description="Are you sure you want to delete this email template?" onConfirm={() => { if (deleteId) { deleteTemplate(deleteId); setDeleteId(null); } }} />
+      <PresetPickerDialog
+        open={showPresets}
+        onOpenChange={setShowPresets}
+        title="Load Email Template Presets"
+        presets={PRESET_TEMPLATES.map(p => ({ name: p.name, description: p.subject }))}
+        onLoad={handleLoadPresets}
+      />
     </div>
   );
 }
