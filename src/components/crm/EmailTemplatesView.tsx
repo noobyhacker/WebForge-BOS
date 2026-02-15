@@ -7,8 +7,37 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { ConfirmDialog } from './ConfirmDialog';
-import { Plus, Pencil, Trash2, Mail, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, Mail, Search, PackagePlus } from 'lucide-react';
 import { useEmailTemplates } from '@/hooks/useEmailTemplates';
+import { toast } from 'sonner';
+
+const PRESET_TEMPLATES = [
+  {
+    name: 'Welcome / Onboarding',
+    subject: 'Welcome to {{company}}, {{name}}!',
+    body: 'Hi {{name}},\n\nWelcome aboard! We\'re thrilled to have you as a new client.\n\nHere\'s what happens next:\n1. Your dedicated account manager will reach out within 24 hours\n2. We\'ll schedule a kickoff call to align on goals\n3. You\'ll receive access to our client portal\n\nIf you have any questions in the meantime, don\'t hesitate to reply to this email.\n\nBest regards,\n{{company}}',
+  },
+  {
+    name: 'Follow-Up After Meeting',
+    subject: 'Great connecting today, {{name}}!',
+    body: 'Hi {{name}},\n\nThank you for taking the time to meet with us today. It was great learning more about your goals.\n\nAs discussed, here\'s a quick recap:\n• [Key point 1]\n• [Key point 2]\n• Next steps: [action items]\n\nI\'ll follow up by [date] with the proposal. Please let me know if anything changes.\n\nBest,\n{{company}}',
+  },
+  {
+    name: 'Proposal / Quote Sent',
+    subject: 'Your proposal is ready — {{company}}',
+    body: 'Hi {{name}},\n\nPlease find attached our proposal based on our recent conversation.\n\nHighlights:\n• Scope: [brief description]\n• Timeline: [estimated duration]\n• Investment: [price range]\n\nThis proposal is valid for 30 days. I\'d love to schedule a call to walk through any questions.\n\nLooking forward to your feedback!\n\nBest regards,\n{{company}}',
+  },
+  {
+    name: 'Deal Won — Thank You',
+    subject: 'We\'re excited to get started, {{name}}!',
+    body: 'Hi {{name}},\n\nThank you for choosing {{company}}! We\'re excited to partner with you.\n\nYour project kick-off details:\n• Start date: [date]\n• Primary contact: [name]\n• Onboarding doc: [link]\n\nWelcome to the team!\n\nBest,\n{{company}}',
+  },
+  {
+    name: 'Re-Engagement / Win-Back',
+    subject: 'We miss you, {{name}} — let\'s reconnect',
+    body: 'Hi {{name}},\n\nIt\'s been a while since we last connected, and I wanted to check in.\n\nSince we last spoke, we\'ve made some exciting updates:\n• [New feature or service]\n• [Improvement or case study]\n\nWould you be open to a quick 15-minute call to explore how we can help?\n\nLooking forward to hearing from you.\n\nBest,\n{{company}}',
+  },
+];
 
 export function EmailTemplatesView() {
   const { templates, addTemplate, updateTemplate, deleteTemplate } = useEmailTemplates();
@@ -41,6 +70,15 @@ export function EmailTemplatesView() {
     </Dialog>
   );
 
+  const handleLoadPresets = async () => {
+    try {
+      for (const preset of PRESET_TEMPLATES) {
+        await addTemplate(preset);
+      }
+      toast.success(`Loaded ${PRESET_TEMPLATES.length} preset templates`);
+    } catch { toast.error('Failed to load presets'); }
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="flex items-center justify-between mb-6">
@@ -48,7 +86,10 @@ export function EmailTemplatesView() {
           <h1 className="text-2xl font-bold tracking-tight">Email Templates</h1>
           <p className="text-muted-foreground">Reusable email templates for communication.</p>
         </div>
-        <Button onClick={() => setShowAdd(true)} className="gap-2"><Plus className="h-4 w-4" />Add Template</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleLoadPresets} className="gap-2"><PackagePlus className="h-4 w-4" />Load Presets</Button>
+          <Button onClick={() => setShowAdd(true)} className="gap-2"><Plus className="h-4 w-4" />Add Template</Button>
+        </div>
       </div>
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

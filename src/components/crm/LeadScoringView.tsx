@@ -7,9 +7,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Trash2, Star, TrendingUp } from 'lucide-react';
+import { Plus, Trash2, Star, TrendingUp, PackagePlus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { calculateLeadScore, useLeadScoringRules } from '@/hooks/useLeadScoring';
+import { toast } from 'sonner';
+
+const PRESET_SCORING_RULES = [
+  { name: 'Has email address', field: 'email', operator: 'exists' as const, value: '', points: 10, entityType: 'client' as const },
+  { name: 'Has phone number', field: 'phone', operator: 'exists' as const, value: '', points: 10, entityType: 'client' as const },
+  { name: 'Has company name', field: 'company', operator: 'exists' as const, value: '', points: 15, entityType: 'client' as const },
+  { name: 'Status is lead', field: 'status', operator: 'equals' as const, value: 'lead', points: 5, entityType: 'client' as const },
+  { name: 'Contact has email', field: 'email', operator: 'exists' as const, value: '', points: 10, entityType: 'contact' as const },
+  { name: 'Contact has title', field: 'title', operator: 'exists' as const, value: '', points: 15, entityType: 'contact' as const },
+  { name: 'Source is referral', field: 'source', operator: 'equals' as const, value: 'referral', points: 20, entityType: 'contact' as const },
+];
 import { useClients } from '@/hooks/useClients';
 import { useContacts } from '@/hooks/useContacts';
 import { useAuth } from '@/contexts/AuthContext';
@@ -51,6 +62,15 @@ export function LeadScoringView() {
     setName(''); setField(''); setOperator('equals'); setValue(''); setPoints(10); setDialogOpen(false);
   };
 
+  const handleLoadPresets = async () => {
+    try {
+      for (const preset of PRESET_SCORING_RULES) {
+        await addRule({ ...preset, isActive: true });
+      }
+      toast.success(`Loaded ${PRESET_SCORING_RULES.length} preset scoring rules`);
+    } catch { toast.error('Failed to load presets'); }
+  };
+
   const scoreColor = (score: number) => {
     if (score >= 50) return 'text-green-600 dark:text-green-400';
     if (score >= 25) return 'text-yellow-600 dark:text-yellow-400';
@@ -64,8 +84,10 @@ export function LeadScoringView() {
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2"><TrendingUp className="h-6 w-6 text-primary" />Lead Scoring</h1>
           <p className="text-muted-foreground mt-1">Configure scoring rules and view ranked leads</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />New Rule</Button></DialogTrigger>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleLoadPresets} className="gap-2"><PackagePlus className="h-4 w-4" />Load Presets</Button>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />New Rule</Button></DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Create Scoring Rule</DialogTitle></DialogHeader>
             <div className="space-y-4">
@@ -101,6 +123,7 @@ export function LeadScoringView() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <div>
