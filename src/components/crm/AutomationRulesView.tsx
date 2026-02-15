@@ -8,9 +8,53 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Zap, Play, Pause } from 'lucide-react';
+import { Plus, Trash2, Zap, Play, Pause, PackagePlus } from 'lucide-react';
 import type { AutomationTrigger, AutomationAction, AutomationEntityType } from '@/types/phase4';
 import { useAutomationRules } from '@/hooks/useAutomationRules';
+import { toast } from 'sonner';
+
+const PRESET_AUTOMATION_RULES = [
+  {
+    name: 'Create task on new deal',
+    description: 'Automatically create a follow-up task when a new deal is added.',
+    entityType: 'deal' as AutomationEntityType,
+    trigger: 'record_created' as AutomationTrigger,
+    triggerConfig: {},
+    action: 'create_task' as AutomationAction,
+    actionConfig: { field: 'Review new deal', value: 'Qualify and schedule intro call' },
+    isActive: true,
+  },
+  {
+    name: 'Notify on deal won',
+    description: 'Send a notification when a deal moves to closed_won.',
+    entityType: 'deal' as AutomationEntityType,
+    trigger: 'stage_changed' as AutomationTrigger,
+    triggerConfig: { field: 'stage', value: 'closed_won' },
+    action: 'send_notification' as AutomationAction,
+    actionConfig: { field: 'Deal Won!', value: 'A deal has been closed successfully.' },
+    isActive: true,
+  },
+  {
+    name: 'Auto-activate high-score lead',
+    description: 'Change client status to active when lead score reaches threshold.',
+    entityType: 'client' as AutomationEntityType,
+    trigger: 'score_threshold' as AutomationTrigger,
+    triggerConfig: { value: '50' },
+    action: 'update_field' as AutomationAction,
+    actionConfig: { field: 'status', value: 'active' },
+    isActive: true,
+  },
+  {
+    name: 'Assign owner on new contact',
+    description: 'Automatically assign a default owner when a contact is created.',
+    entityType: 'contact' as AutomationEntityType,
+    trigger: 'record_created' as AutomationTrigger,
+    triggerConfig: {},
+    action: 'assign_owner' as AutomationAction,
+    actionConfig: { field: 'owner', value: 'Round-robin' },
+    isActive: true,
+  },
+];
 
 const TRIGGER_LABELS: Record<AutomationTrigger, string> = {
   record_created: 'Record Created',
@@ -65,6 +109,15 @@ export function AutomationRulesView() {
     setDialogOpen(false);
   };
 
+  const handleLoadPresets = async () => {
+    try {
+      for (const preset of PRESET_AUTOMATION_RULES) {
+        await addRule(preset);
+      }
+      toast.success(`Loaded ${PRESET_AUTOMATION_RULES.length} preset automation rules`);
+    } catch { toast.error('Failed to load presets'); }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -74,8 +127,10 @@ export function AutomationRulesView() {
           </h1>
           <p className="text-muted-foreground mt-1">Configure rules that trigger actions automatically</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />New Rule</Button></DialogTrigger>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleLoadPresets} className="gap-2"><PackagePlus className="h-4 w-4" />Load Presets</Button>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />New Rule</Button></DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>Create Automation Rule</DialogTitle></DialogHeader>
             <div className="space-y-4">
@@ -121,6 +176,7 @@ export function AutomationRulesView() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {rules.length === 0 ? (
