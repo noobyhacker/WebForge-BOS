@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
           phone: phone || null,
           source: source || "web_form",
           title: title || null,
-          owner_id: data.owner_id || "00000000-0000-0000-0000-000000000000",
+          owner_id: data.owner_id || null,
           status: "prospect",
         })
         .select()
