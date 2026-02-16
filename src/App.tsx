@@ -26,6 +26,7 @@ import { SharingGroupsView } from "@/components/crm/SharingGroupsView";
 import { FollowUpsView } from "@/components/crm/FollowUpsView";
 import { ActionLogsView } from "@/components/crm/ActionLogsView";
 import { AdminUsersView } from "@/components/crm/AdminUsersView";
+import { FormIntegrationView } from "@/components/crm/FormIntegrationView";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -67,6 +68,7 @@ const App = () => (
               <Route path="sharing-groups" element={<SharingGroupsView />} />
               <Route path="followups" element={<FollowUpsView />} />
               <Route path="logs" element={<ActionLogsView />} />
+              <Route path="form-integration" element={<FormIntegrationView />} />
               <Route path="admin" element={<AdminUsersView />} />
             </Route>
             <Route path="*" element={<NotFound />} />
