@@ -133,7 +133,7 @@ export const AdminUsersView = () => {
     if (add) {
       const { error } = await supabase
         .from('user_roles')
-        .insert({ user_id: userId, role });
+        .insert({ user_id: userId, role: role as 'admin' | 'user' | 'sales' | 'sales_manager' });
       if (error) {
         toast({ title: 'Error adding role', description: error.message, variant: 'destructive' });
       } else {
@@ -145,7 +145,7 @@ export const AdminUsersView = () => {
         .from('user_roles')
         .delete()
         .eq('user_id', userId)
-        .eq('role', role);
+        .eq('role', role as 'admin' | 'user' | 'sales' | 'sales_manager');
       if (error) {
         toast({ title: 'Error removing role', description: error.message, variant: 'destructive' });
       } else {
