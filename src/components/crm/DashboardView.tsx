@@ -196,7 +196,7 @@ export function DashboardView() {
             {stageDistribution.length > 0 ? (
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
-                  <Pie data={stageDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={90} paddingAngle={3} stroke="none" animationDuration={600} activeIndex={-1}>
+                  <Pie data={stageDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={90} paddingAngle={0} stroke="none" animationDuration={600} activeIndex={-1}>
                     {stageDistribution.map((entry, i) => (
                       <Cell key={i} fill={entry.color} className="transition-opacity duration-200 hover:opacity-80 outline-none" stroke="none" />
                     ))}
