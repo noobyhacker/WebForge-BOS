@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, Sun, Moon, Contact, Building2, Handshake, ListTodo, Package, Mail, Zap, TrendingUp, FileText, Receipt, Paperclip, Settings2, FileSpreadsheet, Lock, UsersRound } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, Sun, Moon, Contact, Building2, Handshake, ListTodo, Package, Mail, Zap, TrendingUp, FileText, Receipt, Paperclip, Settings2, FileSpreadsheet, Lock, UsersRound, Globe } from 'lucide-react';
 import webforgeLogo from '@/assets/webforge-logo.png';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -65,6 +65,7 @@ const navItems = [
   { path: '/import-export', label: 'Import / Export', icon: FileSpreadsheet },
   { path: '/permissions', label: 'Permissions', icon: Lock },
   { path: '/sharing-groups', label: 'Sharing Groups', icon: UsersRound },
+  { path: '/form-integration', label: 'Form Integration', icon: Globe },
   { path: '/followups', label: 'Follow-ups', icon: Calendar },
   { path: '/logs', label: 'Action Logs', icon: ClipboardList },
 ];
