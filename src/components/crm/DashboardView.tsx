@@ -4,7 +4,7 @@ import { StatCard } from './StatCard';
 import { FollowUpItem } from './FollowUpItem';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, UserCheck, Clock, DollarSign, TrendingUp, Handshake, Contact, Building2 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, TooltipProps } from 'recharts';
 import { useClients } from '@/hooks/useClients';
 import { useDeals } from '@/hooks/useDeals';
 import { useContacts } from '@/hooks/useContacts';
@@ -18,6 +18,34 @@ const STAGE_CONFIG: Record<DealStage, { label: string; color: string }> = {
   negotiation: { label: 'Negotiation', color: 'hsl(25, 85%, 55%)' },
   closed_won: { label: 'Won', color: 'hsl(142, 76%, 36%)' },
   closed_lost: { label: 'Lost', color: 'hsl(0, 84%, 60%)' },
+};
+
+const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border border-border/50 bg-popover px-3 py-2 shadow-xl backdrop-blur-sm">
+      <p className="text-xs font-medium text-muted-foreground mb-1">{label}</p>
+      {payload.map((entry, i) => (
+        <p key={i} className="text-sm font-semibold" style={{ color: entry.color || 'hsl(var(--foreground))' }}>
+          {entry.name === 'value' ? `$${(entry.value ?? 0).toLocaleString()}` : `${entry.value}`}
+        </p>
+      ))}
+    </div>
+  );
+};
+
+const PieTooltip = ({ active, payload }: TooltipProps<number, string>) => {
+  if (!active || !payload?.length) return null;
+  const entry = payload[0];
+  return (
+    <div className="rounded-lg border border-border/50 bg-popover px-3 py-2 shadow-xl backdrop-blur-sm">
+      <div className="flex items-center gap-2">
+        <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: entry.payload?.color }} />
+        <span className="text-xs font-medium text-muted-foreground">{entry.name}</span>
+      </div>
+      <p className="text-sm font-semibold text-foreground">{entry.value} deal{(entry.value ?? 0) !== 1 ? 's' : ''}</p>
+    </div>
+  );
 };
 
 export function DashboardView() {
@@ -141,13 +169,13 @@ export function DashboardView() {
           <CardContent>
             {pipelineData.some(d => d.value > 0) ? (
               <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={pipelineData}>
-                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip formatter={(v: number) => [`$${v.toLocaleString()}`, 'Value']} />
-                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                <BarChart data={pipelineData} barCategoryGap="20%">
+                  <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted) / 0.3)', radius: 4 }} />
+                  <Bar dataKey="value" radius={[6, 6, 0, 0]} animationDuration={600}>
                     {pipelineData.map((entry, i) => (
-                      <Cell key={i} fill={entry.fill} />
+                      <Cell key={i} fill={entry.fill} className="transition-opacity duration-200 hover:opacity-80" />
                     ))}
                   </Bar>
                 </BarChart>
@@ -168,12 +196,12 @@ export function DashboardView() {
             {stageDistribution.length > 0 ? (
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
-                  <Pie data={stageDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={90} paddingAngle={2}>
+                  <Pie data={stageDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={90} paddingAngle={3} strokeWidth={0} animationDuration={600}>
                     {stageDistribution.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
+                      <Cell key={i} fill={entry.color} className="transition-opacity duration-200 hover:opacity-80" stroke="hsl(var(--card))" strokeWidth={2} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip content={<PieTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
