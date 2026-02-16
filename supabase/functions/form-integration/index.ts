@@ -112,6 +112,15 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Auto-assign to first admin (same as clients)
+      const { data: adminUsers } = await serviceClient
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin")
+        .limit(1);
+
+      const contactOwnerId = adminUsers?.[0]?.user_id || null;
+
       const { data: inserted, error } = await serviceClient
         .from("contacts")
         .insert({
@@ -121,7 +130,7 @@ Deno.serve(async (req) => {
           phone: phone ? sanitizeText(String(phone)).slice(0, 30) : null,
           source: sanitizeText(String(source || "web_form")).slice(0, 50),
           title: title ? sanitizeText(String(title)).slice(0, 100) : null,
-          owner_id: null, // Never accept owner_id from external input
+          owner_id: contactOwnerId,
           status: "prospect",
         })
         .select()
