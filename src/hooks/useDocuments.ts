@@ -40,6 +40,26 @@ export function useDocuments() {
 
   useEffect(() => { fetchDocuments(); }, [fetchDocuments]);
 
+  const getSignedUrl = async (fileUrl: string): Promise<string | null> => {
+    // Extract the storage path from the file_url
+    // If it's already a path (not a full URL), use it directly
+    let storagePath = fileUrl;
+    const pathMatch = fileUrl.match(/\/storage\/v1\/object\/(?:public|sign)\/documents\/(.+)$/);
+    if (pathMatch) {
+      storagePath = pathMatch[1];
+    }
+    // Also handle if stored as just the path (user_id/timestamp_filename)
+    const { data, error } = await supabase.storage
+      .from('documents')
+      .createSignedUrl(storagePath, 3600); // 1 hour expiry
+
+    if (error) {
+      console.error('Error creating signed URL:', error);
+      return null;
+    }
+    return data.signedUrl;
+  };
+
   const uploadDocument = async (file: File, entityType: string, entityId: string) => {
     if (!user) return;
 
@@ -53,11 +73,10 @@ export function useDocuments() {
       return;
     }
 
-    const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath);
-
+    // Store the file path (not public URL) since bucket is private
     const { error } = await supabase.from('documents').insert({
       name: file.name,
-      file_url: urlData.publicUrl,
+      file_url: filePath,
       file_size: file.size,
       mime_type: file.type,
       entity_type: entityType,
@@ -74,11 +93,13 @@ export function useDocuments() {
   };
 
   const deleteDocument = async (id: string, fileUrl: string) => {
-    // Extract path from URL for storage deletion
+    // Extract path from URL or use directly if stored as path
+    let storagePath = fileUrl;
     const pathMatch = fileUrl.match(/\/documents\/(.+)$/);
     if (pathMatch) {
-      await supabase.storage.from('documents').remove([pathMatch[1]]);
+      storagePath = pathMatch[1];
     }
+    await supabase.storage.from('documents').remove([storagePath]);
 
     const { error } = await supabase.from('documents').delete().eq('id', id);
     if (error) {
@@ -89,5 +110,5 @@ export function useDocuments() {
     }
   };
 
-  return { documents, loading, uploadDocument, deleteDocument };
+  return { documents, loading, uploadDocument, deleteDocument, getSignedUrl };
 }
