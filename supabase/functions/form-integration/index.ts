@@ -168,6 +168,22 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Get admin user to assign as owner for external submissions
+      const { data: adminUsers } = await serviceClient
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin")
+        .limit(1);
+
+      const assigneeId = adminUsers?.[0]?.user_id;
+      if (!assigneeId) {
+        console.error("No admin user found to assign external client");
+        return new Response(
+          JSON.stringify({ error: "Failed to process submission" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       const { data: inserted, error } = await serviceClient
         .from("clients")
         .insert({
@@ -175,8 +191,8 @@ Deno.serve(async (req) => {
           email: email ? String(email).toLowerCase().trim().slice(0, 255) : null,
           phone: phone ? sanitizeText(String(phone)).slice(0, 30) : null,
           company: company ? sanitizeText(String(company)).slice(0, 100) : null,
-          notes: notes ? sanitizeText(String(notes)).slice(0, 2000) : null,
-          user_id: "00000000-0000-0000-0000-000000000000", // Placeholder for external submissions
+          notes: `[External submission] ${notes ? sanitizeText(String(notes)).slice(0, 2000) : ""}`.trim(),
+          user_id: assigneeId,
           status: "lead",
         })
         .select()
