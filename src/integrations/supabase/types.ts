@@ -261,7 +261,7 @@ export type Database = {
           first_name: string
           id: string
           last_name: string
-          owner_id: string
+          owner_id: string | null
           phone: string | null
           source: string | null
           status: Database["public"]["Enums"]["contact_status"]
@@ -275,7 +275,7 @@ export type Database = {
           first_name: string
           id?: string
           last_name?: string
-          owner_id: string
+          owner_id?: string | null
           phone?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["contact_status"]
@@ -289,7 +289,7 @@ export type Database = {
           first_name?: string
           id?: string
           last_name?: string
-          owner_id?: string
+          owner_id?: string | null
           phone?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["contact_status"]
