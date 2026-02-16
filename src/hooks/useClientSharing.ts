@@ -83,7 +83,7 @@ export function useClientSharing(clientId: string | null) {
         .from('client_shares')
         .insert({
           client_id: clientId,
-          user_id: userIdToShare,
+          shared_with_user_id: userIdToShare,
           permission,
           created_by: user.id,
         });

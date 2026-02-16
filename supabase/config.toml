@@ -1,1 +1,4 @@
 project_id = "seknlowndpotkkrdcwvj"
+
+[functions.form-integration]
+verify_jwt = false
