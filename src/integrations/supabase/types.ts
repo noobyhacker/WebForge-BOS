@@ -1074,8 +1074,8 @@ export type Database = {
         Returns: boolean
       }
       has_client_access:
+        | { Args: { _client_id: string }; Returns: boolean }
         | { Args: { _client_id: string; _user_id: string }; Returns: boolean }
-        | { Args: { client_id: string }; Returns: boolean }
       has_client_edit_access: { Args: { client_id: string }; Returns: boolean }
       has_entity_access: {
         Args: { _entity_id: string; _entity_type: string }

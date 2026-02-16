@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,14 @@ function formatFileSize(bytes: number) {
 }
 
 export function DocumentsView() {
-  const { documents, uploadDocument, deleteDocument } = useDocuments();
+  const { documents, uploadDocument, deleteDocument, getSignedUrl } = useDocuments();
+
+  const handleOpenDocument = useCallback(async (fileUrl: string) => {
+    const signedUrl = await getSignedUrl(fileUrl);
+    if (signedUrl) {
+      window.open(signedUrl, '_blank', 'noopener,noreferrer');
+    }
+  }, [getSignedUrl]);
 
   const [entityType, setEntityType] = useState('client');
   const [entityId, setEntityId] = useState('');
@@ -89,7 +96,7 @@ export function DocumentsView() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" asChild><a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a></Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleOpenDocument(doc.fileUrl)}><ExternalLink className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="icon" onClick={() => deleteDocument(doc.id, doc.fileUrl)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                 </div>
               </CardContent>
