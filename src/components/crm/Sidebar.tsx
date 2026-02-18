@@ -47,26 +47,56 @@ function DarkModeToggle({ collapsed }: { collapsed: boolean }) {
   );
 }
 
-const navItems = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/revenue-leakage', label: 'Revenue Leakage', icon: TrendingDown },
-  { path: '/tasks', label: 'Tasks', icon: CheckSquare },
-  { path: '/clients', label: 'Clients', icon: Users },
-  { path: '/contacts', label: 'Contacts', icon: Contact },
-  { path: '/accounts', label: 'Accounts', icon: Building2 },
-  { path: '/deals', label: 'Deals', icon: Handshake },
-  { path: '/activities', label: 'Activities', icon: ListTodo },
-  { path: '/products', label: 'Products', icon: Package },
-  { path: '/templates', label: 'Email Templates', icon: Mail },
-  { path: '/automation', label: 'Automation', icon: Zap },
-  { path: '/pipeline-stages', label: 'Pipeline Stages', icon: GitBranch },
-  { path: '/quotes', label: 'Quotes', icon: FileText },
-  { path: '/invoices', label: 'Invoices', icon: Receipt },
-  { path: '/documents', label: 'Documents', icon: Paperclip },
-  { path: '/followups', label: 'Follow-ups', icon: Calendar },
-  { path: '/forms', label: 'Lead Forms', icon: FileInput },
-  { path: '/logs', label: 'Action Logs', icon: ClipboardList },
-  { path: '/trash', label: 'Trash', icon: Trash2 },
+interface NavGroup {
+  label: string;
+  items: { path: string; label: string; icon: typeof LayoutDashboard }[];
+}
+
+const navGroups: NavGroup[] = [
+  {
+    label: 'Overview',
+    items: [
+      { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+      { path: '/revenue-leakage', label: 'Revenue Leakage', icon: TrendingDown },
+      { path: '/tasks', label: 'Tasks', icon: CheckSquare },
+    ],
+  },
+  {
+    label: 'Contacts & Sales',
+    items: [
+      { path: '/clients', label: 'Clients', icon: Users },
+      { path: '/contacts', label: 'Contacts', icon: Contact },
+      { path: '/accounts', label: 'Accounts', icon: Building2 },
+      { path: '/deals', label: 'Deals', icon: Handshake },
+      { path: '/activities', label: 'Activities', icon: ListTodo },
+      { path: '/followups', label: 'Follow-ups', icon: Calendar },
+    ],
+  },
+  {
+    label: 'Products & Billing',
+    items: [
+      { path: '/products', label: 'Products', icon: Package },
+      { path: '/quotes', label: 'Quotes', icon: FileText },
+      { path: '/invoices', label: 'Invoices', icon: Receipt },
+    ],
+  },
+  {
+    label: 'Automation & Config',
+    items: [
+      { path: '/automation', label: 'Automation', icon: Zap },
+      { path: '/pipeline-stages', label: 'Pipeline Stages', icon: GitBranch },
+      { path: '/templates', label: 'Email Templates', icon: Mail },
+      { path: '/forms', label: 'Lead Forms', icon: FileInput },
+    ],
+  },
+  {
+    label: 'System',
+    items: [
+      { path: '/documents', label: 'Documents', icon: Paperclip },
+      { path: '/logs', label: 'Action Logs', icon: ClipboardList },
+      { path: '/trash', label: 'Trash', icon: Trash2 },
+    ],
+  },
 ];
 
 interface SidebarProps {
@@ -115,32 +145,47 @@ function SidebarContent({
         </Button>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-        {navItems.map((item) => (
-          <button
-            key={item.path}
-            onClick={() => handleNavClick(item.path)}
-            className={cn(
-              'w-full flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-              collapsed ? 'justify-center px-2' : 'px-3',
-              isActive(item.path)
-                ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+      <nav className="flex-1 p-3 space-y-4 overflow-y-auto">
+        {navGroups.map((group) => (
+          <div key={group.label} className="space-y-0.5">
+            {!collapsed && (
+              <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                {group.label}
+              </p>
             )}
-          >
-            <item.icon className="h-5 w-5 flex-shrink-0" />
-            {!collapsed && <span>{item.label}</span>}
-          </button>
+            {collapsed && <div className="border-t border-sidebar-border my-1" />}
+            {group.items.map((item) => (
+              <button
+                key={item.path}
+                onClick={() => handleNavClick(item.path)}
+                className={cn(
+                  'w-full flex items-center gap-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                  collapsed ? 'justify-center px-2' : 'px-3',
+                  isActive(item.path)
+                    ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                    : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                )}
+              >
+                <item.icon className="h-5 w-5 flex-shrink-0" />
+                {!collapsed && <span>{item.label}</span>}
+              </button>
+            ))}
+          </div>
         ))}
 
         {/* Admin Section */}
         {isAdmin && (
-          <>
+          <div className="space-y-0.5">
+            {!collapsed && (
+              <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                Admin
+              </p>
+            )}
+            {collapsed && <div className="border-t border-sidebar-border my-1" />}
             <button
               onClick={() => handleNavClick('/admin')}
               className={cn(
-                'w-full flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                'w-full flex items-center gap-3 py-2 rounded-lg text-sm font-medium transition-colors',
                 collapsed ? 'justify-center px-2' : 'px-3',
                 isActive('/admin')
                   ? 'bg-sidebar-primary text-sidebar-primary-foreground'
@@ -153,7 +198,7 @@ function SidebarContent({
             <button
               onClick={() => handleNavClick('/permissions')}
               className={cn(
-                'w-full flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                'w-full flex items-center gap-3 py-2 rounded-lg text-sm font-medium transition-colors',
                 collapsed ? 'justify-center px-2' : 'px-3',
                 isActive('/permissions')
                   ? 'bg-sidebar-primary text-sidebar-primary-foreground'
@@ -163,7 +208,7 @@ function SidebarContent({
               <Lock className="h-5 w-5 flex-shrink-0" />
               {!collapsed && <span>Permissions</span>}
             </button>
-          </>
+          </div>
         )}
       </nav>
 
