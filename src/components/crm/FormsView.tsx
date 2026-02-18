@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Plus, Copy, Eye, Trash2, ArrowUp, ArrowDown, Code2, BarChart3, CheckCircle2, Webhook, Key, RefreshCw } from 'lucide-react';
+import { Plus, Copy, Trash2, ArrowUp, ArrowDown, Code2, BarChart3, CheckCircle2, Webhook, Key, RefreshCw, Settings2, Eye, Layers, Database, FileText } from 'lucide-react';
 import { useForms, FormField } from '@/hooks/useForms';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,10 +20,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
-// Entity → field mapping options
-const ENTITY_FIELD_OPTIONS: Record<string, { label: string; fields: { value: string; label: string }[] }> = {
+const ENTITY_FIELD_OPTIONS: Record<string, { label: string; icon: string; fields: { value: string; label: string }[] }> = {
   client: {
     label: 'Client (Lead)',
+    icon: '👤',
     fields: [
       { value: 'name', label: 'Name' },
       { value: 'email', label: 'Email' },
@@ -33,6 +34,7 @@ const ENTITY_FIELD_OPTIONS: Record<string, { label: string; fields: { value: str
   },
   contact: {
     label: 'Contact',
+    icon: '📇',
     fields: [
       { value: 'first_name', label: 'First Name' },
       { value: 'last_name', label: 'Last Name' },
@@ -44,6 +46,7 @@ const ENTITY_FIELD_OPTIONS: Record<string, { label: string; fields: { value: str
   },
   account: {
     label: 'Account',
+    icon: '🏢',
     fields: [
       { value: 'name', label: 'Name' },
       { value: 'phone', label: 'Phone' },
@@ -84,9 +87,9 @@ export function FormsView() {
   const [editingFormId, setEditingFormId] = useState<string | null>(null);
   const [fieldConfigs, setFieldConfigs] = useState<FieldConfig[]>([]);
   const [activeTab, setActiveTab] = useState('forms');
+  const [editorTab, setEditorTab] = useState('fields');
   const [copied, setCopied] = useState<string | null>(null);
 
-  // Webhook API keys
   const { data: apiKeys = [] } = useQuery({
     queryKey: ['webhook_api_keys'],
     queryFn: async () => {
@@ -107,7 +110,7 @@ export function FormsView() {
     onSuccess: (key) => {
       qc.invalidateQueries({ queryKey: ['webhook_api_keys'] });
       navigator.clipboard.writeText(key);
-      toast.success('API key created and copied to clipboard. Store it securely — it won\'t be shown again.');
+      toast.success('API key created and copied. Store it securely.');
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -141,6 +144,7 @@ export function FormsView() {
     });
     configs.sort((a, b) => a.sort_order - b.sort_order);
     setFieldConfigs(configs);
+    setEditorTab('fields');
     setEditingFormId(formId);
   };
 
@@ -194,7 +198,6 @@ export function FormsView() {
     if (!form) return '';
     const fields = (form.form_fields || []).sort((a, b) => a.sort_order - b.sort_order);
     const endpoint = `${SUPABASE_URL}/functions/v1/form-submit`;
-
     const fieldHtml = fields.map(f => {
       const req = f.is_required ? ' required' : '';
       const reqMark = f.is_required ? ' *' : '';
@@ -210,7 +213,6 @@ export function FormsView() {
     <input name="${f.field_key}" type="${inputType}"${req} style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;" />
   </div>`;
     }).join('\n');
-
     return `<form action="${endpoint}" method="POST" style="max-width:480px;font-family:system-ui,sans-serif;">
   <input type="hidden" name="form_id" value="${formId}" />
   <input type="hidden" name="source" value="embed" />
@@ -252,10 +254,19 @@ ${fieldHtml}
 
   const previewFields = fieldConfigs.filter(f => f.enabled).sort((a, b) => a.sort_order - b.sort_order);
 
-  // Determine which entities this form creates based on field mappings
   const targetEntities = useMemo(() => {
     const entities = new Set(previewFields.map(f => f.target_entity));
     return Array.from(entities);
+  }, [previewFields]);
+
+  // Group fields by target entity for the mapping summary
+  const fieldsByEntity = useMemo(() => {
+    const grouped: Record<string, FieldConfig[]> = {};
+    for (const f of previewFields) {
+      if (!grouped[f.target_entity]) grouped[f.target_entity] = [];
+      grouped[f.target_entity].push(f);
+    }
+    return grouped;
   }, [previewFields]);
 
   return (
@@ -287,7 +298,7 @@ ${fieldHtml}
               <p className="text-muted-foreground">No forms yet. Create your first lead capture form.</p>
             </CardContent></Card>
           ) : (
-            <div className="grid gap-4">
+            <div className="grid gap-3">
               {forms.map(form => {
                 const entities = new Set((form.form_fields || []).map((f: any) => f.target_entity).filter(Boolean));
                 return (
@@ -305,7 +316,13 @@ ${fieldHtml}
                           <span>{(form.form_fields || []).length} fields</span>
                           <span>{submissionCounts[form.id] || 0} submissions</span>
                           {entities.size > 0 && (
-                            <span>Creates: {Array.from(entities).map(e => ENTITY_FIELD_OPTIONS[e as string]?.label || e).join(' + ')}</span>
+                            <span className="flex items-center gap-1">
+                              Creates: {Array.from(entities).map(e => (
+                                <Badge key={e as string} variant="outline" className="text-[10px] px-1.5 py-0">
+                                  {ENTITY_FIELD_OPTIONS[e as string]?.icon} {ENTITY_FIELD_OPTIONS[e as string]?.label || e}
+                                </Badge>
+                              ))}
+                            </span>
                           )}
                         </div>
                       </div>
@@ -314,11 +331,11 @@ ${fieldHtml}
                           checked={form.is_active}
                           onCheckedChange={(checked) => updateForm.mutate({ id: form.id, is_active: checked })}
                         />
-                        <Button size="sm" variant="outline" onClick={() => openEditor(form.id)}>
-                          <Eye className="h-4 w-4 mr-1" /> Edit
+                        <Button size="sm" variant="outline" onClick={() => openEditor(form.id)} className="gap-1">
+                          <Settings2 className="h-4 w-4" /> Configure
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => copyToClipboard(generateEmbedCode(form.id), form.id)}>
-                          {copied === form.id ? <CheckCircle2 className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+                        <Button size="sm" variant="outline" onClick={() => copyToClipboard(generateEmbedCode(form.id), form.id)} className="gap-1">
+                          {copied === form.id ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                           Embed
                         </Button>
                         <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deleteForm.mutate(form.id)}>
@@ -338,16 +355,14 @@ ${fieldHtml}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2"><Key className="h-5 w-5" /> Webhook API Keys</CardTitle>
+              <CardDescription>
+                Send lead data via JSON webhook to <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">{SUPABASE_URL}/functions/v1/webhook-leads</code>
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Use API keys to send lead data via JSON webhook to <code className="text-xs bg-muted px-1 py-0.5 rounded">{SUPABASE_URL}/functions/v1/webhook-leads</code>
-              </p>
-              <div className="flex gap-2">
-                <Button size="sm" onClick={() => { const name = prompt('API key name:'); if (name) createApiKey.mutate(name); }} className="gap-1">
-                  <Plus className="h-3 w-3" /> Generate Key
-                </Button>
-              </div>
+              <Button size="sm" onClick={() => { const name = prompt('API key name:'); if (name) createApiKey.mutate(name); }} className="gap-1">
+                <Plus className="h-3 w-3" /> Generate Key
+              </Button>
               {apiKeys.length > 0 && (
                 <Table>
                   <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Key</TableHead><TableHead>Status</TableHead><TableHead>Created</TableHead><TableHead></TableHead></TableRow></TableHeader>
@@ -364,9 +379,10 @@ ${fieldHtml}
                   </TableBody>
                 </Table>
               )}
-              <div className="mt-4 space-y-2">
-                <Label>Webhook Payload Example</Label>
-                <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto text-foreground">
+              <Separator />
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Example Request</Label>
+                <pre className="bg-muted p-4 rounded-lg text-xs overflow-x-auto text-foreground">
 {`curl -X POST "${SUPABASE_URL}/functions/v1/webhook-leads" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
@@ -430,51 +446,54 @@ ${fieldHtml}
         </DialogContent>
       </Dialog>
 
-      {/* FIELD EDITOR + PREVIEW DIALOG */}
+      {/* FORM EDITOR DIALOG */}
       <Dialog open={!!editingFormId} onOpenChange={(open) => { if (!open) setEditingFormId(null); }}>
-        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Form: {editingForm?.name}</DialogTitle>
+        <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="h-5 w-5" />
+              {editingForm?.name}
+            </DialogTitle>
+            {editingForm?.description && (
+              <p className="text-sm text-muted-foreground">{editingForm.description}</p>
+            )}
           </DialogHeader>
 
-          {/* Entity creation summary */}
-          {targetEntities.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm text-muted-foreground">This form creates:</span>
-              {targetEntities.map(e => (
-                <Badge key={e} variant="outline" className="text-xs">
-                  {ENTITY_FIELD_OPTIONS[e]?.label || e}
-                </Badge>
-              ))}
-            </div>
-          )}
+          {/* Editor tabs */}
+          <Tabs value={editorTab} onValueChange={setEditorTab} className="flex-1 overflow-hidden flex flex-col">
+            <TabsList className="flex-shrink-0 w-full grid grid-cols-4">
+              <TabsTrigger value="fields" className="gap-1.5 text-xs"><Layers className="h-3.5 w-3.5" /> Fields</TabsTrigger>
+              <TabsTrigger value="mapping" className="gap-1.5 text-xs"><Database className="h-3.5 w-3.5" /> Data Mapping</TabsTrigger>
+              <TabsTrigger value="preview" className="gap-1.5 text-xs"><Eye className="h-3.5 w-3.5" /> Preview</TabsTrigger>
+              <TabsTrigger value="embed" className="gap-1.5 text-xs"><FileText className="h-3.5 w-3.5" /> Embed Code</TabsTrigger>
+            </TabsList>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Field configuration */}
-            <div className="space-y-3">
-              <h3 className="font-semibold text-sm">Fields & Data Mapping</h3>
-              {fieldConfigs.map((fc, i) => (
-                <div key={fc.key} className={`p-3 rounded-lg border space-y-2 ${fc.enabled ? 'bg-card' : 'bg-muted/50 opacity-60'}`}>
-                  <div className="flex items-center gap-3">
-                    <Switch checked={fc.enabled} onCheckedChange={(v) => {
-                      const updated = [...fieldConfigs];
-                      updated[i] = { ...updated[i], enabled: v };
-                      setFieldConfigs(updated);
-                    }} />
-                    <div className="flex-1 min-w-0">
-                      <Input
-                        value={fc.label}
-                        onChange={e => {
-                          const updated = [...fieldConfigs];
-                          updated[i] = { ...updated[i], label: e.target.value };
-                          setFieldConfigs(updated);
-                        }}
-                        className="h-8 text-sm"
-                        disabled={!fc.enabled}
-                      />
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <label className="text-xs text-muted-foreground whitespace-nowrap">
+            <div className="flex-1 overflow-y-auto mt-4">
+              {/* FIELDS TAB */}
+              <TabsContent value="fields" className="mt-0 space-y-3">
+                <p className="text-sm text-muted-foreground">Toggle fields on/off, set labels, mark as required, and reorder.</p>
+                <div className="space-y-2">
+                  {fieldConfigs.map((fc, i) => (
+                    <div key={fc.key} className={`p-3 rounded-lg border flex items-center gap-3 transition-opacity ${fc.enabled ? 'bg-card' : 'bg-muted/30 opacity-50'}`}>
+                      <Switch checked={fc.enabled} onCheckedChange={(v) => {
+                        const updated = [...fieldConfigs];
+                        updated[i] = { ...updated[i], enabled: v };
+                        setFieldConfigs(updated);
+                      }} />
+                      <div className="flex-1 min-w-0">
+                        <Input
+                          value={fc.label}
+                          onChange={e => {
+                            const updated = [...fieldConfigs];
+                            updated[i] = { ...updated[i], label: e.target.value };
+                            setFieldConfigs(updated);
+                          }}
+                          className="h-8 text-sm"
+                          disabled={!fc.enabled}
+                        />
+                      </div>
+                      <Badge variant="outline" className="text-[10px] font-mono px-1.5">{fc.key}</Badge>
+                      <label className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap cursor-pointer select-none">
                         <input
                           type="checkbox"
                           checked={fc.required}
@@ -484,104 +503,159 @@ ${fieldHtml}
                             setFieldConfigs(updated);
                           }}
                           disabled={!fc.enabled}
-                          className="mr-1"
+                          className="rounded"
                         />
-                        Req
+                        Required
                       </label>
-                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => moveField(i, -1)} disabled={i === 0}><ArrowUp className="h-3 w-3" /></Button>
-                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => moveField(i, 1)} disabled={i === fieldConfigs.length - 1}><ArrowDown className="h-3 w-3" /></Button>
+                      <div className="flex gap-0.5">
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => moveField(i, -1)} disabled={i === 0}><ArrowUp className="h-3 w-3" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => moveField(i, 1)} disabled={i === fieldConfigs.length - 1}><ArrowDown className="h-3 w-3" /></Button>
+                      </div>
                     </div>
-                  </div>
-                  {/* Mapping row */}
-                  {fc.enabled && (
-                    <div className="flex items-center gap-2 pl-12">
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">Maps to →</span>
-                      <Select
-                        value={fc.target_entity}
-                        onValueChange={(val) => {
-                          const updated = [...fieldConfigs];
-                          const firstField = ENTITY_FIELD_OPTIONS[val]?.fields[0]?.value || '';
-                          updated[i] = { ...updated[i], target_entity: val, target_field: firstField };
-                          setFieldConfigs(updated);
-                        }}
-                      >
-                        <SelectTrigger className="h-7 text-xs w-32"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(ENTITY_FIELD_OPTIONS).map(([key, opt]) => (
-                            <SelectItem key={key} value={key}>{opt.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <span className="text-xs text-muted-foreground">.</span>
-                      <Select
-                        value={fc.target_field}
-                        onValueChange={(val) => {
-                          const updated = [...fieldConfigs];
-                          updated[i] = { ...updated[i], target_field: val };
-                          setFieldConfigs(updated);
-                        }}
-                      >
-                        <SelectTrigger className="h-7 text-xs w-28"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {(ENTITY_FIELD_OPTIONS[fc.target_entity]?.fields || []).map(f => (
-                            <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
+                  ))}
                 </div>
-              ))}
-              <Button onClick={handleSaveFields} className="w-full mt-2" disabled={saveFields.isPending}>
-                {saveFields.isPending ? <RefreshCw className="h-4 w-4 animate-spin mr-1" /> : null}
-                Save Fields
+              </TabsContent>
+
+              {/* DATA MAPPING TAB */}
+              <TabsContent value="mapping" className="mt-0 space-y-4">
+                <p className="text-sm text-muted-foreground">Configure which BOS entity and field each form input populates.</p>
+
+                {/* Entity creation summary */}
+                {targetEntities.length > 0 && (
+                  <Card className="border-dashed">
+                    <CardContent className="py-3">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Entities created on submission:</p>
+                      <div className="flex gap-2 flex-wrap">
+                        {targetEntities.map(e => (
+                          <Badge key={e} variant="secondary" className="gap-1">
+                            <span>{ENTITY_FIELD_OPTIONS[e]?.icon}</span>
+                            {ENTITY_FIELD_OPTIONS[e]?.label || e}
+                            <span className="text-muted-foreground ml-1">({fieldsByEntity[e]?.length || 0} fields)</span>
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Per-entity grouped mapping */}
+                {Object.entries(fieldsByEntity).map(([entity, fields]) => (
+                  <Card key={entity}>
+                    <CardHeader className="py-3 px-4">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <span>{ENTITY_FIELD_OPTIONS[entity]?.icon}</span>
+                        {ENTITY_FIELD_OPTIONS[entity]?.label || entity}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-4 pb-3 space-y-2">
+                      {fields.map(fc => {
+                        const idx = fieldConfigs.findIndex(c => c.key === fc.key);
+                        return (
+                          <div key={fc.key} className="flex items-center gap-3 text-sm">
+                            <span className="text-muted-foreground w-28 truncate">{fc.label}</span>
+                            <span className="text-muted-foreground">→</span>
+                            <Select
+                              value={fc.target_entity}
+                              onValueChange={(val) => {
+                                const updated = [...fieldConfigs];
+                                const firstField = ENTITY_FIELD_OPTIONS[val]?.fields[0]?.value || '';
+                                updated[idx] = { ...updated[idx], target_entity: val, target_field: firstField };
+                                setFieldConfigs(updated);
+                              }}
+                            >
+                              <SelectTrigger className="h-8 text-xs w-36"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(ENTITY_FIELD_OPTIONS).map(([key, opt]) => (
+                                  <SelectItem key={key} value={key}>{opt.icon} {opt.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <span className="text-muted-foreground">.</span>
+                            <Select
+                              value={fc.target_field}
+                              onValueChange={(val) => {
+                                const updated = [...fieldConfigs];
+                                updated[idx] = { ...updated[idx], target_field: val };
+                                setFieldConfigs(updated);
+                              }}
+                            >
+                              <SelectTrigger className="h-8 text-xs w-32"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {(ENTITY_FIELD_OPTIONS[fc.target_entity]?.fields || []).map(f => (
+                                  <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        );
+                      })}
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {previewFields.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-6">Enable fields in the Fields tab first.</p>
+                )}
+              </TabsContent>
+
+              {/* PREVIEW TAB */}
+              <TabsContent value="preview" className="mt-0 space-y-3">
+                <p className="text-sm text-muted-foreground">This matches the HTML that will be generated for embedding.</p>
+                <div className="border rounded-lg p-6 bg-background">
+                  <div style={{ maxWidth: 480, fontFamily: 'system-ui, sans-serif', margin: '0 auto' }}>
+                    {previewFields.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">Enable fields to see a preview.</p>
+                    ) : (
+                      <>
+                        {previewFields.map(f => (
+                          <div key={f.key} style={{ marginBottom: 12 }}>
+                            <label style={{ display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 4 }}>
+                              {f.label}{f.required ? ' *' : ''}
+                            </label>
+                            {f.type === 'textarea' ? (
+                              <textarea rows={3} disabled className="w-full p-2 border rounded-md text-sm bg-muted/30" />
+                            ) : (
+                              <input type={f.type === 'email' ? 'email' : f.type === 'phone' ? 'tel' : 'text'} disabled className="w-full p-2 border rounded-md text-sm bg-muted/30" />
+                            )}
+                            <span className="text-[10px] text-muted-foreground">
+                              → {ENTITY_FIELD_OPTIONS[f.target_entity]?.icon} {ENTITY_FIELD_OPTIONS[f.target_entity]?.label}.{ENTITY_FIELD_OPTIONS[f.target_entity]?.fields.find(x => x.value === f.target_field)?.label || f.target_field}
+                            </span>
+                          </div>
+                        ))}
+                        <button disabled className="w-full p-2.5 bg-primary text-primary-foreground rounded-md text-sm font-medium">Submit</button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* EMBED CODE TAB */}
+              <TabsContent value="embed" className="mt-0 space-y-3">
+                {editingFormId && previewFields.length > 0 ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">Copy this HTML and paste it into your website.</p>
+                      <Button size="sm" variant="outline" className="gap-1" onClick={() => copyToClipboard(generateEmbedCode(editingFormId), 'embed')}>
+                        {copied === 'embed' ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        Copy HTML
+                      </Button>
+                    </div>
+                    <pre className="bg-muted p-4 rounded-lg text-xs overflow-x-auto text-foreground whitespace-pre-wrap">{generateEmbedCode(editingFormId)}</pre>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">Enable fields to generate embed code.</p>
+                )}
+              </TabsContent>
+            </div>
+
+            {/* Save button — always visible */}
+            <div className="flex-shrink-0 pt-4 border-t mt-4">
+              <Button onClick={handleSaveFields} className="w-full gap-2" disabled={saveFields.isPending}>
+                {saveFields.isPending && <RefreshCw className="h-4 w-4 animate-spin" />}
+                Save Changes
               </Button>
             </div>
-
-            {/* Live preview */}
-            <div className="space-y-3">
-              <h3 className="font-semibold text-sm">Preview</h3>
-              <div className="border rounded-lg p-6 bg-background">
-                <div style={{ maxWidth: 480, fontFamily: 'system-ui, sans-serif' }}>
-                  {previewFields.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-8">Enable fields to see a preview</p>
-                  ) : (
-                    previewFields.map(f => (
-                      <div key={f.key} style={{ marginBottom: 12 }}>
-                        <label style={{ display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 4 }}>
-                          {f.label}{f.required ? ' *' : ''}
-                        </label>
-                        {f.type === 'textarea' ? (
-                          <textarea rows={3} disabled className="w-full p-2 border rounded-md text-sm bg-muted/30" />
-                        ) : (
-                          <input type={f.type === 'email' ? 'email' : f.type === 'phone' ? 'tel' : 'text'} disabled className="w-full p-2 border rounded-md text-sm bg-muted/30" />
-                        )}
-                        <span className="text-[10px] text-muted-foreground">
-                          → {ENTITY_FIELD_OPTIONS[f.target_entity]?.label}.{ENTITY_FIELD_OPTIONS[f.target_entity]?.fields.find(x => x.value === f.target_field)?.label || f.target_field}
-                        </span>
-                      </div>
-                    ))
-                  )}
-                  {previewFields.length > 0 && (
-                    <button disabled className="w-full p-2.5 bg-primary text-primary-foreground rounded-md text-sm font-medium">Submit</button>
-                  )}
-                </div>
-              </div>
-
-              {editingFormId && previewFields.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs">Embed HTML</Label>
-                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => copyToClipboard(generateEmbedCode(editingFormId), 'embed')}>
-                      {copied === 'embed' ? <CheckCircle2 className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                      Copy
-                    </Button>
-                  </div>
-                  <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto max-h-40 text-foreground">{generateEmbedCode(editingFormId)}</pre>
-                </div>
-              )}
-            </div>
-          </div>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </div>
