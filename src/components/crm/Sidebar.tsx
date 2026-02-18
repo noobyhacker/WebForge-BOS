@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, Sun, Moon, Contact, Building2, Handshake, ListTodo, Package, Mail, Zap, TrendingUp, TrendingDown, FileText, Receipt, Paperclip, Settings2, FileSpreadsheet, Lock, UsersRound, Globe, ToggleRight } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, Sun, Moon, Contact, Building2, Handshake, ListTodo, Package, Mail, Zap, TrendingUp, TrendingDown, FileText, Receipt, Paperclip, Settings2, FileSpreadsheet, Lock, UsersRound, Globe, ToggleRight, HeartPulse } from 'lucide-react';
 import webforgeLogo from '@/assets/webforge-logo.png';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -68,6 +68,7 @@ const navItems = [
   { path: '/sharing-groups', label: 'Sharing Groups', icon: UsersRound },
   { path: '/form-integration', label: 'Form Integration', icon: Globe },
   { path: '/feature-flags', label: 'Feature Flags', icon: ToggleRight },
+  { path: '/system-health', label: 'System Health', icon: HeartPulse },
   { path: '/followups', label: 'Follow-ups', icon: Calendar },
   { path: '/logs', label: 'Action Logs', icon: ClipboardList },
 ];
