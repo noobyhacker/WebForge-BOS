@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { useTasks, Task } from '@/hooks/useTasks';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfilesMap } from '@/hooks/useProfilesMap';
-import { Plus, CheckCircle2, Clock, AlertTriangle, Filter, Trash2 } from 'lucide-react';
+import { Plus, CheckCircle2, Clock, AlertTriangle, Filter, Trash2, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, isPast } from 'date-fns';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -33,20 +33,43 @@ const statusColors: Record<string, string> = {
 };
 
 export function TasksView() {
-  const { user } = useAuth();
+  const { user, isAdmin, isSalesManager } = useAuth();
+  const canManageAll = isAdmin || isSalesManager;
   const { tasks, addTask, updateTask, completeTask, deleteTask } = useTasks();
-  const profilesMap = useProfilesMap();
+  const { profiles, getOwnerName } = useProfilesMap();
   const [showCreate, setShowCreate] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterPriority, setFilterPriority] = useState<string>('all');
+  const [filterAssignee, setFilterAssignee] = useState<string>('all');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({ title: '', description: '', priority: 'medium', dueDate: '', assignedTo: '' });
+
+  const allUsers = useMemo(() => {
+    const entries: { id: string; name: string }[] = [];
+    profiles.forEach((p, id) => entries.push({ id, name: p.fullName }));
+    return entries.sort((a, b) => a.name.localeCompare(b.name));
+  }, [profiles]);
 
   const filteredTasks = tasks.filter(t => {
     if (filterStatus !== 'all' && t.status !== filterStatus) return false;
     if (filterPriority !== 'all' && t.priority !== filterPriority) return false;
+    if (filterAssignee !== 'all' && t.assignedTo !== filterAssignee) return false;
     return true;
   });
+
+  // Completion stats per user
+  const userStats = useMemo(() => {
+    const stats = new Map<string, { total: number; done: number; overdue: number }>();
+    tasks.forEach(t => {
+      const s = stats.get(t.assignedTo) || { total: 0, done: 0, overdue: 0 };
+      s.total++;
+      if (t.status === 'done') s.done++;
+      else if (t.dueDate && isPast(new Date(t.dueDate))) s.overdue++;
+      stats.set(t.assignedTo, s);
+    });
+    return stats;
+  }, [tasks]);
 
   const handleCreate = async () => {
     if (!user || !form.title.trim()) return;
@@ -64,34 +87,83 @@ export function TasksView() {
   const isOverdue = (t: Task) => t.status !== 'done' && t.dueDate && isPast(new Date(t.dueDate));
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 animate-fade-in">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
-          <p className="text-muted-foreground">Operational accountability tied to revenue objects.</p>
+          <p className="text-sm text-muted-foreground">Operational accountability tied to revenue objects.</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="gap-1">
-          <Plus className="h-4 w-4" /> New Task
-        </Button>
+        <div className="flex gap-2">
+          {canManageAll && (
+            <Button variant="outline" size="sm" onClick={() => setShowStats(s => !s)} className="gap-1">
+              <BarChart3 className="h-4 w-4" /> Stats
+            </Button>
+          )}
+          <Button onClick={() => setShowCreate(true)} className="gap-1" size="sm">
+            <Plus className="h-4 w-4" /> New Task
+          </Button>
+        </div>
       </div>
 
+      {/* Completion Stats (admin/manager only) */}
+      {showStats && canManageAll && (
+        <Card>
+          <CardHeader className="py-3 px-4">
+            <CardTitle className="text-sm font-medium">Task Completion by User</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y divide-border">
+              {allUsers.filter(u => userStats.has(u.id)).map(u => {
+                const s = userStats.get(u.id)!;
+                const pct = s.total > 0 ? Math.round((s.done / s.total) * 100) : 0;
+                return (
+                  <div key={u.id} className="flex items-center justify-between px-4 py-2 text-sm">
+                    <span className="font-medium truncate flex-1">{u.name}</span>
+                    <div className="flex items-center gap-3 text-xs shrink-0">
+                      <span className="text-muted-foreground">{s.done}/{s.total} done</span>
+                      {s.overdue > 0 && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">{s.overdue} overdue</Badge>}
+                      <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="w-8 text-right text-muted-foreground">{pct}%</span>
+                    </div>
+                  </div>
+                );
+              })}
+              {!allUsers.some(u => userStats.has(u.id)) && (
+                <div className="px-4 py-4 text-center text-sm text-muted-foreground">No task data yet.</div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Filters */}
-      <div className="flex gap-3 items-center flex-wrap">
+      <div className="flex gap-2 items-center flex-wrap">
         <Filter className="h-4 w-4 text-muted-foreground" />
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="w-32 h-8 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
             {STATUS_OPTIONS.map(s => <SelectItem key={s} value={s}>{s.replace('_', ' ')}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterPriority} onValueChange={setFilterPriority}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="Priority" /></SelectTrigger>
+          <SelectTrigger className="w-32 h-8 text-xs"><SelectValue placeholder="Priority" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Priorities</SelectItem>
             {PRIORITY_OPTIONS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
           </SelectContent>
         </Select>
+        {canManageAll && (
+          <Select value={filterAssignee} onValueChange={setFilterAssignee}>
+            <SelectTrigger className="w-40 h-8 text-xs"><SelectValue placeholder="Assignee" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Users</SelectItem>
+              {allUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Task list */}
@@ -115,18 +187,18 @@ export function TasksView() {
                   <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className={cn('font-medium truncate', task.status === 'done' && 'line-through text-muted-foreground')}>{task.title}</p>
+                  <p className={cn('font-medium truncate text-sm', task.status === 'done' && 'line-through text-muted-foreground')}>{task.title}</p>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <Badge variant="outline" className={cn('text-xs', statusColors[task.status])}>{task.status.replace('_', ' ')}</Badge>
-                    <Badge variant="outline" className={cn('text-xs', priorityColors[task.priority])}>{task.priority}</Badge>
+                    <Badge variant="outline" className={cn('text-[10px]', statusColors[task.status])}>{task.status.replace('_', ' ')}</Badge>
+                    <Badge variant="outline" className={cn('text-[10px]', priorityColors[task.priority])}>{task.priority}</Badge>
                     {task.dueDate && (
                       <span className={cn('text-xs flex items-center gap-1', isOverdue(task) ? 'text-destructive font-medium' : 'text-muted-foreground')}>
                         {isOverdue(task) && <AlertTriangle className="h-3 w-3" />}
                         <Clock className="h-3 w-3" />
-                        {format(new Date(task.dueDate), 'MMM d, yyyy')}
+                        {format(new Date(task.dueDate), 'MMM d')}
                       </span>
                     )}
-                    <span className="text-xs text-muted-foreground">→ {profilesMap[task.assignedTo] || 'Unknown'}</span>
+                    <span className="text-xs text-muted-foreground">→ {getOwnerName(task.assignedTo)}</span>
                   </div>
                 </div>
                 <Select value={task.status} onValueChange={(v) => updateTask(task.id, { status: v })}>
@@ -163,6 +235,17 @@ export function TasksView() {
               </div>
               <div><Label>Due Date</Label><Input type="datetime-local" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} /></div>
             </div>
+            {canManageAll && (
+              <div>
+                <Label>Assign To</Label>
+                <Select value={form.assignedTo} onValueChange={v => setForm(f => ({ ...f, assignedTo: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Assign to user..." /></SelectTrigger>
+                  <SelectContent>
+                    {allUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter><Button onClick={handleCreate} disabled={!form.title.trim()}>Create</Button></DialogFooter>
         </DialogContent>

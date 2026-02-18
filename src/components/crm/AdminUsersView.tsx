@@ -140,7 +140,7 @@ export const AdminUsersView = () => {
       <Card>
         <CardHeader className="py-3 px-4">
           <CardTitle className="text-sm font-medium">Active Users ({approvedUsers.length})</CardTitle>
-          <CardDescription className="text-xs">Click role badges to toggle</CardDescription>
+          <CardDescription className="text-xs">Click role badges to toggle. Managers can assign tasks to any user.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>

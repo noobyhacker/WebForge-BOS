@@ -86,8 +86,8 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">WebForge CRM</CardTitle>
-          <CardDescription>Sign in to access your CRM dashboard</CardDescription>
+          <CardTitle className="text-2xl font-bold">WebForge BOS</CardTitle>
+          <CardDescription>Sign in to access your operational dashboard</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
@@ -167,7 +167,7 @@ const Auth = () => {
                   Create Account
                 </Button>
                 <p className="text-xs text-muted-foreground text-center">
-                  After signing up, an admin must approve your account before you can access the CRM.
+                  After signing up, an admin must approve your account before you can access BOS.
                 </p>
               </form>
             </TabsContent>
@@ -192,7 +192,7 @@ const PendingApproval = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-muted-foreground">
-            Your account is awaiting admin approval. You'll be able to access the CRM once an administrator approves your account.
+            Your account is awaiting admin approval. You'll be able to access BOS once an administrator approves your account.
           </p>
           <Button variant="outline" onClick={signOut}>
             Sign Out
