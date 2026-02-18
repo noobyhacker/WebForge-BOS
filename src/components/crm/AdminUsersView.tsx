@@ -5,16 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Check, X, Shield, Loader2 } from 'lucide-react';
+import { Check, X, Shield, Loader2, UserCheck, Users } from 'lucide-react';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { ConfirmDialog } from './ConfirmDialog';
+import { cn } from '@/lib/utils';
 
 interface UserProfile {
   id: string;
@@ -25,145 +21,76 @@ interface UserProfile {
   roles: string[];
 }
 
+const ALL_ROLES = [
+  { key: 'admin', label: 'Admin', icon: Shield, color: 'bg-destructive/10 text-destructive border-destructive/30' },
+  { key: 'sales_manager', label: 'Manager', icon: Users, color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30' },
+  { key: 'sales', label: 'Sales', icon: null, color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30' },
+  { key: 'finance', label: 'Finance', icon: null, color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' },
+  { key: 'user', label: 'User', icon: null, color: 'bg-muted text-muted-foreground border-border' },
+  { key: 'viewer', label: 'Viewer', icon: null, color: 'bg-muted text-muted-foreground border-border' },
+] as const;
+
 export const AdminUsersView = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [toggling, setToggling] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
-  
-  // Confirmation dialog states
-  const [confirmAction, setConfirmAction] = useState<{
-    type: 'revoke' | 'toggleAdmin';
-    userId: string;
-    userName: string;
-    isAdmin?: boolean;
-  } | null>(null);
+  const [confirmRevoke, setConfirmRevoke] = useState<{ userId: string; name: string } | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
+    const [{ data: profiles, error: pErr }, { data: roles, error: rErr }] = await Promise.all([
+      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+      supabase.from('user_roles').select('user_id, role'),
+    ]);
 
-    // Fetch all profiles
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (profilesError) {
-      toast({
-        title: 'Error fetching users',
-        description: profilesError.message,
-        variant: 'destructive',
-      });
+    if (pErr) {
+      toast({ title: 'Error fetching users', description: pErr.message, variant: 'destructive' });
       setLoading(false);
       return;
     }
+    if (rErr) toast({ title: 'Error fetching roles', description: rErr.message, variant: 'destructive' });
 
-    // Fetch all roles
-    const { data: roles, error: rolesError } = await supabase
-      .from('user_roles')
-      .select('user_id, role');
-
-    if (rolesError) {
-      toast({
-        title: 'Error fetching roles',
-        description: rolesError.message,
-        variant: 'destructive',
-      });
-    }
-
-    // Combine profiles with roles, mapping DB fields to interface
-    const usersWithRoles = profiles.map(profile => ({
-      id: profile.id,
-      email: profile.email,
-      full_name: profile.full_name,
-      is_approved: profile.is_approved,
-      created_at: profile.created_at,
-      roles: roles?.filter(r => r.user_id === profile.id).map(r => r.role) || [],
-    }));
-
-    setUsers(usersWithRoles);
+    setUsers(
+      (profiles || []).map(p => ({
+        id: p.id,
+        email: p.email,
+        full_name: p.full_name,
+        is_approved: p.is_approved ?? false,
+        created_at: p.created_at ?? '',
+        roles: roles?.filter(r => r.user_id === p.id).map(r => r.role) || [],
+      }))
+    );
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  useEffect(() => { fetchUsers(); }, []);
 
   const approveUser = async (userId: string) => {
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        is_approved: true,
-      })
-      .eq('id', userId);
-
-    if (error) {
-      toast({
-        title: 'Error approving user',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } else {
-      toast({ title: 'User approved successfully' });
-      fetchUsers();
-    }
+    const { error } = await supabase.from('profiles').update({ is_approved: true }).eq('id', userId);
+    if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    else { toast({ title: 'User approved' }); fetchUsers(); }
   };
 
   const revokeApproval = async (userId: string) => {
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        is_approved: false,
-      })
-      .eq('id', userId);
-
-    if (error) {
-      toast({
-        title: 'Error revoking approval',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } else {
-      toast({ title: 'User approval revoked' });
-      fetchUsers();
-    }
+    const { error } = await supabase.from('profiles').update({ is_approved: false }).eq('id', userId);
+    if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    else { toast({ title: 'Access revoked' }); fetchUsers(); }
   };
 
-  const setRole = async (userId: string, role: string, add: boolean) => {
-    if (add) {
-      const { error } = await supabase
-        .from('user_roles')
-        .insert({ user_id: userId, role: role as 'admin' | 'user' | 'sales' | 'sales_manager' });
-      if (error) {
-        toast({ title: 'Error adding role', description: error.message, variant: 'destructive' });
-      } else {
-        toast({ title: `${role} role granted` });
-        fetchUsers();
-      }
+  const toggleRole = async (userId: string, role: string, hasRole: boolean) => {
+    setToggling(`${userId}-${role}`);
+    if (hasRole) {
+      const { error } = await supabase.from('user_roles').delete().eq('user_id', userId).eq('role', role as any);
+      if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      else fetchUsers();
     } else {
-      const { error } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId)
-        .eq('role', role as 'admin' | 'user' | 'sales' | 'sales_manager');
-      if (error) {
-        toast({ title: 'Error removing role', description: error.message, variant: 'destructive' });
-      } else {
-        toast({ title: `${role} role removed` });
-        fetchUsers();
-      }
+      const { error } = await supabase.from('user_roles').insert({ user_id: userId, role: role as any });
+      if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      else fetchUsers();
     }
-  };
-
-  const handleConfirmAction = () => {
-    if (!confirmAction) return;
-    
-    if (confirmAction.type === 'revoke') {
-      revokeApproval(confirmAction.userId);
-    } else if (confirmAction.type === 'toggleAdmin') {
-      setRole(confirmAction.userId, 'admin', !(confirmAction.isAdmin ?? false));
-    }
-    setConfirmAction(null);
+    setToggling(null);
   };
 
   if (loading) {
@@ -178,124 +105,100 @@ export const AdminUsersView = () => {
   const approvedUsers = users.filter(u => u.is_approved);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <h1 className="text-3xl font-bold">User Management</h1>
-        <p className="text-muted-foreground">Approve users and manage roles</p>
+        <h1 className="text-2xl font-bold">User Management</h1>
+        <p className="text-sm text-muted-foreground">Approve users and assign roles</p>
       </div>
 
-      {/* Pending Approval Section */}
       {pendingUsers.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Badge variant="secondary">{pendingUsers.length}</Badge>
+          <CardHeader className="py-3 px-4">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Badge variant="destructive" className="text-xs">{pendingUsers.length}</Badge>
               Pending Approval
             </CardTitle>
-            <CardDescription>These users are waiting for your approval</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Registered</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pendingUsers.map(u => (
-                  <TableRow key={u.id}>
-                    <TableCell className="font-medium">
-                      {u.full_name || 'No name'}
-                    </TableCell>
-                    <TableCell>{u.email}</TableCell>
-                    <TableCell>
-                      {new Date(u.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        onClick={() => approveUser(u.id)}
-                        className="gap-1"
-                      >
-                        <Check className="h-4 w-4" />
-                        Approve
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardContent className="p-0">
+            <div className="divide-y divide-border">
+              {pendingUsers.map(u => (
+                <div key={u.id} className="flex items-center justify-between px-4 py-2.5">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{u.full_name || 'No name'}</p>
+                    <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                  </div>
+                  <Button size="sm" onClick={() => approveUser(u.id)} className="gap-1 h-7 text-xs shrink-0">
+                    <UserCheck className="h-3.5 w-3.5" /> Approve
+                  </Button>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Approved Users Section */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Approved Users</CardTitle>
-          <CardDescription>Users with access to the CRM</CardDescription>
+        <CardHeader className="py-3 px-4">
+          <CardTitle className="text-sm font-medium">Active Users ({approvedUsers.length})</CardTitle>
+          <CardDescription className="text-xs">Click role badges to toggle</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Roles</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className="text-xs">
+                <TableHead className="py-2">User</TableHead>
+                <TableHead className="py-2">Roles</TableHead>
+                <TableHead className="py-2 w-10"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {approvedUsers.map(u => {
-                const isAdmin = u.roles.includes('admin');
-                const isSalesManager = u.roles.includes('sales_manager');
-                const isSales = u.roles.includes('sales');
                 const isCurrentUser = u.id === user?.id;
-
                 return (
-                  <TableRow key={u.id}>
-                    <TableCell className="font-medium">
-                      {u.full_name || 'No name'}
-                      {isCurrentUser && (
-                        <Badge variant="outline" className="ml-2">You</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>{u.email}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {isAdmin && <Badge className="gap-1"><Shield className="h-3 w-3" />Admin</Badge>}
-                        {isSalesManager && <Badge variant="secondary" className="bg-amber-500/10 text-amber-700 dark:text-amber-400">Sales Manager</Badge>}
-                        {isSales && <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 dark:text-blue-400">Sales</Badge>}
-                        {!isAdmin && !isSalesManager && !isSales && <Badge variant="secondary">User</Badge>}
+                  <TableRow key={u.id} className="group">
+                    <TableCell className="py-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-medium truncate">{u.full_name || 'No name'}</span>
+                          {isCurrentUser && <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">You</Badge>}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="py-2">
+                      <div className="flex flex-wrap gap-1">
+                        {ALL_ROLES.map(r => {
+                          const hasRole = u.roles.includes(r.key);
+                          const isDisabled = isCurrentUser || toggling === `${u.id}-${r.key}`;
+                          return (
+                            <button
+                              key={r.key}
+                              disabled={isDisabled}
+                              onClick={() => toggleRole(u.id, r.key, hasRole)}
+                              className={cn(
+                                'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium transition-all',
+                                'hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed',
+                                hasRole ? r.color : 'bg-transparent text-muted-foreground/40 border-dashed border-border'
+                              )}
+                            >
+                              {hasRole && <Check className="h-2.5 w-2.5" />}
+                              {r.icon && <r.icon className="h-2.5 w-2.5" />}
+                              {r.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-2">
                       {!isCurrentUser && (
-                        <div className="flex flex-wrap justify-end gap-1">
-                          <Button size="sm" variant={isAdmin ? 'default' : 'outline'} onClick={() => setRole(u.id, 'admin', !isAdmin)}>
-                            {isAdmin ? '✓ Admin' : 'Admin'}
-                          </Button>
-                          <Button size="sm" variant={isSalesManager ? 'default' : 'outline'} onClick={() => setRole(u.id, 'sales_manager', !isSalesManager)}>
-                            {isSalesManager ? '✓ Manager' : 'Manager'}
-                          </Button>
-                          <Button size="sm" variant={isSales ? 'default' : 'outline'} onClick={() => setRole(u.id, 'sales', !isSales)}>
-                            {isSales ? '✓ Sales' : 'Sales'}
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="destructive"
-                            onClick={() => setConfirmAction({
-                              type: 'revoke',
-                              userId: u.id,
-                              userName: u.full_name || u.email || 'User',
-                            })}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 text-destructive"
+                          onClick={() => setConfirmRevoke({ userId: u.id, name: u.full_name || u.email || 'User' })}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
                       )}
                     </TableCell>
                   </TableRow>
@@ -306,29 +209,14 @@ export const AdminUsersView = () => {
         </CardContent>
       </Card>
 
-      {/* Confirmation Dialogs */}
       <ConfirmDialog
-        open={confirmAction?.type === 'revoke'}
-        onOpenChange={(open) => !open && setConfirmAction(null)}
+        open={!!confirmRevoke}
+        onOpenChange={(open) => !open && setConfirmRevoke(null)}
         title="Revoke Access"
-        description={`This will remove ${confirmAction?.userName}'s access to the CRM. They'll need to be approved again to regain access.`}
-        confirmText="Revoke Access"
+        description={`Remove ${confirmRevoke?.name}'s access? They'll need re-approval.`}
+        confirmText="Revoke"
         variant="destructive"
-        onConfirm={handleConfirmAction}
-      />
-
-      <ConfirmDialog
-        open={confirmAction?.type === 'toggleAdmin'}
-        onOpenChange={(open) => !open && setConfirmAction(null)}
-        title={confirmAction?.isAdmin ? 'Remove Admin Role' : 'Grant Admin Role'}
-        description={
-          confirmAction?.isAdmin
-            ? `Are you sure you want to remove admin privileges from ${confirmAction?.userName}? They will no longer be able to manage users or see all data.`
-            : `Are you sure you want to grant admin privileges to ${confirmAction?.userName}? They will be able to manage users and see all data.`
-        }
-        confirmText={confirmAction?.isAdmin ? 'Remove Admin' : 'Make Admin'}
-        variant={confirmAction?.isAdmin ? 'destructive' : 'default'}
-        onConfirm={handleConfirmAction}
+        onConfirm={() => { if (confirmRevoke) { revokeApproval(confirmRevoke.userId); setConfirmRevoke(null); } }}
       />
     </div>
   );
