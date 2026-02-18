@@ -18,6 +18,8 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           id: string
           industry: string | null
           name: string
@@ -29,6 +31,8 @@ export type Database = {
         Insert: {
           address?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           industry?: string | null
           name: string
@@ -40,6 +44,8 @@ export type Database = {
         Update: {
           address?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           industry?: string | null
           name?: string
@@ -131,12 +137,50 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_suggestions: {
+        Row: {
+          accepted_by: string | null
+          content: Json
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          resolved_at: string | null
+          status: string
+          suggestion_type: string
+        }
+        Insert: {
+          accepted_by?: string | null
+          content?: Json
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          resolved_at?: string | null
+          status?: string
+          suggestion_type: string
+        }
+        Update: {
+          accepted_by?: string | null
+          content?: Json
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          resolved_at?: string | null
+          status?: string
+          suggestion_type?: string
+        }
+        Relationships: []
+      }
       automation_rules: {
         Row: {
           action_config: Json | null
           action_type: string
           created_at: string
           created_by: string
+          deleted_at: string | null
+          deleted_by: string | null
           description: string | null
           entity_type: string
           id: string
@@ -151,6 +195,8 @@ export type Database = {
           action_type?: string
           created_at?: string
           created_by: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           entity_type?: string
           id?: string
@@ -165,6 +211,8 @@ export type Database = {
           action_type?: string
           created_at?: string
           created_by?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           entity_type?: string
           id?: string
@@ -218,6 +266,8 @@ export type Database = {
         Row: {
           company: string | null
           created_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           email: string | null
           id: string
           last_contact: string | null
@@ -230,6 +280,8 @@ export type Database = {
         Insert: {
           company?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           email?: string | null
           id?: string
           last_contact?: string | null
@@ -242,6 +294,8 @@ export type Database = {
         Update: {
           company?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           email?: string | null
           id?: string
           last_contact?: string | null
@@ -257,6 +311,8 @@ export type Database = {
         Row: {
           account_id: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           email: string | null
           first_name: string
           id: string
@@ -271,6 +327,8 @@ export type Database = {
         Insert: {
           account_id?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           email?: string | null
           first_name: string
           id?: string
@@ -285,6 +343,8 @@ export type Database = {
         Update: {
           account_id?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           email?: string | null
           first_name?: string
           id?: string
@@ -417,6 +477,8 @@ export type Database = {
           account_id: string | null
           contact_id: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           expected_close_date: string | null
           id: string
           lost_reason: string | null
@@ -431,6 +493,8 @@ export type Database = {
           account_id?: string | null
           contact_id?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           expected_close_date?: string | null
           id?: string
           lost_reason?: string | null
@@ -445,6 +509,8 @@ export type Database = {
           account_id?: string | null
           contact_id?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           expected_close_date?: string | null
           id?: string
           lost_reason?: string | null
@@ -508,6 +574,42 @@ export type Database = {
         }
         Relationships: []
       }
+      domain_events: {
+        Row: {
+          actor_id: string | null
+          actor_type: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          payload: Json | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_type?: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          payload?: Json | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_type?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          payload?: Json | null
+        }
+        Relationships: []
+      }
       email_templates: {
         Row: {
           body: string | null
@@ -565,6 +667,42 @@ export type Database = {
           id?: string
           permission?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      feature_flags: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_enabled: boolean
+          key: string
+          label: string
+          scope: string
+          scope_config: Json | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          key: string
+          label: string
+          scope?: string
+          scope_config?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          key?: string
+          label?: string
+          scope?: string
+          scope_config?: Json | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -703,6 +841,8 @@ export type Database = {
           created_at: string
           deal_id: string | null
           deal_name: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           due_date: string | null
           grand_total: number | null
           id: string
@@ -723,6 +863,8 @@ export type Database = {
           created_at?: string
           deal_id?: string | null
           deal_name?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           due_date?: string | null
           grand_total?: number | null
           id?: string
@@ -743,6 +885,8 @@ export type Database = {
           created_at?: string
           deal_id?: string | null
           deal_name?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           due_date?: string | null
           grand_total?: number | null
           id?: string
@@ -773,6 +917,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      job_queue: {
+        Row: {
+          attempts: number
+          completed_at: string | null
+          created_at: string
+          id: string
+          job_type: string
+          last_error: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
+          payload: Json
+          priority: number
+          scheduled_for: string
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          job_type: string
+          last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          payload?: Json
+          priority?: number
+          scheduled_for?: string
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          job_type?: string
+          last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          payload?: Json
+          priority?: number
+          scheduled_for?: string
+          status?: string
+        }
+        Relationships: []
       }
       lead_scoring_rules: {
         Row: {
@@ -846,6 +1038,8 @@ export type Database = {
       products: {
         Row: {
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           description: string | null
           id: string
           is_active: boolean | null
@@ -856,6 +1050,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -866,6 +1062,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -961,6 +1159,8 @@ export type Database = {
           created_at: string
           deal_id: string | null
           deal_name: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           grand_total: number | null
           id: string
           notes: string | null
@@ -979,6 +1179,8 @@ export type Database = {
           created_at?: string
           deal_id?: string | null
           deal_name?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           grand_total?: number | null
           id?: string
           notes?: string | null
@@ -997,6 +1199,8 @@ export type Database = {
           created_at?: string
           deal_id?: string | null
           deal_name?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           grand_total?: number | null
           id?: string
           notes?: string | null
@@ -1043,6 +1247,36 @@ export type Database = {
           member_ids?: Json | null
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      system_health_logs: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          message: string | null
+          metrics: Json | null
+          source: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          message?: string | null
+          metrics?: Json | null
+          source: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          message?: string | null
+          metrics?: Json | null
+          source?: string
+          status?: string
         }
         Relationships: []
       }
