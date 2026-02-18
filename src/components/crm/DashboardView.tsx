@@ -239,7 +239,7 @@ export function DashboardView() {
           </CardHeader>
           <CardContent>
             {winLossData.length > 0 ? (
-              <div className="h-56 flex items-center justify-center">
+              <div className="h-56 relative">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -261,7 +261,7 @@ export function DashboardView() {
                     <Tooltip content={<CustomTooltip />} />
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="absolute flex flex-col items-center">
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <span className="text-2xl font-bold text-foreground">{winRate}%</span>
                   <span className="text-xs text-muted-foreground">Win Rate</span>
                 </div>
