@@ -31,7 +31,7 @@ export function FormIntegrationView() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const widgetCode = `<!-- CRM Form Widget -->
+  const widgetCode = `<!-- BOS Form Widget -->
 <div id="crm-form-widget"></div>
 <script>
 (function() {
