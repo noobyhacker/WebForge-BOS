@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, Sun, Moon, Contact, Building2, Handshake, ListTodo, Package, Mail, Zap, TrendingUp, FileText, Receipt, Paperclip, Settings2, FileSpreadsheet, Lock, UsersRound, Globe } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, Sun, Moon, Contact, Building2, Handshake, ListTodo, Package, Mail, Zap, TrendingUp, TrendingDown, FileText, Receipt, Paperclip, Settings2, FileSpreadsheet, Lock, UsersRound, Globe } from 'lucide-react';
 import webforgeLogo from '@/assets/webforge-logo.png';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -49,6 +49,7 @@ function DarkModeToggle({ collapsed }: { collapsed: boolean }) {
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/revenue-leakage', label: 'Revenue Leakage', icon: TrendingDown },
   { path: '/clients', label: 'Clients', icon: Users },
   { path: '/contacts', label: 'Contacts', icon: Contact },
   { path: '/accounts', label: 'Accounts', icon: Building2 },
