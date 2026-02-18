@@ -217,8 +217,8 @@ export function DashboardView() {
                   <BarChart data={stageDistribution} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
                     <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="value" radius={[6, 6, 0, 0]} name="Value">
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted) / 0.4)' }} />
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]} name="Value" activeBar={{ strokeWidth: 0, opacity: 0.8 }}>
                       {stageDistribution.map((entry, i) => (
                         <Cell key={i} fill={entry.fill} />
                       ))}
@@ -251,6 +251,8 @@ export function DashboardView() {
                       paddingAngle={4}
                       dataKey="value"
                       strokeWidth={0}
+                      activeShape={false}
+                      style={{ cursor: 'default', outline: 'none' }}
                     >
                       {winLossData.map((entry, i) => (
                         <Cell key={i} fill={entry.fill} />
