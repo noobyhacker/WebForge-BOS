@@ -24,6 +24,8 @@ import { AdminUsersView } from "@/components/crm/AdminUsersView";
 import { RevenueLeakageView } from "@/components/crm/RevenueLeakageView";
 import { PipelineStagesView } from "@/components/crm/PipelineStagesView";
 import { TrashView } from "@/components/crm/TrashView";
+import { TasksView } from "@/components/crm/TasksView";
+import { RolePermissionsView } from "@/components/crm/RolePermissionsView";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -48,6 +50,7 @@ const App = () => (
             >
               <Route index element={<DashboardView />} />
               <Route path="revenue-leakage" element={<RevenueLeakageView />} />
+              <Route path="tasks" element={<TasksView />} />
               <Route path="clients" element={<ClientsView />} />
               <Route path="contacts" element={<ContactsView />} />
               <Route path="accounts" element={<AccountsView />} />
@@ -64,6 +67,7 @@ const App = () => (
               <Route path="logs" element={<ActionLogsView />} />
               <Route path="trash" element={<TrashView />} />
               <Route path="admin" element={<AdminUsersView />} />
+              <Route path="permissions" element={<RolePermissionsView />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
