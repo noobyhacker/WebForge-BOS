@@ -12,6 +12,10 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertTriangle, Users, Handshake, FileText, Receipt, DollarSign, Clock, TrendingDown, Zap, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, differenceInDays, differenceInHours, addDays } from 'date-fns';
+import {
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis,
+} from 'recharts';
 
 interface LeakItem {
   id: string;
@@ -83,6 +87,23 @@ function LeakageTable({ items, emptyMessage, columns }: {
   );
 }
 
+const LEAK_COLORS = [
+  'hsl(var(--warning))',
+  'hsl(var(--destructive))',
+  'hsl(38 80% 60%)',
+  'hsl(0 60% 45%)',
+];
+
+const CustomTooltip = ({ active, payload }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-md text-xs">
+      <p className="font-medium text-foreground">{payload[0]?.name}</p>
+      <p className="text-muted-foreground">${(payload[0]?.value || 0).toLocaleString()}</p>
+    </div>
+  );
+};
+
 export function RevenueLeakageView() {
   const { profile, user } = useAuth();
   const { clients } = useClients(profile?.email || 'anonymous');
@@ -95,7 +116,7 @@ export function RevenueLeakageView() {
 
   const now = new Date();
 
-  // 1. Unresponded leads: leads created >48h ago with zero activities
+  // 1. Unresponded leads
   const unrespondedLeads = useMemo<LeakItem[]>(() => {
     const leads = clients.filter(c => c.status === 'lead');
     return leads.filter(lead => {
@@ -113,7 +134,7 @@ export function RevenueLeakageView() {
     }));
   }, [clients, activities]);
 
-  // 2. Stalled deals: open deals with no activity for 14+ days
+  // 2. Stalled deals
   const stalledDeals = useMemo<LeakItem[]>(() => {
     const openDeals = deals.filter(d => !['closed_won', 'closed_lost'].includes(d.stage));
     return openDeals.filter(deal => {
@@ -138,7 +159,7 @@ export function RevenueLeakageView() {
     }).sort((a, b) => b.value - a.value);
   }, [deals, activities]);
 
-  // 3. Idle quotes: sent quotes with no update for 7+ days
+  // 3. Idle quotes
   const idleQuotes = useMemo<LeakItem[]>(() => {
     return quotes
       .filter(q => q.status === 'sent')
@@ -154,7 +175,7 @@ export function RevenueLeakageView() {
       .sort((a, b) => b.value - a.value);
   }, [quotes]);
 
-  // 4. Overdue invoices: past due_date and not paid
+  // 4. Overdue invoices
   const overdueInvoices = useMemo<LeakItem[]>(() => {
     return invoices
       .filter(inv => inv.status !== 'paid' && inv.dueDate && new Date(inv.dueDate) < now)
@@ -175,6 +196,32 @@ export function RevenueLeakageView() {
   const overdueInvoiceValue = overdueInvoices.reduce((s, i) => s + i.value, 0);
   const totalRevenueAtRisk = stalledDealValue + idleQuoteValue + overdueInvoiceValue;
 
+  // Chart: Leakage breakdown donut
+  const leakageBreakdown = useMemo(() => {
+    const data = [];
+    if (stalledDealValue > 0) data.push({ name: 'Stalled Deals', value: stalledDealValue });
+    if (idleQuoteValue > 0) data.push({ name: 'Idle Quotes', value: idleQuoteValue });
+    if (overdueInvoiceValue > 0) data.push({ name: 'Overdue Invoices', value: overdueInvoiceValue });
+    return data;
+  }, [stalledDealValue, idleQuoteValue, overdueInvoiceValue]);
+
+  // Chart: Aging distribution
+  const agingDistribution = useMemo(() => {
+    const allItems = [...stalledDeals, ...idleQuotes, ...overdueInvoices];
+    const buckets = [
+      { label: '1-7d', min: 1, max: 7 },
+      { label: '8-14d', min: 8, max: 14 },
+      { label: '15-30d', min: 15, max: 30 },
+      { label: '30d+', min: 31, max: Infinity },
+    ];
+    return buckets.map(b => ({
+      name: b.label,
+      count: allItems.filter(i => i.daysSince >= b.min && i.daysSince <= b.max).length,
+      value: allItems.filter(i => i.daysSince >= b.min && i.daysSince <= b.max).reduce((s, i) => s + i.value, 0),
+    }));
+  }, [stalledDeals, idleQuotes, overdueInvoices]);
+
+  // Recovery logic (unchanged)
   const runRecovery = async (category: 'leads' | 'deals' | 'quotes' | 'invoices') => {
     if (!user) return;
     setRecovering(category);
@@ -184,62 +231,27 @@ export function RevenueLeakageView() {
 
       if (category === 'leads') {
         for (const lead of unrespondedLeads) {
-          await addActivity({
-            type: 'task',
-            subject: `Follow up with unresponded lead: ${lead.name}`,
-            description: `Auto-created recovery task. Lead has been idle for ${lead.daysSince} days with no activity.`,
-            entityType: 'client',
-            entityId: lead.id,
-            dueDate,
-            status: 'pending',
-          });
+          await addActivity({ type: 'task', subject: `Follow up with unresponded lead: ${lead.name}`, description: `Auto-created recovery task. Lead has been idle for ${lead.daysSince} days with no activity.`, entityType: 'client', entityId: lead.id, dueDate, status: 'pending' });
           created++;
         }
       } else if (category === 'deals') {
         for (const deal of stalledDeals) {
-          await addActivity({
-            type: 'task',
-            subject: `Re-engage stalled deal: ${deal.name}`,
-            description: `Auto-created recovery task. Deal worth $${deal.value.toLocaleString()} has been idle for ${deal.daysSince} days at stage "${deal.stage}".`,
-            entityType: 'deal',
-            entityId: deal.id,
-            dueDate,
-            status: 'pending',
-          });
+          await addActivity({ type: 'task', subject: `Re-engage stalled deal: ${deal.name}`, description: `Auto-created recovery task. Deal worth $${deal.value.toLocaleString()} has been idle for ${deal.daysSince} days at stage "${deal.stage}".`, entityType: 'deal', entityId: deal.id, dueDate, status: 'pending' });
           created++;
         }
       } else if (category === 'quotes') {
         for (const quote of idleQuotes) {
-          await addActivity({
-            type: 'email',
-            subject: `Follow up on idle quote: ${quote.name}`,
-            description: `Auto-created recovery task. Quote worth $${quote.value.toLocaleString()} has had no update for ${quote.daysSince} days.`,
-            entityType: 'quote',
-            entityId: quote.id,
-            dueDate,
-            status: 'pending',
-          });
+          await addActivity({ type: 'email', subject: `Follow up on idle quote: ${quote.name}`, description: `Auto-created recovery task. Quote worth $${quote.value.toLocaleString()} has had no update for ${quote.daysSince} days.`, entityType: 'quote', entityId: quote.id, dueDate, status: 'pending' });
           created++;
         }
       } else if (category === 'invoices') {
         for (const inv of overdueInvoices) {
-          await addActivity({
-            type: 'email',
-            subject: `Send payment reminder: ${inv.name}`,
-            description: `Auto-created recovery task. Invoice has $${inv.value.toLocaleString()} outstanding, overdue by ${inv.daysSince} days.`,
-            entityType: 'invoice',
-            entityId: inv.id,
-            dueDate,
-            status: 'pending',
-          });
+          await addActivity({ type: 'email', subject: `Send payment reminder: ${inv.name}`, description: `Auto-created recovery task. Invoice has $${inv.value.toLocaleString()} outstanding, overdue by ${inv.daysSince} days.`, entityType: 'invoice', entityId: inv.id, dueDate, status: 'pending' });
           created++;
         }
       }
 
-      toast({
-        title: 'Recovery tasks created',
-        description: `Created ${created} follow-up ${created === 1 ? 'task' : 'tasks'}.`,
-      });
+      toast({ title: 'Recovery tasks created', description: `Created ${created} follow-up ${created === 1 ? 'task' : 'tasks'}.` });
     } catch (err) {
       console.error('Recovery error:', err);
       toast({ title: 'Error', description: 'Failed to create recovery tasks.', variant: 'destructive' });
@@ -252,18 +264,13 @@ export function RevenueLeakageView() {
     if (count === 0) return null;
     const isRunning = recovering === category;
     return (
-      <Button
-        size="sm"
-        variant="outline"
-        className="h-7 text-xs gap-1"
-        disabled={isRunning || recovering !== null}
-        onClick={() => runRecovery(category)}
-      >
+      <Button size="sm" variant="outline" className="h-7 text-xs gap-1" disabled={isRunning || recovering !== null} onClick={() => runRecovery(category)}>
         {isRunning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />}
         {isRunning ? 'Creating...' : 'Auto Recover'}
       </Button>
     );
   };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -311,34 +318,97 @@ export function RevenueLeakageView() {
 
       {/* Category stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Unresponded Leads"
-          value={unrespondedLeads.length}
-          icon={Users}
-          variant={unrespondedLeads.length > 0 ? 'warning' : 'success'}
-          sparklineData={[0, unrespondedLeads.length * 0.3, unrespondedLeads.length * 0.6, unrespondedLeads.length * 0.8, unrespondedLeads.length]}
-        />
-        <StatCard
-          title="Stalled Deals"
-          value={`$${stalledDealValue.toLocaleString()}`}
-          icon={Handshake}
-          variant={stalledDeals.length > 0 ? 'destructive' : 'success'}
-          sparklineData={[0, stalledDealValue * 0.2, stalledDealValue * 0.5, stalledDealValue * 0.7, stalledDealValue]}
-        />
-        <StatCard
-          title="Idle Quotes"
-          value={`$${idleQuoteValue.toLocaleString()}`}
-          icon={FileText}
-          variant={idleQuotes.length > 0 ? 'warning' : 'success'}
-          sparklineData={[0, idleQuoteValue * 0.3, idleQuoteValue * 0.5, idleQuoteValue * 0.8, idleQuoteValue]}
-        />
-        <StatCard
-          title="Overdue Invoices"
-          value={`$${overdueInvoiceValue.toLocaleString()}`}
-          icon={Receipt}
-          variant={overdueInvoices.length > 0 ? 'destructive' : 'success'}
-          sparklineData={[0, overdueInvoiceValue * 0.4, overdueInvoiceValue * 0.6, overdueInvoiceValue * 0.9, overdueInvoiceValue]}
-        />
+        <StatCard title="Unresponded Leads" value={unrespondedLeads.length} icon={Users} variant={unrespondedLeads.length > 0 ? 'warning' : 'success'} />
+        <StatCard title="Stalled Deals" value={`$${stalledDealValue.toLocaleString()}`} icon={Handshake} variant={stalledDeals.length > 0 ? 'destructive' : 'success'} />
+        <StatCard title="Idle Quotes" value={`$${idleQuoteValue.toLocaleString()}`} icon={FileText} variant={idleQuotes.length > 0 ? 'warning' : 'success'} />
+        <StatCard title="Overdue Invoices" value={`$${overdueInvoiceValue.toLocaleString()}`} icon={Receipt} variant={overdueInvoices.length > 0 ? 'destructive' : 'success'} />
+      </div>
+
+      {/* Visual Analytics Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Leakage Breakdown Donut */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Leakage Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {leakageBreakdown.length > 0 ? (
+              <div className="h-56 relative flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={leakageBreakdown}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={85}
+                      paddingAngle={3}
+                      dataKey="value"
+                      strokeWidth={0}
+                    >
+                      {leakageBreakdown.map((_, i) => (
+                        <Cell key={i} fill={LEAK_COLORS[i % LEAK_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute flex flex-col items-center pointer-events-none">
+                  <span className="text-xl font-bold text-foreground">${totalRevenueAtRisk.toLocaleString()}</span>
+                  <span className="text-xs text-muted-foreground">Total at Risk</span>
+                </div>
+              </div>
+            ) : (
+              <div className="h-56 flex items-center justify-center text-muted-foreground text-sm">No revenue at risk 🎉</div>
+            )}
+            {leakageBreakdown.length > 0 && (
+              <div className="flex flex-wrap gap-4 mt-2 justify-center">
+                {leakageBreakdown.map((item, i) => (
+                  <div key={item.name} className="flex items-center gap-2 text-xs">
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: LEAK_COLORS[i % LEAK_COLORS.length] }} />
+                    <span className="text-muted-foreground">{item.name}</span>
+                    <span className="font-medium text-foreground">${item.value.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Aging Distribution */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Aging Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {agingDistribution.some(b => b.count > 0) ? (
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={agingDistribution} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
+                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        if (!active || !payload?.length) return null;
+                        return (
+                          <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-md text-xs">
+                            <p className="font-medium text-foreground">{label}</p>
+                            <p className="text-muted-foreground">{payload[0]?.value} items</p>
+                            <p className="text-muted-foreground">${(payload[1]?.value as number || 0).toLocaleString()} at risk</p>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Bar dataKey="count" name="Items" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="value" name="Value" fill="hsl(var(--destructive) / 0.6)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-56 flex items-center justify-center text-muted-foreground text-sm">No items to display</div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Detail tables */}

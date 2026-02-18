@@ -9,7 +9,31 @@ import { useActivities } from '@/hooks/useActivities';
 import { useQuotes } from '@/hooks/useQuotes';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useAuth } from '@/contexts/AuthContext';
-import { differenceInHours, differenceInDays, startOfMonth } from 'date-fns';
+import { differenceInHours, differenceInDays, startOfMonth, subMonths, format } from 'date-fns';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell,
+  AreaChart, Area,
+  FunnelChart, Funnel, LabelList,
+} from 'recharts';
+
+const STAGE_COLORS: Record<string, string> = {
+  prospecting: 'hsl(var(--primary))',
+  qualification: 'hsl(var(--warning))',
+  proposal: 'hsl(38 80% 60%)',
+  negotiation: 'hsl(280 60% 55%)',
+  closed_won: 'hsl(var(--success))',
+  closed_lost: 'hsl(var(--destructive))',
+};
+
+const PIE_COLORS = [
+  'hsl(var(--primary))',
+  'hsl(var(--success))',
+  'hsl(var(--warning))',
+  'hsl(var(--destructive))',
+  'hsl(280 60% 55%)',
+  'hsl(38 80% 60%)',
+];
 
 export function DashboardView() {
   const { profile } = useAuth();
@@ -46,7 +70,6 @@ export function DashboardView() {
 
   // KPI 3: Revenue at risk
   const revenueAtRisk = useMemo(() => {
-    // Stalled deals (no activity 14+ days)
     const stalledValue = deals
       .filter(d => !['closed_won', 'closed_lost'].includes(d.stage))
       .filter(d => {
@@ -57,12 +80,10 @@ export function DashboardView() {
       })
       .reduce((s, d) => s + d.value, 0);
 
-    // Idle quotes (sent 7+ days)
     const idleQuoteValue = quotes
       .filter(q => q.status === 'sent' && differenceInDays(now, new Date(q.updatedAt)) >= 7)
       .reduce((s, q) => s + q.grandTotal, 0);
 
-    // Overdue invoices
     const overdueValue = invoices
       .filter(inv => inv.status !== 'paid' && inv.dueDate && new Date(inv.dueDate) < now)
       .reduce((s, inv) => s + (inv.grandTotal - inv.paidAmount), 0);
@@ -81,6 +102,65 @@ export function DashboardView() {
     const total = won + lost;
     return total > 0 ? Math.round((won / total) * 100) : 0;
   }, [deals]);
+
+  // Chart data: Deal stage distribution
+  const stageDistribution = useMemo(() => {
+    const stages = ['prospecting', 'qualification', 'proposal', 'negotiation', 'closed_won', 'closed_lost'];
+    return stages.map(stage => ({
+      name: stage.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      count: deals.filter(d => d.stage === stage).length,
+      value: deals.filter(d => d.stage === stage).reduce((s, d) => s + d.value, 0),
+      fill: STAGE_COLORS[stage] || PIE_COLORS[0],
+    })).filter(s => s.count > 0);
+  }, [deals]);
+
+  // Chart data: Pipeline funnel (open stages only)
+  const funnelData = useMemo(() => {
+    const openStages = ['prospecting', 'qualification', 'proposal', 'negotiation'];
+    return openStages.map(stage => ({
+      name: stage.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      value: deals.filter(d => d.stage === stage).reduce((s, d) => s + d.value, 0),
+      count: deals.filter(d => d.stage === stage).length,
+      fill: STAGE_COLORS[stage] || PIE_COLORS[0],
+    }));
+  }, [deals]);
+
+  // Chart data: Leads per month (last 6 months)
+  const leadsOverTime = useMemo(() => {
+    const months: { name: string; leads: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const mStart = startOfMonth(subMonths(now, i));
+      const mEnd = i === 0 ? now : startOfMonth(subMonths(now, i - 1));
+      const count = clients.filter(c => c.status === 'lead' && new Date(c.createdAt) >= mStart && new Date(c.createdAt) < mEnd).length;
+      months.push({ name: format(mStart, 'MMM'), leads: count });
+    }
+    return months;
+  }, [clients, now]);
+
+  // Chart data: Win/Loss pie
+  const winLossData = useMemo(() => {
+    const won = deals.filter(d => d.stage === 'closed_won').length;
+    const lost = deals.filter(d => d.stage === 'closed_lost').length;
+    if (won + lost === 0) return [];
+    return [
+      { name: 'Won', value: won, fill: 'hsl(var(--success))' },
+      { name: 'Lost', value: lost, fill: 'hsl(var(--destructive))' },
+    ];
+  }, [deals]);
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-md text-xs">
+        <p className="font-medium text-foreground">{label || payload[0]?.name}</p>
+        {payload.map((p: any, i: number) => (
+          <p key={i} className="text-muted-foreground">
+            {p.name}: {typeof p.value === 'number' && p.value > 100 ? `$${p.value.toLocaleString()}` : p.value}
+          </p>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -123,15 +203,109 @@ export function DashboardView() {
         />
       </div>
 
-      {/* Follow-ups */}
+      {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Pipeline Value by Stage */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Pipeline by Stage</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {stageDistribution.length > 0 ? (
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stageDistribution} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
+                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]} name="Value">
+                      {stageDistribution.map((entry, i) => (
+                        <Cell key={i} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-56 flex items-center justify-center text-muted-foreground text-sm">No deals yet</div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Win/Loss Pie */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Win / Loss Ratio</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {winLossData.length > 0 ? (
+              <div className="h-56 flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={winLossData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={4}
+                      dataKey="value"
+                      strokeWidth={0}
+                    >
+                      {winLossData.map((entry, i) => (
+                        <Cell key={i} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute flex flex-col items-center">
+                  <span className="text-2xl font-bold text-foreground">{winRate}%</span>
+                  <span className="text-xs text-muted-foreground">Win Rate</span>
+                </div>
+              </div>
+            ) : (
+              <div className="h-56 flex items-center justify-center text-muted-foreground text-sm">No closed deals</div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Leads Trend + Follow-ups */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Leads Over Time */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Leads Trend (6mo)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-44">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={leadsOverTime} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
+                  <defs>
+                    <linearGradient id="leadsFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area type="monotone" dataKey="leads" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#leadsFill)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Follow-ups */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Upcoming Follow-ups</h2>
             <span className="text-sm text-muted-foreground">{upcomingFollowUps.length} pending</span>
           </div>
           {upcomingFollowUps.length > 0 ? (
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-52 overflow-y-auto">
               {upcomingFollowUps.map((followUp) => (
                 <FollowUpItem
                   key={followUp.id}
@@ -149,27 +323,34 @@ export function DashboardView() {
             </div>
           )}
         </div>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Quick Stats</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Open Deals</span>
-              <span className="text-sm font-semibold">{openDeals.length}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Total Clients</span>
-              <span className="text-sm font-semibold">{clients.length}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Pending Follow-ups</span>
-              <span className="text-sm font-semibold">{upcomingFollowUps.length}</span>
-            </div>
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Quick Stats */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Quick Stats</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="text-center p-3 rounded-lg bg-muted/50">
+              <p className="text-2xl font-bold text-foreground">{openDeals.length}</p>
+              <p className="text-xs text-muted-foreground">Open Deals</p>
+            </div>
+            <div className="text-center p-3 rounded-lg bg-muted/50">
+              <p className="text-2xl font-bold text-foreground">{clients.length}</p>
+              <p className="text-xs text-muted-foreground">Total Clients</p>
+            </div>
+            <div className="text-center p-3 rounded-lg bg-muted/50">
+              <p className="text-2xl font-bold text-foreground">{upcomingFollowUps.length}</p>
+              <p className="text-xs text-muted-foreground">Pending Follow-ups</p>
+            </div>
+            <div className="text-center p-3 rounded-lg bg-muted/50">
+              <p className="text-2xl font-bold text-foreground">{deals.filter(d => d.stage === 'closed_won').length}</p>
+              <p className="text-xs text-muted-foreground">Deals Won</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
