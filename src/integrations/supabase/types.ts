@@ -947,6 +947,8 @@ export type Database = {
           is_required: boolean
           label: string
           sort_order: number
+          target_entity: string
+          target_field: string
         }
         Insert: {
           created_at?: string
@@ -957,6 +959,8 @@ export type Database = {
           is_required?: boolean
           label: string
           sort_order?: number
+          target_entity?: string
+          target_field?: string
         }
         Update: {
           created_at?: string
@@ -967,6 +971,8 @@ export type Database = {
           is_required?: boolean
           label?: string
           sort_order?: number
+          target_entity?: string
+          target_field?: string
         }
         Relationships: [
           {
