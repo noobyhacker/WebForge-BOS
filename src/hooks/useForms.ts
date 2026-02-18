@@ -11,6 +11,8 @@ export interface FormField {
   field_type: string;
   is_required: boolean;
   sort_order: number;
+  target_entity: string;
+  target_field: string;
   created_at: string;
 }
 
