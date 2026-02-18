@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { StatCard } from './StatCard';
 import { useClients } from '@/hooks/useClients';
 import { useDeals } from '@/hooks/useDeals';
@@ -7,9 +8,10 @@ import { useQuotes } from '@/hooks/useQuotes';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useActivities } from '@/hooks/useActivities';
 import { useAuth } from '@/contexts/AuthContext';
-import { AlertTriangle, Users, Handshake, FileText, Receipt, DollarSign, Clock, TrendingDown } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { AlertTriangle, Users, Handshake, FileText, Receipt, DollarSign, Clock, TrendingDown, Zap, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format, differenceInDays, differenceInHours } from 'date-fns';
+import { format, differenceInDays, differenceInHours, addDays } from 'date-fns';
 
 interface LeakItem {
   id: string;
@@ -82,12 +84,14 @@ function LeakageTable({ items, emptyMessage, columns }: {
 }
 
 export function RevenueLeakageView() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { clients } = useClients(profile?.email || 'anonymous');
   const { deals } = useDeals();
   const { quotes } = useQuotes();
   const { invoices } = useInvoices();
-  const { activities } = useActivities();
+  const { activities, addActivity } = useActivities();
+  const { toast } = useToast();
+  const [recovering, setRecovering] = useState<string | null>(null);
 
   const now = new Date();
 
@@ -171,6 +175,95 @@ export function RevenueLeakageView() {
   const overdueInvoiceValue = overdueInvoices.reduce((s, i) => s + i.value, 0);
   const totalRevenueAtRisk = stalledDealValue + idleQuoteValue + overdueInvoiceValue;
 
+  const runRecovery = async (category: 'leads' | 'deals' | 'quotes' | 'invoices') => {
+    if (!user) return;
+    setRecovering(category);
+    try {
+      let created = 0;
+      const dueDate = addDays(new Date(), 2).toISOString();
+
+      if (category === 'leads') {
+        for (const lead of unrespondedLeads) {
+          await addActivity({
+            type: 'task',
+            subject: `Follow up with unresponded lead: ${lead.name}`,
+            description: `Auto-created recovery task. Lead has been idle for ${lead.daysSince} days with no activity.`,
+            entityType: 'client',
+            entityId: lead.id,
+            dueDate,
+            status: 'pending',
+          });
+          created++;
+        }
+      } else if (category === 'deals') {
+        for (const deal of stalledDeals) {
+          await addActivity({
+            type: 'task',
+            subject: `Re-engage stalled deal: ${deal.name}`,
+            description: `Auto-created recovery task. Deal worth $${deal.value.toLocaleString()} has been idle for ${deal.daysSince} days at stage "${deal.stage}".`,
+            entityType: 'deal',
+            entityId: deal.id,
+            dueDate,
+            status: 'pending',
+          });
+          created++;
+        }
+      } else if (category === 'quotes') {
+        for (const quote of idleQuotes) {
+          await addActivity({
+            type: 'email',
+            subject: `Follow up on idle quote: ${quote.name}`,
+            description: `Auto-created recovery task. Quote worth $${quote.value.toLocaleString()} has had no update for ${quote.daysSince} days.`,
+            entityType: 'quote',
+            entityId: quote.id,
+            dueDate,
+            status: 'pending',
+          });
+          created++;
+        }
+      } else if (category === 'invoices') {
+        for (const inv of overdueInvoices) {
+          await addActivity({
+            type: 'email',
+            subject: `Send payment reminder: ${inv.name}`,
+            description: `Auto-created recovery task. Invoice has $${inv.value.toLocaleString()} outstanding, overdue by ${inv.daysSince} days.`,
+            entityType: 'invoice',
+            entityId: inv.id,
+            dueDate,
+            status: 'pending',
+          });
+          created++;
+        }
+      }
+
+      toast({
+        title: 'Recovery tasks created',
+        description: `Created ${created} follow-up ${created === 1 ? 'task' : 'tasks'}.`,
+      });
+    } catch (err) {
+      console.error('Recovery error:', err);
+      toast({ title: 'Error', description: 'Failed to create recovery tasks.', variant: 'destructive' });
+    } finally {
+      setRecovering(null);
+    }
+  };
+
+  const RecoveryButton = ({ category, count }: { category: 'leads' | 'deals' | 'quotes' | 'invoices'; count: number }) => {
+    if (count === 0) return null;
+    const isRunning = recovering === category;
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-7 text-xs gap-1"
+        disabled={isRunning || recovering !== null}
+        onClick={() => runRecovery(category)}
+      >
+        {isRunning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />}
+        {isRunning ? 'Creating...' : 'Auto Recover'}
+      </Button>
+    );
+  };
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -256,8 +349,9 @@ export function RevenueLeakageView() {
               <Users className="h-4 w-4 text-warning" />
               Unresponded Leads
               {unrespondedLeads.length > 0 && (
-                <span className="ml-auto text-xs font-normal text-muted-foreground">{unrespondedLeads.length} leads</span>
+                <span className="text-xs font-normal text-muted-foreground">{unrespondedLeads.length} leads</span>
               )}
+              <span className="ml-auto"><RecoveryButton category="leads" count={unrespondedLeads.length} /></span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -279,8 +373,9 @@ export function RevenueLeakageView() {
               <Handshake className="h-4 w-4 text-destructive" />
               Stalled Deals
               {stalledDeals.length > 0 && (
-                <span className="ml-auto text-xs font-normal text-muted-foreground">{stalledDeals.length} deals · ${stalledDealValue.toLocaleString()}</span>
+                <span className="text-xs font-normal text-muted-foreground">{stalledDeals.length} deals · ${stalledDealValue.toLocaleString()}</span>
               )}
+              <span className="ml-auto"><RecoveryButton category="deals" count={stalledDeals.length} /></span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -303,8 +398,9 @@ export function RevenueLeakageView() {
               <FileText className="h-4 w-4 text-warning" />
               Idle Quotes
               {idleQuotes.length > 0 && (
-                <span className="ml-auto text-xs font-normal text-muted-foreground">{idleQuotes.length} quotes · ${idleQuoteValue.toLocaleString()}</span>
+                <span className="text-xs font-normal text-muted-foreground">{idleQuotes.length} quotes · ${idleQuoteValue.toLocaleString()}</span>
               )}
+              <span className="ml-auto"><RecoveryButton category="quotes" count={idleQuotes.length} /></span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -327,8 +423,9 @@ export function RevenueLeakageView() {
               <Receipt className="h-4 w-4 text-destructive" />
               Overdue Invoices
               {overdueInvoices.length > 0 && (
-                <span className="ml-auto text-xs font-normal text-muted-foreground">{overdueInvoices.length} invoices · ${overdueInvoiceValue.toLocaleString()}</span>
+                <span className="text-xs font-normal text-muted-foreground">{overdueInvoices.length} invoices · ${overdueInvoiceValue.toLocaleString()}</span>
               )}
+              <span className="ml-auto"><RecoveryButton category="invoices" count={overdueInvoices.length} /></span>
             </CardTitle>
           </CardHeader>
           <CardContent>
