@@ -14,6 +14,7 @@ export function useAccounts() {
       const { data, error } = await supabase
         .from('accounts')
         .select('*')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
       if (error) { console.error('Error fetching accounts:', error); return; }
       setAccounts((data || []).map((a: any) => ({
@@ -61,7 +62,7 @@ export function useAccounts() {
 
   const deleteAccount = useCallback(async (id: string) => {
     if (!user) return;
-    const { error } = await supabase.from('accounts').delete().eq('id', id);
+    const { error } = await supabase.from('accounts').update({ deleted_at: new Date().toISOString(), deleted_by: user.id }).eq('id', id);
     if (error) { console.error('Error deleting account:', error); return; }
     await fetchAccounts();
   }, [user, fetchAccounts]);

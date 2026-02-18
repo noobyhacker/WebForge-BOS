@@ -14,6 +14,7 @@ export function useInvoices() {
     const { data, error } = await supabase
       .from('invoices')
       .select('*, invoice_line_items(*)')
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -170,7 +171,7 @@ export function useInvoices() {
   };
 
   const deleteInvoice = async (id: string) => {
-    const { error } = await supabase.from('invoices').delete().eq('id', id);
+    const { error } = await supabase.from('invoices').update({ deleted_at: new Date().toISOString(), deleted_by: user!.id }).eq('id', id);
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
