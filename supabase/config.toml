@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.cron-processor]
 verify_jwt = false
+
+[functions.form-submit]
+verify_jwt = false
+
+[functions.webhook-leads]
+verify_jwt = false

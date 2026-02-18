@@ -937,6 +937,115 @@ export type Database = {
           },
         ]
       }
+      form_fields: {
+        Row: {
+          created_at: string
+          field_key: string
+          field_type: string
+          form_id: string
+          id: string
+          is_required: boolean
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          field_key: string
+          field_type?: string
+          form_id: string
+          id?: string
+          is_required?: boolean
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          field_key?: string
+          field_type?: string
+          form_id?: string
+          id?: string
+          is_required?: boolean
+          label?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_fields_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_submissions: {
+        Row: {
+          form_id: string
+          id: string
+          ip_hash: string | null
+          lead_id: string | null
+          page_url: string | null
+          source: string | null
+          submitted_at: string
+        }
+        Insert: {
+          form_id: string
+          id?: string
+          ip_hash?: string | null
+          lead_id?: string | null
+          page_url?: string | null
+          source?: string | null
+          submitted_at?: string
+        }
+        Update: {
+          form_id?: string
+          id?: string
+          ip_hash?: string | null
+          lead_id?: string | null
+          page_url?: string | null
+          source?: string | null
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_submissions_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forms: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       invoice_line_items: {
         Row: {
           description: string | null
@@ -1711,6 +1820,36 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      webhook_api_keys: {
+        Row: {
+          api_key: string
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          last_used_at: string | null
+          name: string
+        }
+        Insert: {
+          api_key: string
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          name: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          name?: string
         }
         Relationships: []
       }
