@@ -739,11 +739,62 @@ export type Database = {
         }
         Relationships: []
       }
+      follow_up_sequence_enrollments: {
+        Row: {
+          cancelled_at: string | null
+          completed_at: string | null
+          current_step_index: number
+          enrolled_at: string
+          enrolled_by: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          last_step_executed_at: string | null
+          sequence_id: string
+          status: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          completed_at?: string | null
+          current_step_index?: number
+          enrolled_at?: string
+          enrolled_by?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          last_step_executed_at?: string | null
+          sequence_id: string
+          status?: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          completed_at?: string | null
+          current_step_index?: number
+          enrolled_at?: string
+          enrolled_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          last_step_executed_at?: string | null
+          sequence_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follow_up_sequence_enrollments_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "follow_up_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       follow_up_sequence_steps: {
         Row: {
           content: string | null
           created_at: string
           delay_days: number
+          delay_minutes: number
           id: string
           sequence_id: string
           step_order: number
@@ -754,6 +805,7 @@ export type Database = {
           content?: string | null
           created_at?: string
           delay_days?: number
+          delay_minutes?: number
           id?: string
           sequence_id: string
           step_order?: number
@@ -764,6 +816,7 @@ export type Database = {
           content?: string | null
           created_at?: string
           delay_days?: number
+          delay_minutes?: number
           id?: string
           sequence_id?: string
           step_order?: number
@@ -784,6 +837,8 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          deleted_at: string | null
+          deleted_by: string | null
           description: string | null
           id: string
           is_active: boolean
@@ -793,6 +848,8 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           id?: string
           is_active?: boolean
@@ -802,6 +859,8 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           id?: string
           is_active?: boolean
@@ -1149,6 +1208,8 @@ export type Database = {
         Row: {
           color: string
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           id: string
           is_active: boolean
           is_lost: boolean
@@ -1160,6 +1221,8 @@ export type Database = {
         Insert: {
           color?: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           is_active?: boolean
           is_lost?: boolean
@@ -1171,6 +1234,8 @@ export type Database = {
         Update: {
           color?: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           is_active?: boolean
           is_lost?: boolean
@@ -1392,6 +1457,83 @@ export type Database = {
           id?: string
           member_ids?: Json | null
           name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sla_breaches: {
+        Row: {
+          actual_minutes: number | null
+          breached_at: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          owner_id: string
+          resolved_at: string | null
+          sla_config_id: string
+          threshold_minutes: number
+        }
+        Insert: {
+          actual_minutes?: number | null
+          breached_at?: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          owner_id: string
+          resolved_at?: string | null
+          sla_config_id: string
+          threshold_minutes: number
+        }
+        Update: {
+          actual_minutes?: number | null
+          breached_at?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          owner_id?: string
+          resolved_at?: string | null
+          sla_config_id?: string
+          threshold_minutes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sla_breaches_sla_config_id_fkey"
+            columns: ["sla_config_id"]
+            isOneToOne: false
+            referencedRelation: "sla_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sla_configs: {
+        Row: {
+          created_at: string
+          entity_type: string
+          id: string
+          is_active: boolean
+          metric: string
+          threshold_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entity_type?: string
+          id?: string
+          is_active?: boolean
+          metric?: string
+          threshold_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entity_type?: string
+          id?: string
+          is_active?: boolean
+          metric?: string
+          threshold_minutes?: number
           updated_at?: string
         }
         Relationships: []

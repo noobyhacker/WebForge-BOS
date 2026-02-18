@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, Sun, Moon, Contact, Building2, Handshake, ListTodo, Package, Mail, Zap, TrendingUp, TrendingDown, FileText, Receipt, Paperclip, Settings2, FileSpreadsheet, Lock, UsersRound, Globe, ToggleRight, HeartPulse } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, Sun, Moon, Contact, Building2, Handshake, ListTodo, Package, Mail, Zap, TrendingDown, FileText, Receipt, Paperclip, GitBranch, Trash2 } from 'lucide-react';
 import webforgeLogo from '@/assets/webforge-logo.png';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -58,19 +58,13 @@ const navItems = [
   { path: '/products', label: 'Products', icon: Package },
   { path: '/templates', label: 'Email Templates', icon: Mail },
   { path: '/automation', label: 'Automation', icon: Zap },
-  { path: '/scoring', label: 'Lead Scoring', icon: TrendingUp },
+  { path: '/pipeline-stages', label: 'Pipeline Stages', icon: GitBranch },
   { path: '/quotes', label: 'Quotes', icon: FileText },
   { path: '/invoices', label: 'Invoices', icon: Receipt },
   { path: '/documents', label: 'Documents', icon: Paperclip },
-  { path: '/custom-fields', label: 'Custom Fields', icon: Settings2 },
-  { path: '/import-export', label: 'Import / Export', icon: FileSpreadsheet },
-  { path: '/permissions', label: 'Permissions', icon: Lock },
-  { path: '/sharing-groups', label: 'Sharing Groups', icon: UsersRound },
-  { path: '/form-integration', label: 'Form Integration', icon: Globe },
-  { path: '/feature-flags', label: 'Feature Flags', icon: ToggleRight },
-  { path: '/system-health', label: 'System Health', icon: HeartPulse },
   { path: '/followups', label: 'Follow-ups', icon: Calendar },
   { path: '/logs', label: 'Action Logs', icon: ClipboardList },
+  { path: '/trash', label: 'Trash', icon: Trash2 },
 ];
 
 interface SidebarProps {

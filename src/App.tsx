@@ -15,21 +15,15 @@ import { ActivitiesView } from "@/components/crm/ActivitiesView";
 import { ProductsView } from "@/components/crm/ProductsView";
 import { EmailTemplatesView } from "@/components/crm/EmailTemplatesView";
 import { AutomationRulesView } from "@/components/crm/AutomationRulesView";
-import { LeadScoringView } from "@/components/crm/LeadScoringView";
 import { QuotesView } from "@/components/crm/QuotesView";
 import { InvoicesView } from "@/components/crm/InvoicesView";
 import { DocumentsView } from "@/components/crm/DocumentsView";
-import { CustomFieldsView } from "@/components/crm/CustomFieldsView";
-import { ImportExportView } from "@/components/crm/ImportExportView";
-import { FieldPermissionsView } from "@/components/crm/FieldPermissionsView";
-import { SharingGroupsView } from "@/components/crm/SharingGroupsView";
 import { FollowUpsView } from "@/components/crm/FollowUpsView";
 import { ActionLogsView } from "@/components/crm/ActionLogsView";
 import { AdminUsersView } from "@/components/crm/AdminUsersView";
-import { FormIntegrationView } from "@/components/crm/FormIntegrationView";
 import { RevenueLeakageView } from "@/components/crm/RevenueLeakageView";
-import { FeatureFlagsView } from "@/components/crm/FeatureFlagsView";
-import { SystemHealthView } from "@/components/crm/SystemHealthView";
+import { PipelineStagesView } from "@/components/crm/PipelineStagesView";
+import { TrashView } from "@/components/crm/TrashView";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -62,19 +56,13 @@ const App = () => (
               <Route path="products" element={<ProductsView />} />
               <Route path="templates" element={<EmailTemplatesView />} />
               <Route path="automation" element={<AutomationRulesView />} />
-              <Route path="scoring" element={<LeadScoringView />} />
+              <Route path="pipeline-stages" element={<PipelineStagesView />} />
               <Route path="quotes" element={<QuotesView />} />
               <Route path="invoices" element={<InvoicesView />} />
               <Route path="documents" element={<DocumentsView />} />
-              <Route path="custom-fields" element={<CustomFieldsView />} />
-              <Route path="import-export" element={<ImportExportView />} />
-              <Route path="permissions" element={<FieldPermissionsView />} />
-              <Route path="sharing-groups" element={<SharingGroupsView />} />
               <Route path="followups" element={<FollowUpsView />} />
               <Route path="logs" element={<ActionLogsView />} />
-              <Route path="form-integration" element={<FormIntegrationView />} />
-              <Route path="feature-flags" element={<FeatureFlagsView />} />
-              <Route path="system-health" element={<SystemHealthView />} />
+              <Route path="trash" element={<TrashView />} />
               <Route path="admin" element={<AdminUsersView />} />
             </Route>
             <Route path="*" element={<NotFound />} />
