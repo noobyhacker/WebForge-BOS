@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -20,6 +20,8 @@ interface AuthContextType {
   userRole: string;
   isApproved: boolean;
   loading: boolean;
+  userPermissions: string[];
+  hasPermission: (key: string) => boolean;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -34,6 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [userRoles, setUserRoles] = useState<string[]>([]);
+  const [userPermissions, setUserPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
@@ -62,6 +65,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const roles = roleData?.map(r => r.role) || [];
       setIsAdmin(roles.includes('admin'));
       setUserRoles(roles);
+
+      // Fetch permissions for the user's roles
+      const { data: rpData } = await supabase.from('role_permissions').select('permission_id');
+      const { data: allPerms } = await supabase.from('permissions').select('id, key');
+      if (rpData && allPerms) {
+        // Get role_permissions matching user's roles
+        const { data: userRp } = await supabase
+          .from('role_permissions')
+          .select('permission_id')
+          .in('role', roles as any[]);
+        const permIds = new Set((userRp || []).map(r => r.permission_id));
+        setUserPermissions(allPerms.filter(p => permIds.has(p.id)).map(p => p.key));
+      }
     } catch (error) {
       console.error('Error in fetchProfile:', error);
     }
@@ -87,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfile(null);
           setIsAdmin(false);
           setUserRoles([]);
+          setUserPermissions([]);
         }
         setLoading(false);
       }
@@ -129,12 +146,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
     setIsAdmin(false);
     setUserRoles([]);
+    setUserPermissions([]);
   };
 
   const isApproved = profile?.is_approved ?? false;
   const isSalesManager = userRoles.includes('sales_manager');
   const isSales = userRoles.includes('sales');
   const userRole = isAdmin ? 'Admin' : isSalesManager ? 'Sales Manager' : isSales ? 'Sales' : 'User';
+  const hasPermission = useCallback((key: string) => userPermissions.includes(key), [userPermissions]);
 
   return (
     <AuthContext.Provider
@@ -148,6 +167,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userRole,
         isApproved,
         loading,
+        userPermissions,
+        hasPermission,
         signUp,
         signIn,
         signOut,

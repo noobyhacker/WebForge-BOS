@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   )
 
-  const results = { enrollments: 0, slaBreaches: 0, slaResolved: 0, events: 0 }
+  const results = { enrollments: 0, slaBreaches: 0, slaResolved: 0, events: 0, tasksCancelled: 0 }
 
   try {
     // ═══ JOB A: Process Follow-Up Enrollments ═══
@@ -252,6 +252,42 @@ Deno.serve(async (req) => {
         payload: { invoice_number: inv.invoice_number, due_date: inv.due_date },
       })
       results.events++
+    }
+
+    // ═══ JOB D: Auto-Cancel Tasks for Soft-Deleted Entities ═══
+    const { data: activeTasks } = await supabase
+      .from('tasks')
+      .select('id, related_entity_type, related_entity_id')
+      .is('deleted_at', null)
+      .neq('status', 'done')
+      .not('related_entity_id', 'is', null)
+
+    for (const task of activeTasks || []) {
+      let entityDeleted = false
+      const etype = task.related_entity_type
+      const eid = task.related_entity_id
+
+      if (!etype || !eid) continue
+
+      const tableMap: Record<string, string> = {
+        client: 'clients', deal: 'deals', quote: 'quotes',
+        invoice: 'invoices', contact: 'contacts', account: 'accounts',
+        lead: 'clients',
+      }
+      const table = tableMap[etype]
+      if (table) {
+        const { data: entity } = await supabase.from(table).select('deleted_at').eq('id', eid).single()
+        if (entity?.deleted_at) entityDeleted = true
+      }
+
+      if (entityDeleted) {
+        await supabase.from('tasks').update({
+          status: 'done',
+          deleted_at: new Date().toISOString(),
+          completed_at: new Date().toISOString(),
+        }).eq('id', task.id)
+        results.tasksCancelled++
+      }
     }
 
     return new Response(JSON.stringify({ success: true, results }), {

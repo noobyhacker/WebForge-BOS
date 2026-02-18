@@ -1,14 +1,18 @@
 import { useMemo } from 'react';
 import { StatCard } from './StatCard';
 import { FollowUpItem } from './FollowUpItem';
+import { TaskCard } from './TaskCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Clock, DollarSign, TrendingUp, Handshake, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Users, Clock, DollarSign, TrendingUp, Handshake, AlertTriangle, CheckSquare } from 'lucide-react';
 import { useClients } from '@/hooks/useClients';
 import { useDeals } from '@/hooks/useDeals';
 import { useActivities } from '@/hooks/useActivities';
 import { useQuotes } from '@/hooks/useQuotes';
 import { useInvoices } from '@/hooks/useInvoices';
+import { useTasks } from '@/hooks/useTasks';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { differenceInHours, differenceInDays, startOfMonth, subMonths, format } from 'date-fns';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -37,11 +41,13 @@ const PIE_COLORS = [
 
 export function DashboardView() {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const { clients, allClients, upcomingFollowUps, updateFollowUpStatus } = useClients(profile?.email || 'anonymous');
   const { deals } = useDeals();
   const { activities } = useActivities();
   const { quotes } = useQuotes();
   const { invoices } = useInvoices();
+  const { myTasks, myOverdueTasks, completeTask } = useTasks();
 
   const now = new Date();
   const monthStart = startOfMonth(now);
@@ -203,6 +209,67 @@ export function DashboardView() {
         />
       </div>
 
+      {/* My Tasks */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-1">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <CheckSquare className="h-4 w-4" />
+              My Tasks
+              {myOverdueTasks.length > 0 && (
+                <span className="text-xs text-destructive font-medium">{myOverdueTasks.length} overdue</span>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {myTasks.filter(t => t.status !== 'done').length > 0 ? (
+              <div className="space-y-2 max-h-52 overflow-y-auto">
+                {myTasks.filter(t => t.status !== 'done').slice(0, 5).map(task => (
+                  <TaskCard key={task.id} task={task} onComplete={completeTask} compact />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6 text-muted-foreground text-sm">
+                <CheckSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                No pending tasks
+              </div>
+            )}
+            {myTasks.filter(t => t.status !== 'done').length > 5 && (
+              <Button variant="link" className="w-full mt-2 text-xs" onClick={() => navigate('/tasks')}>
+                View all tasks →
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Quick Stats */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Operational Stats</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="text-center p-3 rounded-lg bg-muted/50">
+                <p className="text-2xl font-bold text-foreground">{openDeals.length}</p>
+                <p className="text-xs text-muted-foreground">Open Deals</p>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-muted/50">
+                <p className="text-2xl font-bold text-foreground">{myOverdueTasks.length}</p>
+                <p className="text-xs text-muted-foreground">Overdue Tasks</p>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-muted/50">
+                <p className="text-2xl font-bold text-foreground">{upcomingFollowUps.length}</p>
+                <p className="text-xs text-muted-foreground">Pending Follow-ups</p>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-muted/50">
+                <p className="text-2xl font-bold text-foreground">{deals.filter(d => d.stage === 'closed_won').length}</p>
+                <p className="text-xs text-muted-foreground">Deals Won</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Pipeline Value by Stage */}
@@ -326,33 +393,6 @@ export function DashboardView() {
           )}
         </div>
       </div>
-
-      {/* Quick Stats */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Quick Stats</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="text-center p-3 rounded-lg bg-muted/50">
-              <p className="text-2xl font-bold text-foreground">{openDeals.length}</p>
-              <p className="text-xs text-muted-foreground">Open Deals</p>
-            </div>
-            <div className="text-center p-3 rounded-lg bg-muted/50">
-              <p className="text-2xl font-bold text-foreground">{clients.length}</p>
-              <p className="text-xs text-muted-foreground">Total Clients</p>
-            </div>
-            <div className="text-center p-3 rounded-lg bg-muted/50">
-              <p className="text-2xl font-bold text-foreground">{upcomingFollowUps.length}</p>
-              <p className="text-xs text-muted-foreground">Pending Follow-ups</p>
-            </div>
-            <div className="text-center p-3 rounded-lg bg-muted/50">
-              <p className="text-2xl font-bold text-foreground">{deals.filter(d => d.stage === 'closed_won').length}</p>
-              <p className="text-xs text-muted-foreground">Deals Won</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

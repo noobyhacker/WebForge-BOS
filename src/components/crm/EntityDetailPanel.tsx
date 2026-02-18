@@ -10,7 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { X, Plus } from 'lucide-react';
 import { ActivityTimeline } from './ActivityTimeline';
 import { NotesList } from './NotesList';
+import { EntityCommentsSection } from './EntityCommentsSection';
+import { TaskCard } from './TaskCard';
 import { useNotes } from '@/hooks/useNotes';
+import { useTasks } from '@/hooks/useTasks';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -25,9 +28,12 @@ interface EntityDetailPanelProps {
 export function EntityDetailPanel({ entityType, entityId, entityName, onClose, children }: EntityDetailPanelProps) {
   const { user } = useAuth();
   const { notes, addNote, deleteNote } = useNotes(entityType, entityId);
+  const { tasks: entityTasks, completeTask, addTask } = useTasks(entityType, entityId);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [showAddActivity, setShowAddActivity] = useState(false);
+  const [showAddTask, setShowAddTask] = useState(false);
   const [activityForm, setActivityForm] = useState({ type: 'task' as ActivityType, subject: '', description: '', dueDate: '' });
+  const [taskForm, setTaskForm] = useState({ title: '', description: '', priority: 'medium', dueDate: '' });
 
   const fetchEntityActivities = useCallback(async () => {
     if (!entityId) return;
@@ -88,6 +94,8 @@ export function EntityDetailPanel({ entityType, entityId, entityName, onClose, c
       <Tabs defaultValue="timeline" className="flex-1 flex flex-col overflow-hidden">
         <TabsList className="mx-4 mt-2">
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
+          <TabsTrigger value="tasks">Tasks ({entityTasks.length})</TabsTrigger>
+          <TabsTrigger value="comments">Comments</TabsTrigger>
           <TabsTrigger value="notes">Notes ({notes.length})</TabsTrigger>
         </TabsList>
 
@@ -99,6 +107,26 @@ export function EntityDetailPanel({ entityType, entityId, entityName, onClose, c
             </Button>
           </div>
           <ActivityTimeline activities={activities} />
+        </TabsContent>
+
+        <TabsContent value="tasks" className="flex-1 overflow-auto p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-muted-foreground">{entityTasks.length} tasks</span>
+            <Button size="sm" variant="outline" onClick={() => setShowAddTask(true)} className="gap-1">
+              <Plus className="h-3 w-3" />Task
+            </Button>
+          </div>
+          {entityTasks.length > 0 ? (
+            <div className="space-y-2">
+              {entityTasks.map(t => <TaskCard key={t.id} task={t} onComplete={completeTask} />)}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-6">No tasks linked to this entity.</p>
+          )}
+        </TabsContent>
+
+        <TabsContent value="comments" className="flex-1 overflow-auto p-4">
+          <EntityCommentsSection entityType={entityType} entityId={entityId} />
         </TabsContent>
 
         <TabsContent value="notes" className="flex-1 overflow-auto p-4">
@@ -128,6 +156,48 @@ export function EntityDetailPanel({ entityType, entityId, entityName, onClose, c
             <div><Label>Due Date</Label><Input type="datetime-local" value={activityForm.dueDate} onChange={e => setActivityForm(f => ({ ...f, dueDate: e.target.value }))} /></div>
           </div>
           <DialogFooter><Button onClick={handleAddActivity} disabled={!activityForm.subject.trim()}>Add</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Task Dialog */}
+      <Dialog open={showAddTask} onOpenChange={setShowAddTask}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Add Task for {entityName}</DialogTitle></DialogHeader>
+          <div className="grid gap-3">
+            <div><Label>Title *</Label><Input value={taskForm.title} onChange={e => setTaskForm(f => ({ ...f, title: e.target.value }))} /></div>
+            <div><Label>Description</Label><Textarea value={taskForm.description} onChange={e => setTaskForm(f => ({ ...f, description: e.target.value }))} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Priority</Label>
+                <Select value={taskForm.priority} onValueChange={v => setTaskForm(f => ({ ...f, priority: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="critical">Critical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Due Date</Label><Input type="datetime-local" value={taskForm.dueDate} onChange={e => setTaskForm(f => ({ ...f, dueDate: e.target.value }))} /></div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={async () => {
+              if (!user || !taskForm.title.trim()) return;
+              await addTask({
+                title: taskForm.title,
+                description: taskForm.description,
+                priority: taskForm.priority,
+                dueDate: taskForm.dueDate || null,
+                assignedTo: user.id,
+                relatedEntityType: entityType,
+                relatedEntityId: entityId,
+              });
+              setShowAddTask(false);
+              setTaskForm({ title: '', description: '', priority: 'medium', dueDate: '' });
+            }} disabled={!taskForm.title.trim()}>Add</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

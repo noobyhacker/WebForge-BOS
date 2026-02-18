@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, Sun, Moon, Contact, Building2, Handshake, ListTodo, Package, Mail, Zap, TrendingDown, FileText, Receipt, Paperclip, GitBranch, Trash2 } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, Sun, Moon, Contact, Building2, Handshake, ListTodo, Package, Mail, Zap, TrendingDown, FileText, Receipt, Paperclip, GitBranch, Trash2, CheckSquare, Lock } from 'lucide-react';
 import webforgeLogo from '@/assets/webforge-logo.png';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -50,6 +50,7 @@ function DarkModeToggle({ collapsed }: { collapsed: boolean }) {
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/revenue-leakage', label: 'Revenue Leakage', icon: TrendingDown },
+  { path: '/tasks', label: 'Tasks', icon: CheckSquare },
   { path: '/clients', label: 'Clients', icon: Users },
   { path: '/contacts', label: 'Contacts', icon: Contact },
   { path: '/accounts', label: 'Accounts', icon: Building2 },
@@ -134,19 +135,34 @@ function SidebarContent({
 
         {/* Admin Section */}
         {isAdmin && (
-          <button
-            onClick={() => handleNavClick('/admin')}
-            className={cn(
-              'w-full flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-              collapsed ? 'justify-center px-2' : 'px-3',
-              isActive('/admin')
-                ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-            )}
-          >
-            <Shield className="h-5 w-5 flex-shrink-0" />
-            {!collapsed && <span>User Management</span>}
-          </button>
+          <>
+            <button
+              onClick={() => handleNavClick('/admin')}
+              className={cn(
+                'w-full flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                collapsed ? 'justify-center px-2' : 'px-3',
+                isActive('/admin')
+                  ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+              )}
+            >
+              <Shield className="h-5 w-5 flex-shrink-0" />
+              {!collapsed && <span>User Management</span>}
+            </button>
+            <button
+              onClick={() => handleNavClick('/permissions')}
+              className={cn(
+                'w-full flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                collapsed ? 'justify-center px-2' : 'px-3',
+                isActive('/permissions')
+                  ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+              )}
+            >
+              <Lock className="h-5 w-5 flex-shrink-0" />
+              {!collapsed && <span>Permissions</span>}
+            </button>
+          </>
         )}
       </nav>
 

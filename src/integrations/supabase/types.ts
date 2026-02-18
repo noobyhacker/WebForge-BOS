@@ -640,6 +640,33 @@ export type Database = {
         }
         Relationships: []
       }
+      entity_comments: {
+        Row: {
+          content: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       entity_shares: {
         Row: {
           created_at: string
@@ -1204,6 +1231,27 @@ export type Database = {
         }
         Relationships: []
       }
+      permissions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+        }
+        Relationships: []
+      }
       pipeline_stages: {
         Row: {
           color: string
@@ -1434,6 +1482,32 @@ export type Database = {
           },
         ]
       }
+      role_permissions: {
+        Row: {
+          id: string
+          permission_id: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          id?: string
+          permission_id: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          id?: string
+          permission_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sharing_groups: {
         Row: {
           created_at: string
@@ -1568,6 +1642,60 @@ export type Database = {
         }
         Relationships: []
       }
+      tasks: {
+        Row: {
+          assigned_to: string
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          deleted_by: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: string
+          related_entity_id: string | null
+          related_entity_type: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to: string
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -1603,6 +1731,10 @@ export type Database = {
         Args: { _entity_id: string; _entity_type: string }
         Returns: boolean
       }
+      has_permission: {
+        Args: { _permission_key: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1618,7 +1750,13 @@ export type Database = {
       action_type: "create" | "update" | "delete"
       activity_status: "pending" | "completed" | "cancelled"
       activity_type: "call" | "email" | "meeting" | "task"
-      app_role: "admin" | "user" | "sales" | "sales_manager"
+      app_role:
+        | "admin"
+        | "user"
+        | "sales"
+        | "sales_manager"
+        | "finance"
+        | "viewer"
       contact_status: "active" | "inactive" | "prospect"
       deal_stage:
         | "prospecting"
@@ -1759,7 +1897,14 @@ export const Constants = {
       action_type: ["create", "update", "delete"],
       activity_status: ["pending", "completed", "cancelled"],
       activity_type: ["call", "email", "meeting", "task"],
-      app_role: ["admin", "user", "sales", "sales_manager"],
+      app_role: [
+        "admin",
+        "user",
+        "sales",
+        "sales_manager",
+        "finance",
+        "viewer",
+      ],
       contact_status: ["active", "inactive", "prospect"],
       deal_stage: [
         "prospecting",
