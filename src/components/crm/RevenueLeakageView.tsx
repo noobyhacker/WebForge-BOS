@@ -345,6 +345,8 @@ export function RevenueLeakageView() {
                       paddingAngle={3}
                       dataKey="value"
                       strokeWidth={0}
+                      activeShape={false}
+                      style={{ cursor: 'default', outline: 'none' }}
                     >
                       {leakageBreakdown.map((_, i) => (
                         <Cell key={i} fill={LEAK_COLORS[i % LEAK_COLORS.length]} />
@@ -387,7 +389,7 @@ export function RevenueLeakageView() {
                   <BarChart data={agingDistribution} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
                     <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} allowDecimals={false} />
-                    <Tooltip
+                    <Tooltip cursor={{ fill: 'hsl(var(--muted) / 0.4)' }}
                       content={({ active, payload, label }) => {
                         if (!active || !payload?.length) return null;
                         return (
@@ -399,8 +401,8 @@ export function RevenueLeakageView() {
                         );
                       }}
                     />
-                    <Bar dataKey="count" name="Items" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="value" name="Value" fill="hsl(var(--destructive) / 0.6)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="count" name="Items" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} activeBar={{ strokeWidth: 0, opacity: 0.8 }} />
+                    <Bar dataKey="value" name="Value" fill="hsl(var(--destructive) / 0.6)" radius={[4, 4, 0, 0]} activeBar={{ strokeWidth: 0, opacity: 0.8 }} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
