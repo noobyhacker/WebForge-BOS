@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Plus, Copy, Trash2, ArrowUp, ArrowDown, Code2, BarChart3, CheckCircle2, Webhook, Key, RefreshCw, Settings2, Eye, Layers, Database, FileText } from 'lucide-react';
+import { Plus, Copy, Trash2, ArrowUp, ArrowDown, Code2, BarChart3, CheckCircle2, Webhook, Key, RefreshCw, Settings2, Eye, Layers, Database, FileText, User, Contact, Building2 } from 'lucide-react';
 import { useForms, FormField } from '@/hooks/useForms';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,10 +20,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
-const ENTITY_FIELD_OPTIONS: Record<string, { label: string; icon: string; fields: { value: string; label: string }[] }> = {
+const ENTITY_FIELD_OPTIONS: Record<string, { label: string; icon: React.ReactNode; fields: { value: string; label: string }[] }> = {
   client: {
     label: 'Client (Lead)',
-    icon: '👤',
+    icon: <User className="h-3.5 w-3.5" />,
     fields: [
       { value: 'name', label: 'Name' },
       { value: 'email', label: 'Email' },
@@ -34,7 +34,7 @@ const ENTITY_FIELD_OPTIONS: Record<string, { label: string; icon: string; fields
   },
   contact: {
     label: 'Contact',
-    icon: '📇',
+    icon: <Contact className="h-3.5 w-3.5" />,
     fields: [
       { value: 'first_name', label: 'First Name' },
       { value: 'last_name', label: 'Last Name' },
@@ -46,7 +46,7 @@ const ENTITY_FIELD_OPTIONS: Record<string, { label: string; icon: string; fields
   },
   account: {
     label: 'Account',
-    icon: '🏢',
+    icon: <Building2 className="h-3.5 w-3.5" />,
     fields: [
       { value: 'name', label: 'Name' },
       { value: 'phone', label: 'Phone' },
