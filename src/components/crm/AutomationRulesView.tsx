@@ -8,11 +8,12 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Zap, Play, Pause, PackagePlus } from 'lucide-react';
-import type { AutomationTrigger, AutomationAction, AutomationEntityType } from '@/types/phase4';
+import { Plus, Trash2, Zap, Play, Pause, PackagePlus, FlaskConical } from 'lucide-react';
+import type { AutomationRule, AutomationTrigger, AutomationAction, AutomationEntityType } from '@/types/phase4';
 import { useAutomationRules } from '@/hooks/useAutomationRules';
 import { toast } from 'sonner';
 import { PresetPickerDialog } from './PresetPickerDialog';
+import { DryRunSimulationDialog } from './DryRunSimulationDialog';
 
 const PRESET_AUTOMATION_RULES = [
   {
@@ -84,6 +85,7 @@ export function AutomationRulesView() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
+  const [dryRunRule, setDryRunRule] = useState<AutomationRule | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [entityType, setEntityType] = useState<AutomationEntityType>('deal');
@@ -202,6 +204,9 @@ export function AutomationRulesView() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Button variant="outline" size="icon" onClick={() => setDryRunRule(rule)} title="Dry Run">
+                      <FlaskConical className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => updateRule(rule.id, { isActive: !rule.isActive })} title={rule.isActive ? 'Pause' : 'Activate'}>
                       {rule.isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                     </Button>
@@ -220,6 +225,13 @@ export function AutomationRulesView() {
         presets={PRESET_AUTOMATION_RULES.map(r => ({ name: r.name, description: r.description }))}
         onLoad={handleLoadPresets}
       />
+      {dryRunRule && (
+        <DryRunSimulationDialog
+          open={!!dryRunRule}
+          onOpenChange={(open) => !open && setDryRunRule(null)}
+          rule={dryRunRule}
+        />
+      )}
     </div>
   );
 }
