@@ -26,6 +26,7 @@ import { PipelineStagesView } from "@/components/crm/PipelineStagesView";
 import { TrashView } from "@/components/crm/TrashView";
 import { TasksView } from "@/components/crm/TasksView";
 import { RolePermissionsView } from "@/components/crm/RolePermissionsView";
+import { FormsView } from "@/components/crm/FormsView";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -64,6 +65,7 @@ const App = () => (
               <Route path="invoices" element={<InvoicesView />} />
               <Route path="documents" element={<DocumentsView />} />
               <Route path="followups" element={<FollowUpsView />} />
+              <Route path="forms" element={<FormsView />} />
               <Route path="logs" element={<ActionLogsView />} />
               <Route path="trash" element={<TrashView />} />
               <Route path="admin" element={<AdminUsersView />} />
