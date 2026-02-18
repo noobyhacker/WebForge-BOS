@@ -28,6 +28,7 @@ import { ActionLogsView } from "@/components/crm/ActionLogsView";
 import { AdminUsersView } from "@/components/crm/AdminUsersView";
 import { FormIntegrationView } from "@/components/crm/FormIntegrationView";
 import { RevenueLeakageView } from "@/components/crm/RevenueLeakageView";
+import { FeatureFlagsView } from "@/components/crm/FeatureFlagsView";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -71,6 +72,7 @@ const App = () => (
               <Route path="followups" element={<FollowUpsView />} />
               <Route path="logs" element={<ActionLogsView />} />
               <Route path="form-integration" element={<FormIntegrationView />} />
+              <Route path="feature-flags" element={<FeatureFlagsView />} />
               <Route path="admin" element={<AdminUsersView />} />
             </Route>
             <Route path="*" element={<NotFound />} />
