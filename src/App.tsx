@@ -27,6 +27,7 @@ import { FollowUpsView } from "@/components/crm/FollowUpsView";
 import { ActionLogsView } from "@/components/crm/ActionLogsView";
 import { AdminUsersView } from "@/components/crm/AdminUsersView";
 import { FormIntegrationView } from "@/components/crm/FormIntegrationView";
+import { RevenueLeakageView } from "@/components/crm/RevenueLeakageView";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -50,6 +51,7 @@ const App = () => (
               }
             >
               <Route index element={<DashboardView />} />
+              <Route path="revenue-leakage" element={<RevenueLeakageView />} />
               <Route path="clients" element={<ClientsView />} />
               <Route path="contacts" element={<ContactsView />} />
               <Route path="accounts" element={<AccountsView />} />
