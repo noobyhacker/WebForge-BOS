@@ -14,6 +14,7 @@ export function useContacts() {
       const { data, error } = await supabase
         .from('contacts')
         .select('*, accounts(name)')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
       if (error) { console.error('Error fetching contacts:', error); return; }
       setContacts((data || []).map((c: any) => ({
@@ -71,7 +72,7 @@ export function useContacts() {
 
   const deleteContact = useCallback(async (id: string) => {
     if (!user) return;
-    const { error } = await supabase.from('contacts').delete().eq('id', id);
+    const { error } = await supabase.from('contacts').update({ deleted_at: new Date().toISOString(), deleted_by: user.id }).eq('id', id);
     if (error) { console.error('Error deleting contact:', error); return; }
     await fetchContacts();
   }, [user, fetchContacts]);

@@ -14,6 +14,7 @@ export function useProducts() {
       const { data, error } = await supabase
         .from('products')
         .select('*')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
       if (error) { console.error('Error fetching products:', error); return; }
       setProducts((data || []).map((p: any) => ({
@@ -59,7 +60,7 @@ export function useProducts() {
 
   const deleteProduct = useCallback(async (id: string) => {
     if (!user) return;
-    const { error } = await supabase.from('products').delete().eq('id', id);
+    const { error } = await supabase.from('products').update({ deleted_at: new Date().toISOString(), deleted_by: user.id }).eq('id', id);
     if (error) { console.error('Error deleting product:', error); return; }
     await fetchProducts();
   }, [user, fetchProducts]);

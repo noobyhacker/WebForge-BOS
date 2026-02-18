@@ -23,6 +23,7 @@ export function useClients(userEmail: string = 'anonymous') {
       const { data: clientsData, error: clientsError } = await supabase
         .from('clients')
         .select('*')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (clientsError) {
@@ -339,7 +340,7 @@ export function useClients(userEmail: string = 'anonymous') {
     try {
       const { error } = await supabase
         .from('clients')
-        .delete()
+        .update({ deleted_at: new Date().toISOString(), deleted_by: user.id })
         .eq('id', id);
 
       if (error) {

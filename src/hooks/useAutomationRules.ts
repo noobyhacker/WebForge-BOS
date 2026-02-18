@@ -14,6 +14,7 @@ export function useAutomationRules() {
     const { data, error } = await supabase
       .from('automation_rules')
       .select('*')
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -85,7 +86,7 @@ export function useAutomationRules() {
   };
 
   const deleteRule = async (id: string) => {
-    const { error } = await supabase.from('automation_rules').delete().eq('id', id);
+    const { error } = await supabase.from('automation_rules').update({ deleted_at: new Date().toISOString(), deleted_by: user!.id }).eq('id', id);
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {

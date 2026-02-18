@@ -14,6 +14,7 @@ export function useDeals() {
       const { data, error } = await supabase
         .from('deals')
         .select('*, accounts(name), contacts(first_name, last_name)')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
       if (error) { console.error('Error fetching deals:', error); return; }
       setDeals((data || []).map((d: any) => ({
@@ -71,7 +72,7 @@ export function useDeals() {
 
   const deleteDeal = useCallback(async (id: string) => {
     if (!user) return;
-    const { error } = await supabase.from('deals').delete().eq('id', id);
+    const { error } = await supabase.from('deals').update({ deleted_at: new Date().toISOString(), deleted_by: user.id }).eq('id', id);
     if (error) { console.error('Error deleting deal:', error); return; }
     await fetchDeals();
   }, [user, fetchDeals]);
