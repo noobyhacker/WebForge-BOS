@@ -11,6 +11,7 @@ import { useActivities } from '@/hooks/useActivities';
 import { useQuotes } from '@/hooks/useQuotes';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useTasks } from '@/hooks/useTasks';
+import { useKpis } from '@/hooks/useKpis';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { differenceInHours, differenceInDays, startOfMonth, subMonths, format } from 'date-fns';
