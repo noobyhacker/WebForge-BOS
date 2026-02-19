@@ -49,6 +49,7 @@ export function DashboardView() {
   const { quotes } = useQuotes();
   const { invoices } = useInvoices();
   const { myTasks, myOverdueTasks, completeTask } = useTasks();
+  const { kpis } = useKpis();
 
   const now = new Date();
   const monthStart = startOfMonth(now);
