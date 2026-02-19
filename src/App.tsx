@@ -27,6 +27,7 @@ import { TrashView } from "@/components/crm/TrashView";
 import { TasksView } from "@/components/crm/TasksView";
 import { RolePermissionsView } from "@/components/crm/RolePermissionsView";
 import { FormsView } from "@/components/crm/FormsView";
+import { KpisView } from "@/components/crm/KpisView";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
