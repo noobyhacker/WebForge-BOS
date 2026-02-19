@@ -58,6 +58,7 @@ const navGroups: NavGroup[] = [
     items: [
       { path: '/', label: 'Dashboard', icon: LayoutDashboard },
       { path: '/revenue-leakage', label: 'Revenue Leakage', icon: TrendingDown },
+      { path: '/kpis', label: 'KPIs', icon: Target },
       { path: '/tasks', label: 'Tasks', icon: CheckSquare },
     ],
   },

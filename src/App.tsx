@@ -52,6 +52,7 @@ const App = () => (
               <Route index element={<DashboardView />} />
               <Route path="revenue-leakage" element={<RevenueLeakageView />} />
               <Route path="tasks" element={<TasksView />} />
+              <Route path="kpis" element={<KpisView />} />
               <Route path="clients" element={<ClientsView />} />
               <Route path="contacts" element={<ContactsView />} />
               <Route path="accounts" element={<AccountsView />} />
