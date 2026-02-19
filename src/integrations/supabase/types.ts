@@ -1238,6 +1238,51 @@ export type Database = {
         }
         Relationships: []
       }
+      kpis: {
+        Row: {
+          category: string
+          created_at: string
+          current_value: number
+          description: string | null
+          frequency: string
+          id: string
+          is_active: boolean
+          name: string
+          owner_id: string
+          target_value: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          current_value?: number
+          description?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          owner_id: string
+          target_value?: number
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          current_value?: number
+          description?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          owner_id?: string
+          target_value?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lead_scoring_rules: {
         Row: {
           created_at: string
