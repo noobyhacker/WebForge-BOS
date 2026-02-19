@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, Sun, Moon, Contact, Building2, Handshake, ListTodo, Package, Mail, Zap, TrendingDown, FileText, Receipt, Paperclip, GitBranch, Trash2, CheckSquare, Lock, FileInput } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, Sun, Moon, Contact, Building2, Handshake, ListTodo, Package, Mail, Zap, TrendingDown, FileText, Receipt, Paperclip, GitBranch, Trash2, CheckSquare, Lock, FileInput, Target } from 'lucide-react';
 import webforgeLogo from '@/assets/webforge-logo.png';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -58,6 +58,7 @@ const navGroups: NavGroup[] = [
     items: [
       { path: '/', label: 'Dashboard', icon: LayoutDashboard },
       { path: '/revenue-leakage', label: 'Revenue Leakage', icon: TrendingDown },
+      { path: '/kpis', label: 'KPIs', icon: Target },
       { path: '/tasks', label: 'Tasks', icon: CheckSquare },
     ],
   },

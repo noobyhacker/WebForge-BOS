@@ -11,6 +11,7 @@ import { useActivities } from '@/hooks/useActivities';
 import { useQuotes } from '@/hooks/useQuotes';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useTasks } from '@/hooks/useTasks';
+import { useKpis } from '@/hooks/useKpis';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { differenceInHours, differenceInDays, startOfMonth, subMonths, format } from 'date-fns';
@@ -48,6 +49,7 @@ export function DashboardView() {
   const { quotes } = useQuotes();
   const { invoices } = useInvoices();
   const { myTasks, myOverdueTasks, completeTask } = useTasks();
+  const { kpis } = useKpis();
 
   const now = new Date();
   const monthStart = startOfMonth(now);
@@ -269,6 +271,42 @@ export function DashboardView() {
           </CardContent>
         </Card>
       </div>
+
+      {/* KPI Snapshot */}
+      {kpis.filter(k => k.isActive).length > 0 && (
+        <Card>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              KPI Tracker
+            </CardTitle>
+            <Button variant="link" className="text-xs p-0 h-auto" onClick={() => navigate('/kpis')}>
+              View all →
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+              {kpis.filter(k => k.isActive).slice(0, 6).map(kpi => {
+                const progress = kpi.targetValue > 0 ? Math.min(Math.round((kpi.currentValue / kpi.targetValue) * 100), 100) : 0;
+                const fmtVal = kpi.unit === 'currency' ? `$${kpi.currentValue.toLocaleString()}` : kpi.unit === 'percentage' ? `${kpi.currentValue}%` : kpi.currentValue.toLocaleString();
+                return (
+                  <div key={kpi.id} className="text-center p-3 rounded-lg bg-muted/50 space-y-1.5">
+                    <p className="text-xs text-muted-foreground truncate">{kpi.name}</p>
+                    <p className="text-lg font-bold">{fmtVal}</p>
+                    <div className="w-full bg-muted rounded-full h-1.5">
+                      <div
+                        className={`h-1.5 rounded-full transition-all ${progress >= 70 ? 'bg-[hsl(var(--success))]' : progress >= 40 ? 'bg-[hsl(var(--warning))]' : 'bg-destructive'}`}
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">{progress}% of target</p>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
