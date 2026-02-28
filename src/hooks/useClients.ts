@@ -259,20 +259,18 @@ export function useClients(userEmail: string = 'anonymous') {
         const firstName = nameParts[0] || client.name;
         const lastName = nameParts.slice(1).join(' ') || '';
 
-        const contactInsert: Record<string, unknown> = {
-          first_name: firstName,
-          last_name: lastName,
-          email: client.email || '',
-          phone: client.phone || '',
-          owner_id: user.id,
-          status: 'prospect',
-          source: 'client',
-        };
-        if (accountId) contactInsert.account_id = accountId;
-
         const { data: contactData } = await supabase
           .from('contacts')
-          .insert(contactInsert)
+          .insert({
+            first_name: firstName,
+            last_name: lastName,
+            email: client.email || '',
+            phone: client.phone || '',
+            owner_id: user.id,
+            status: 'prospect' as const,
+            source: 'client',
+            account_id: accountId || null,
+          })
           .select('id')
           .single();
 
