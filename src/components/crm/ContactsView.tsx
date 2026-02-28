@@ -98,7 +98,7 @@ export function ContactsView() {
         </div>
 
         {filtered.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 overflow-auto pb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 overflow-auto pb-6">
             {filtered.map(c => (
               <Card key={c.id} className={`hover:shadow-md transition-shadow cursor-pointer ${currentSelected?.id === c.id ? 'ring-2 ring-primary' : ''}`} onClick={() => setSelectedContact(c)}>
                 <CardContent className="p-4">
