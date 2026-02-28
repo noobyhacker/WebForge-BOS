@@ -144,6 +144,31 @@
   }
 }
 
+/* Neon glow on interactive icon buttons globally */
+button:active svg,
+button[data-state="open"] svg,
+a:active svg {
+  filter: drop-shadow(0 0 4px hsl(var(--neon-glow))) drop-shadow(0 0 8px hsl(var(--neon-glow) / 0.6));
+}
+
+/* Active sidebar / selected nav items get persistent neon glow */
+button.neon-active svg,
+[data-neon-active="true"] svg {
+  filter: drop-shadow(0 0 4px hsl(var(--neon-glow))) drop-shadow(0 0 10px hsl(var(--neon-glow) / 0.5));
+}
+
+/* Smooth transition for all icon SVGs */
+button svg, a svg {
+  transition: filter 0.2s ease;
+}
+
+/* Focus-visible neon ring for accessibility */
+button:focus-visible,
+a:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--neon-glow) / 0.5), 0 0 12px hsl(var(--neon-glow) / 0.3);
+}
+
 /* Custom native scrollbar styling */
 * {
   scrollbar-width: thin;
