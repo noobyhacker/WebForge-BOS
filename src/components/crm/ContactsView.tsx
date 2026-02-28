@@ -98,7 +98,7 @@ export function ContactsView() {
         </div>
 
         {filtered.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 overflow-auto pb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 overflow-auto pb-6">
             {filtered.map(c => (
               <Card key={c.id} className={`hover:shadow-md transition-shadow cursor-pointer ${currentSelected?.id === c.id ? 'ring-2 ring-primary' : ''}`} onClick={() => setSelectedContact(c)}>
                 <CardContent className="p-4">
@@ -116,9 +116,9 @@ export function ContactsView() {
                   {c.phone && <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><Phone className="h-3 w-3" />{c.phone}</p>}
                   {c.accountName && <p className="text-xs text-muted-foreground flex items-center gap-1"><Building2 className="h-3 w-3" />{c.accountName}</p>}
                   <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><UserCircle className="h-3 w-3" />Owner: {getOwnerName(c.ownerId)} · {getOwnerRole(c.ownerId)}</p>
-                  <div className="flex gap-1 mt-3" onClick={e => e.stopPropagation()}>
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(c)}><Pencil className="h-3 w-3" /></Button>
-                    <Button variant="ghost" size="sm" onClick={() => setDeleteId(c.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                  <div className="flex gap-2 mt-3 pb-1" onClick={e => e.stopPropagation()}>
+                    <Button variant="ghost" size="sm" className="p-2" onClick={() => handleEdit(c)}><Pencil className="h-3 w-3" /></Button>
+                    <Button variant="ghost" size="sm" className="p-2" onClick={() => setDeleteId(c.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
                   </div>
                 </CardContent>
               </Card>

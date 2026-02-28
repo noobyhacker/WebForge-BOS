@@ -169,6 +169,11 @@ a:focus-visible {
   box-shadow: 0 0 0 2px hsl(var(--neon-glow) / 0.5), 0 0 12px hsl(var(--neon-glow) / 0.3);
 }
 
+/* Prevent overflow clipping on cards containing interactive icons */
+.card-glow-safe {
+  overflow: visible !important;
+}
+
 /* Custom native scrollbar styling */
 * {
   scrollbar-width: thin;
