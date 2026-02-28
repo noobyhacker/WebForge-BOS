@@ -231,6 +231,58 @@ export function useClients(userEmail: string = 'anonymous') {
         console.warn('Could not fetch newly created client:', latestError);
       }
 
+      // Auto-create Account from company name (best-effort)
+      let accountId: string | undefined;
+      if (client.company) {
+        try {
+          const { data: accountData } = await supabase
+            .from('accounts')
+            .insert({
+              name: client.company,
+              owner_id: user.id,
+              phone: client.phone || '',
+            })
+            .select('id')
+            .single();
+          accountId = accountData?.id;
+          if (accountId) {
+            await logAction('create', 'account', client.company, `Auto-created from client ${client.name}`);
+          }
+        } catch (e) {
+          console.warn('Auto-create account failed:', e);
+        }
+      }
+
+      // Auto-create Contact from client info (best-effort)
+      try {
+        const nameParts = client.name.trim().split(/\s+/);
+        const firstName = nameParts[0] || client.name;
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        const contactInsert: Record<string, unknown> = {
+          first_name: firstName,
+          last_name: lastName,
+          email: client.email || '',
+          phone: client.phone || '',
+          owner_id: user.id,
+          status: 'prospect',
+          source: 'client',
+        };
+        if (accountId) contactInsert.account_id = accountId;
+
+        const { data: contactData } = await supabase
+          .from('contacts')
+          .insert(contactInsert)
+          .select('id')
+          .single();
+
+        if (contactData?.id) {
+          await logAction('create', 'contact', client.name, `Auto-created from client ${client.name}`);
+        }
+      } catch (e) {
+        console.warn('Auto-create contact failed:', e);
+      }
+
       return {
         id: latest?.id ?? crypto.randomUUID(),
         name: latest?.name ?? client.name,
