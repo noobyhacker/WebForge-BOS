@@ -59,6 +59,8 @@
     
     --surface-elevated: 0 0% 100%;
     --surface-sunken: 220 20% 97%;
+
+    --neon-glow: 221 83% 53%;
   }
 
   .dark {
