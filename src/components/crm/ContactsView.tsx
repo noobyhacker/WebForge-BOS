@@ -117,8 +117,8 @@ export function ContactsView() {
                   {c.accountName && <p className="text-xs text-muted-foreground flex items-center gap-1"><Building2 className="h-3 w-3" />{c.accountName}</p>}
                   <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><UserCircle className="h-3 w-3" />Owner: {getOwnerName(c.ownerId)} · {getOwnerRole(c.ownerId)}</p>
                   <div className="flex gap-2 mt-3 pb-1" onClick={e => e.stopPropagation()}>
-                    <Button variant="ghost" size="sm" className="p-2"><Pencil className="h-3 w-3" /></Button>
-                    <Button variant="ghost" size="sm" className="p-2"><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                    <Button variant="ghost" size="sm" className="p-2" onClick={() => handleEdit(c)}><Pencil className="h-3 w-3" /></Button>
+                    <Button variant="ghost" size="sm" className="p-2" onClick={() => setDeleteId(c.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
                   </div>
                 </CardContent>
               </Card>
