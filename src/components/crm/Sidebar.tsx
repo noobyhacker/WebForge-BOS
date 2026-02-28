@@ -160,10 +160,10 @@ function SidebarContent({
                 key={item.path}
                 onClick={() => handleNavClick(item.path)}
                 className={cn(
-                  'w-full flex items-center gap-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                  'w-full flex items-center gap-3 py-2 rounded-lg text-sm font-medium transition-all',
                   collapsed ? 'justify-center px-2' : 'px-3',
                   isActive(item.path)
-                    ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                    ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-[0_0_12px_hsl(var(--neon-glow)/0.5),0_0_24px_hsl(var(--neon-glow)/0.2)]'
                     : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
                 )}
               >
