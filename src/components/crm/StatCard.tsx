@@ -46,7 +46,7 @@ export function StatCard({ title, value, icon: Icon, trend, sparklineData, varia
   return (
     <div
       className={cn(
-        'rounded-lg border p-5 transition-all hover:shadow-sm relative overflow-hidden',
+        'rounded-lg border p-5 transition-all hover:shadow-sm relative overflow-visible',
         variantStyles[variant],
         className
       )}
