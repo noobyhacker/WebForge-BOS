@@ -293,7 +293,6 @@ export function useClients(userEmail: string = 'anonymous') {
         createdAt: latest?.created_at ?? new Date().toISOString(),
         lastContact: latest?.last_contact ?? client.lastContact,
         notes: latest?.notes || client.notes || '',
-        nationality: (latest as any)?.nationality || client.nationality || '',
         language: (latest as any)?.language || client.language || '',
         followUps: [],
       };
