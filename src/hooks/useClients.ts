@@ -51,7 +51,6 @@ export function useClients(userEmail: string = 'anonymous') {
         createdAt: c.created_at,
         lastContact: c.last_contact,
         notes: c.notes || '',
-        nationality: (c as any).nationality || '',
         language: (c as any).language || '',
         userId: c.user_id,
         followUps: (followUpsData || [])
@@ -209,7 +208,6 @@ export function useClients(userEmail: string = 'anonymous') {
           company: client.company,
           status: client.status,
           notes: client.notes,
-          nationality: client.nationality,
           language: client.language,
           last_contact: client.lastContact,
         } as any);
@@ -295,7 +293,6 @@ export function useClients(userEmail: string = 'anonymous') {
         createdAt: latest?.created_at ?? new Date().toISOString(),
         lastContact: latest?.last_contact ?? client.lastContact,
         notes: latest?.notes || client.notes || '',
-        nationality: (latest as any)?.nationality || client.nationality || '',
         language: (latest as any)?.language || client.language || '',
         followUps: [],
       };
@@ -366,7 +363,6 @@ export function useClients(userEmail: string = 'anonymous') {
       if (updates.company !== undefined) dbUpdates.company = updates.company;
       if (updates.status !== undefined) dbUpdates.status = updates.status;
       if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
-      if (updates.nationality !== undefined) dbUpdates.nationality = updates.nationality;
       if (updates.language !== undefined) dbUpdates.language = updates.language;
       if (updates.lastContact !== undefined) dbUpdates.last_contact = updates.lastContact;
 
