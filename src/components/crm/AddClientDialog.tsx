@@ -54,6 +54,8 @@ export function AddClientDialog({ open, onOpenChange, onAdd }: AddClientDialogPr
         setCompany('');
         setStatus('lead');
         setNotes('');
+        setNationality('');
+        setLanguage('');
         onOpenChange(false);
       } else {
         toast({ 
