@@ -50,7 +50,6 @@ export function EditClientDialog({ open, onOpenChange, client, onSave, onDelete 
       company,
       status,
       notes,
-      nationality,
       language,
     });
     onOpenChange(false);
