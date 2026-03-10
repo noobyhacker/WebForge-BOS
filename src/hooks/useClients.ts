@@ -209,8 +209,10 @@ export function useClients(userEmail: string = 'anonymous') {
           company: client.company,
           status: client.status,
           notes: client.notes,
+          nationality: client.nationality,
+          language: client.language,
           last_contact: client.lastContact,
-        });
+        } as any);
 
       if (insertError) {
         console.error('Error adding client:', insertError);
