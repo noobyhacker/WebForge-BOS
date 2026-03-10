@@ -19,6 +19,8 @@ export interface Client {
   createdAt: string;
   lastContact: string;
   notes: string;
+  nationality: string;
+  language: string;
   followUps: FollowUp[];
   userId?: string;
 }
