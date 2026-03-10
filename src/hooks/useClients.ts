@@ -51,7 +51,6 @@ export function useClients(userEmail: string = 'anonymous') {
         createdAt: c.created_at,
         lastContact: c.last_contact,
         notes: c.notes || '',
-        nationality: (c as any).nationality || '',
         language: (c as any).language || '',
         userId: c.user_id,
         followUps: (followUpsData || [])
