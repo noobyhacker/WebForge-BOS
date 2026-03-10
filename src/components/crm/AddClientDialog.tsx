@@ -40,7 +40,6 @@ export function AddClientDialog({ open, onOpenChange, onAdd }: AddClientDialogPr
         company,
         status,
         notes,
-        nationality,
         language,
         lastContact: new Date().toISOString().split('T')[0],
       });
