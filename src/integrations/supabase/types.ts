@@ -270,8 +270,10 @@ export type Database = {
           deleted_by: string | null
           email: string | null
           id: string
+          language: string | null
           last_contact: string | null
           name: string
+          nationality: string | null
           notes: string | null
           phone: string | null
           status: string | null
@@ -284,8 +286,10 @@ export type Database = {
           deleted_by?: string | null
           email?: string | null
           id?: string
+          language?: string | null
           last_contact?: string | null
           name: string
+          nationality?: string | null
           notes?: string | null
           phone?: string | null
           status?: string | null
@@ -298,8 +302,10 @@ export type Database = {
           deleted_by?: string | null
           email?: string | null
           id?: string
+          language?: string | null
           last_contact?: string | null
           name?: string
+          nationality?: string | null
           notes?: string | null
           phone?: string | null
           status?: string | null
