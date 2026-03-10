@@ -133,6 +133,56 @@ export function EditClientDialog({ open, onOpenChange, client, onSave, onDelete 
             </Select>
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="nationality">Nationality</Label>
+              <Select value={nationality} onValueChange={setNationality}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select nationality" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SA">Saudi Arabia</SelectItem>
+                  <SelectItem value="AE">UAE</SelectItem>
+                  <SelectItem value="KW">Kuwait</SelectItem>
+                  <SelectItem value="QA">Qatar</SelectItem>
+                  <SelectItem value="BH">Bahrain</SelectItem>
+                  <SelectItem value="OM">Oman</SelectItem>
+                  <SelectItem value="EG">Egypt</SelectItem>
+                  <SelectItem value="JO">Jordan</SelectItem>
+                  <SelectItem value="LB">Lebanon</SelectItem>
+                  <SelectItem value="IQ">Iraq</SelectItem>
+                  <SelectItem value="US">United States</SelectItem>
+                  <SelectItem value="GB">United Kingdom</SelectItem>
+                  <SelectItem value="DE">Germany</SelectItem>
+                  <SelectItem value="FR">France</SelectItem>
+                  <SelectItem value="IN">India</SelectItem>
+                  <SelectItem value="PK">Pakistan</SelectItem>
+                  <SelectItem value="PH">Philippines</SelectItem>
+                  <SelectItem value="OTHER">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="language">Language</Label>
+              <Select value={language} onValueChange={setLanguage}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select language" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ar">Arabic</SelectItem>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="fr">French</SelectItem>
+                  <SelectItem value="de">German</SelectItem>
+                  <SelectItem value="ur">Urdu</SelectItem>
+                  <SelectItem value="hi">Hindi</SelectItem>
+                  <SelectItem value="tl">Tagalog</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
             <Textarea
