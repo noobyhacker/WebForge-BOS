@@ -23,6 +23,8 @@ export function EditClientDialog({ open, onOpenChange, client, onSave, onDelete 
   const [company, setCompany] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive' | 'lead'>('lead');
   const [notes, setNotes] = useState('');
+  const [nationality, setNationality] = useState('');
+  const [language, setLanguage] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
