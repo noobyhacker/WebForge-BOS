@@ -35,7 +35,6 @@ export function EditClientDialog({ open, onOpenChange, client, onSave, onDelete 
       setCompany(client.company);
       setStatus(client.status);
       setNotes(client.notes);
-      setNationality(client.nationality || '');
       setLanguage(client.language || '');
     }
   }, [client]);
