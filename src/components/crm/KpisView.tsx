@@ -19,11 +19,6 @@ import {
   DollarSign, Percent, Clock, Hash, CalendarDays, BarChart3,
   ArrowUpRight, ArrowDownRight, Search, UserCircle,
 } from 'lucide-react';
-import {
-  Plus, Pencil, Trash2, Target, TrendingUp, TrendingDown, Minus,
-  DollarSign, Percent, Clock, Hash, CalendarDays, BarChart3,
-  ArrowUpRight, ArrowDownRight, Search,
-} from 'lucide-react';
 
 function formatValue(value: number, unit: string) {
   switch (unit) {
