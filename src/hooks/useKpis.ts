@@ -108,6 +108,7 @@ export function useKpis() {
     if (updates.currentValue !== undefined) dbUpdates.current_value = updates.currentValue;
     if (updates.frequency !== undefined) dbUpdates.frequency = updates.frequency;
     if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
+    if (updates.assignedTo !== undefined) dbUpdates.assigned_to = updates.assignedTo;
     const { error } = await supabase.from('kpis' as any).update(dbUpdates as any).eq('id', id);
     if (error) { console.error('Error updating KPI:', error); throw error; }
     await fetchKpis();
