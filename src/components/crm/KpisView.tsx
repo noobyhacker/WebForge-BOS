@@ -100,7 +100,7 @@ export function KpisView() {
     setForm({
       name: kpi.name, description: kpi.description, category: kpi.category,
       unit: kpi.unit, targetValue: kpi.targetValue, currentValue: kpi.currentValue,
-      frequency: kpi.frequency, isActive: kpi.isActive,
+      frequency: kpi.frequency, isActive: kpi.isActive, assignedTo: kpi.assignedTo || '',
     });
     setDialogOpen(true);
   };
