@@ -12,6 +12,13 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useKpis, Kpi, KPI_CATEGORIES, KPI_UNITS, KPI_FREQUENCIES } from '@/hooks/useKpis';
+import { useProfilesMap } from '@/hooks/useProfilesMap';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  Plus, Pencil, Trash2, Target, TrendingUp, TrendingDown, Minus,
+  DollarSign, Percent, Clock, Hash, CalendarDays, BarChart3,
+  ArrowUpRight, ArrowDownRight, Search, UserCircle,
+} from 'lucide-react';
 import {
   Plus, Pencil, Trash2, Target, TrendingUp, TrendingDown, Minus,
   DollarSign, Percent, Clock, Hash, CalendarDays, BarChart3,
