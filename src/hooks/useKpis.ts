@@ -70,6 +70,7 @@ export function useKpis() {
         currentValue: Number(d.current_value) || 0,
         frequency: d.frequency,
         ownerId: d.owner_id,
+        assignedTo: d.assigned_to || null,
         isActive: d.is_active,
         createdAt: d.created_at,
         updatedAt: d.updated_at,
