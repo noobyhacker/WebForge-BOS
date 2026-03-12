@@ -80,7 +80,7 @@ export function useKpis() {
 
   useEffect(() => { fetchKpis(); }, [fetchKpis]);
 
-  const addKpi = useCallback(async (kpi: Omit<Kpi, 'id' | 'createdAt' | 'updatedAt' | 'ownerId'>) => {
+  const addKpi = useCallback(async (kpi: Omit<Kpi, 'id' | 'createdAt' | 'updatedAt' | 'ownerId'> & { assignedTo?: string | null }) => {
     if (!user) return;
     const { error } = await supabase.from('kpis' as any).insert({
       name: kpi.name,
