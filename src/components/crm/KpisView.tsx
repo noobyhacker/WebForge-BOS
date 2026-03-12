@@ -53,6 +53,7 @@ function getProgressColor(progress: number) {
 const EMPTY_FORM = {
   name: '', description: '', category: 'general', unit: 'number',
   targetValue: 0, currentValue: 0, frequency: 'monthly', isActive: true,
+  assignedTo: '' as string,
 };
 
 export function KpisView() {
