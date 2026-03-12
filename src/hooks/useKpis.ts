@@ -12,6 +12,7 @@ export interface Kpi {
   currentValue: number;
   frequency: string;
   ownerId: string;
+  assignedTo: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
