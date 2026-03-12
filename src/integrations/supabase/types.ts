@@ -1246,6 +1246,7 @@ export type Database = {
       }
       kpis: {
         Row: {
+          assigned_to: string | null
           category: string
           created_at: string
           current_value: number
@@ -1260,6 +1261,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_to?: string | null
           category?: string
           created_at?: string
           current_value?: number
@@ -1274,6 +1276,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_to?: string | null
           category?: string
           created_at?: string
           current_value?: number

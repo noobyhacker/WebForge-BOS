@@ -12,10 +12,12 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useKpis, Kpi, KPI_CATEGORIES, KPI_UNITS, KPI_FREQUENCIES } from '@/hooks/useKpis';
+import { useProfilesMap } from '@/hooks/useProfilesMap';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Plus, Pencil, Trash2, Target, TrendingUp, TrendingDown, Minus,
   DollarSign, Percent, Clock, Hash, CalendarDays, BarChart3,
-  ArrowUpRight, ArrowDownRight, Search,
+  ArrowUpRight, ArrowDownRight, Search, UserCircle,
 } from 'lucide-react';
 
 function formatValue(value: number, unit: string) {
@@ -51,10 +53,13 @@ function getProgressColor(progress: number) {
 const EMPTY_FORM = {
   name: '', description: '', category: 'general', unit: 'number',
   targetValue: 0, currentValue: 0, frequency: 'monthly', isActive: true,
+  assignedTo: '' as string,
 };
 
 export function KpisView() {
   const { kpis, loading, addKpi, updateKpi, deleteKpi } = useKpis();
+  const { profiles, getOwnerName } = useProfilesMap();
+  const { isAdmin, isSalesManager } = useAuth();
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingKpi, setEditingKpi] = useState<Kpi | null>(null);
@@ -95,7 +100,7 @@ export function KpisView() {
     setForm({
       name: kpi.name, description: kpi.description, category: kpi.category,
       unit: kpi.unit, targetValue: kpi.targetValue, currentValue: kpi.currentValue,
-      frequency: kpi.frequency, isActive: kpi.isActive,
+      frequency: kpi.frequency, isActive: kpi.isActive, assignedTo: kpi.assignedTo || '',
     });
     setDialogOpen(true);
   };
@@ -103,11 +108,12 @@ export function KpisView() {
   const handleSave = async () => {
     if (!form.name.trim()) { toast({ title: 'Name required', variant: 'destructive' }); return; }
     try {
+      const payload = { ...form, assignedTo: form.assignedTo || null };
       if (editingKpi) {
-        await updateKpi(editingKpi.id, form);
+        await updateKpi(editingKpi.id, payload);
         toast({ title: 'KPI updated' });
       } else {
-        await addKpi(form);
+        await addKpi(payload);
         toast({ title: 'KPI created' });
       }
       setDialogOpen(false);
@@ -186,6 +192,20 @@ export function KpisView() {
                   <Label>Active</Label>
                 </div>
               </div>
+              {(isAdmin || isSalesManager) && (
+                <div className="space-y-2">
+                  <Label>Assign To</Label>
+                  <Select value={form.assignedTo} onValueChange={v => setForm({ ...form, assignedTo: v === 'none' ? '' : v })}>
+                    <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Unassigned</SelectItem>
+                      {Array.from(profiles.values()).map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.fullName} ({p.email})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <Button onClick={handleSave} className="w-full">{editingKpi ? 'Update KPI' : 'Create KPI'}</Button>
             </div>
           </DialogContent>
@@ -285,11 +305,17 @@ export function KpisView() {
                         </div>
                       </div>
                       <Progress value={progress} className="h-2" />
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between flex-wrap gap-1">
                         <Badge variant="outline" className="text-[10px]">
                           <CalendarDays className="h-3 w-3 mr-1" />
                           {kpi.frequency}
                         </Badge>
+                        {kpi.assignedTo && (
+                          <Badge variant="secondary" className="text-[10px]">
+                            <UserCircle className="h-3 w-3 mr-1" />
+                            {getOwnerName(kpi.assignedTo)}
+                          </Badge>
+                        )}
                         {!kpi.isActive && <Badge variant="secondary" className="text-[10px]">Inactive</Badge>}
                       </div>
                     </CardContent>

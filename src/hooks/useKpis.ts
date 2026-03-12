@@ -12,6 +12,7 @@ export interface Kpi {
   currentValue: number;
   frequency: string;
   ownerId: string;
+  assignedTo: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -69,6 +70,7 @@ export function useKpis() {
         currentValue: Number(d.current_value) || 0,
         frequency: d.frequency,
         ownerId: d.owner_id,
+        assignedTo: d.assigned_to || null,
         isActive: d.is_active,
         createdAt: d.created_at,
         updatedAt: d.updated_at,
@@ -78,7 +80,7 @@ export function useKpis() {
 
   useEffect(() => { fetchKpis(); }, [fetchKpis]);
 
-  const addKpi = useCallback(async (kpi: Omit<Kpi, 'id' | 'createdAt' | 'updatedAt' | 'ownerId'>) => {
+  const addKpi = useCallback(async (kpi: Omit<Kpi, 'id' | 'createdAt' | 'updatedAt' | 'ownerId'> & { assignedTo?: string | null }) => {
     if (!user) return;
     const { error } = await supabase.from('kpis' as any).insert({
       name: kpi.name,
@@ -90,6 +92,7 @@ export function useKpis() {
       frequency: kpi.frequency,
       is_active: kpi.isActive,
       owner_id: user.id,
+      assigned_to: kpi.assignedTo || null,
     } as any);
     if (error) { console.error('Error adding KPI:', error); throw error; }
     await fetchKpis();
@@ -106,6 +109,7 @@ export function useKpis() {
     if (updates.currentValue !== undefined) dbUpdates.current_value = updates.currentValue;
     if (updates.frequency !== undefined) dbUpdates.frequency = updates.frequency;
     if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
+    if (updates.assignedTo !== undefined) dbUpdates.assigned_to = updates.assignedTo;
     const { error } = await supabase.from('kpis' as any).update(dbUpdates as any).eq('id', id);
     if (error) { console.error('Error updating KPI:', error); throw error; }
     await fetchKpis();
