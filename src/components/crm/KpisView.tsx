@@ -305,11 +305,17 @@ export function KpisView() {
                         </div>
                       </div>
                       <Progress value={progress} className="h-2" />
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between flex-wrap gap-1">
                         <Badge variant="outline" className="text-[10px]">
                           <CalendarDays className="h-3 w-3 mr-1" />
                           {kpi.frequency}
                         </Badge>
+                        {kpi.assignedTo && (
+                          <Badge variant="secondary" className="text-[10px]">
+                            <UserCircle className="h-3 w-3 mr-1" />
+                            {getOwnerName(kpi.assignedTo)}
+                          </Badge>
+                        )}
                         {!kpi.isActive && <Badge variant="secondary" className="text-[10px]">Inactive</Badge>}
                       </div>
                     </CardContent>
