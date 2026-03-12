@@ -108,11 +108,12 @@ export function KpisView() {
   const handleSave = async () => {
     if (!form.name.trim()) { toast({ title: 'Name required', variant: 'destructive' }); return; }
     try {
+      const payload = { ...form, assignedTo: form.assignedTo || null };
       if (editingKpi) {
-        await updateKpi(editingKpi.id, form);
+        await updateKpi(editingKpi.id, payload);
         toast({ title: 'KPI updated' });
       } else {
-        await addKpi(form);
+        await addKpi(payload);
         toast({ title: 'KPI created' });
       }
       setDialogOpen(false);
