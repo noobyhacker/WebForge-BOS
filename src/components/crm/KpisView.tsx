@@ -192,6 +192,20 @@ export function KpisView() {
                   <Label>Active</Label>
                 </div>
               </div>
+              {(isAdmin || isSalesManager) && (
+                <div className="space-y-2">
+                  <Label>Assign To</Label>
+                  <Select value={form.assignedTo} onValueChange={v => setForm({ ...form, assignedTo: v === 'none' ? '' : v })}>
+                    <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Unassigned</SelectItem>
+                      {Array.from(profiles.values()).map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.fullName} ({p.email})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <Button onClick={handleSave} className="w-full">{editingKpi ? 'Update KPI' : 'Create KPI'}</Button>
             </div>
           </DialogContent>
