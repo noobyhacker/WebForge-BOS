@@ -58,6 +58,8 @@ const EMPTY_FORM = {
 
 export function KpisView() {
   const { kpis, loading, addKpi, updateKpi, deleteKpi } = useKpis();
+  const { profiles, getOwnerName } = useProfilesMap();
+  const { isAdmin, isSalesManager } = useAuth();
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingKpi, setEditingKpi] = useState<Kpi | null>(null);
