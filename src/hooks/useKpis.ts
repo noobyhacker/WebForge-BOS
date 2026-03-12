@@ -92,6 +92,7 @@ export function useKpis() {
       frequency: kpi.frequency,
       is_active: kpi.isActive,
       owner_id: user.id,
+      assigned_to: kpi.assignedTo || null,
     } as any);
     if (error) { console.error('Error adding KPI:', error); throw error; }
     await fetchKpis();
