@@ -13,7 +13,7 @@ interface ClientAssignmentSectionProps {
 export function ClientAssignmentSection({ clientId, onAssign }: ClientAssignmentSectionProps) {
   const { isAdmin, isSalesManager, hasPermission } = useAuth();
   const { assignments, files, loading, removeAssignment, deleteFile } = useClientAssignments(clientId);
-  const profiles = useProfilesMap();
+  const { profiles } = useProfilesMap();
 
   const canAssign = isAdmin || isSalesManager || hasPermission('assign_clients');
 
