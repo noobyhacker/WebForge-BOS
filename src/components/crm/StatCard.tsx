@@ -91,8 +91,8 @@ export function StatCard({ title, value, icon: Icon, trend, sparklineData, varia
             </p>
           )}
         </div>
-        <div className={cn('rounded-lg p-2.5', iconVariantStyles[variant])}>
-          <Icon className="h-5 w-5" />
+        <div className={cn('rounded-lg p-2.5 flex-shrink-0', iconVariantStyles[variant])}>
+          <Icon className="h-5 w-5 flex-shrink-0" />
         </div>
       </div>
     </div>
