@@ -246,6 +246,13 @@ export function ClientDetails({
         clientId={client.id}
         clientName={client.name}
       />
+
+      <AssignClientDialog
+        open={showAssignDialog}
+        onOpenChange={setShowAssignDialog}
+        clientId={client.id}
+        clientName={client.name}
+      />
     </div>
   );
 }
