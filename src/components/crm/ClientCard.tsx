@@ -14,7 +14,7 @@ interface ClientCardProps {
   onOpenChat?: (client: Client) => void;
 }
 
-export function ClientCard({ client, onClick, isSelected, onClaimClient, onServeClient }: ClientCardProps) {
+export function ClientCard({ client, onClick, isSelected, onClaimClient, onServeClient, onOpenChat }: ClientCardProps) {
   const { user } = useAuth();
   const pendingFollowUps = client.followUps.filter(
     (f) => f.status === 'pending' || f.status === 'overdue' || f.status === 'scheduled'
