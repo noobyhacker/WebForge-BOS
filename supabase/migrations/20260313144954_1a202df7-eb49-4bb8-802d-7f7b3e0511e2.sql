@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS client_shares_client_user_unique ON public.client_shares (client_id, shared_with_user_id);
