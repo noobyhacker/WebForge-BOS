@@ -121,7 +121,7 @@ function SidebarContent({
   onCollapse,
   onNavigate 
 }: SidebarProps & { onNavigate?: () => void }) {
-  const { isAdmin, signOut, profile } = useAuth();
+  const { isAdmin, signOut, profile, hasPermission } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
