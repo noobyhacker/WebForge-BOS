@@ -66,13 +66,29 @@ export function ClientCard({ client, onClick, isSelected, onClaimClient, onServe
         </div>
       </div>
 
-      {pendingFollowUps > 0 && (
-        <div className="mt-3 pt-3 border-t">
-          <span className="text-xs font-medium text-warning">
-            {pendingFollowUps} pending follow-up{pendingFollowUps > 1 ? 's' : ''}
-          </span>
+      <div className="mt-3 pt-3 border-t flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {pendingFollowUps > 0 && (
+            <span className="text-xs font-medium text-warning">
+              {pendingFollowUps} pending follow-up{pendingFollowUps > 1 ? 's' : ''}
+            </span>
+          )}
         </div>
-      )}
+        {onOpenChat && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="gap-1.5 text-muted-foreground hover:text-primary"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenChat(client);
+            }}
+          >
+            <MessageCircle className="h-3.5 w-3.5" />
+            Chat
+          </Button>
+        )}
+      </div>
 
       {/* Lead claim/serve actions */}
       {isLead && (
