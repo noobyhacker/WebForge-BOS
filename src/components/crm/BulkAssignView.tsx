@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 export function BulkAssignView() {
   const { profile, isAdmin, isSalesManager, hasPermission } = useAuth();
   const { clients } = useClients(profile?.email || '');
-  const profiles = useProfilesMap();
+  const { profiles } = useProfilesMap();
   const { assignClient } = useClientAssignments();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [assignedTo, setAssignedTo] = useState('');
