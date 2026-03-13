@@ -47,48 +47,58 @@ function DarkModeToggle({ collapsed }: { collapsed: boolean }) {
   );
 }
 
+interface NavItem {
+  path: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  /** Permission key required to see this item. Undefined = always visible. */
+  requiredPermission?: string;
+  /** If true, only admins see this item */
+  adminOnly?: boolean;
+}
+
 interface NavGroup {
   label: string;
-  items: { path: string; label: string; icon: typeof LayoutDashboard }[];
+  items: NavItem[];
 }
 
 const navGroups: NavGroup[] = [
   {
     label: 'Overview',
     items: [
-      { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-      { path: '/revenue-leakage', label: 'Revenue Leakage', icon: TrendingDown },
-      { path: '/kpis', label: 'KPIs', icon: Target },
-      { path: '/tasks', label: 'Tasks', icon: CheckSquare },
+      { path: '/', label: 'Dashboard', icon: LayoutDashboard, requiredPermission: 'view_dashboard' },
+      { path: '/revenue-leakage', label: 'Revenue Leakage', icon: TrendingDown, requiredPermission: 'view_revenue' },
+      { path: '/kpis', label: 'KPIs', icon: Target, requiredPermission: 'view_kpis' },
+      { path: '/tasks', label: 'Tasks', icon: CheckSquare, requiredPermission: 'manage_tasks' },
     ],
   },
   {
     label: 'Contacts & Sales',
     items: [
-      { path: '/clients', label: 'Clients', icon: Users },
-      { path: '/contacts', label: 'Contacts', icon: Contact },
-      { path: '/accounts', label: 'Accounts', icon: Building2 },
-      { path: '/deals', label: 'Deals', icon: Handshake },
+      { path: '/clients', label: 'Clients', icon: Users, requiredPermission: 'manage_clients' },
+      { path: '/contacts', label: 'Contacts', icon: Contact, requiredPermission: 'view_all_contacts' },
+      { path: '/accounts', label: 'Accounts', icon: Building2, requiredPermission: 'view_all_accounts' },
+      { path: '/deals', label: 'Deals', icon: Handshake, requiredPermission: 'manage_deals' },
       { path: '/activities', label: 'Activities', icon: ListTodo },
       { path: '/followups', label: 'Follow-ups', icon: Calendar },
-      { path: '/bulk-assign', label: 'Assign Clients', icon: UserPlus },
+      { path: '/bulk-assign', label: 'Assign Clients', icon: UserPlus, requiredPermission: 'assign_clients' },
     ],
   },
   {
     label: 'Products & Billing',
     items: [
       { path: '/products', label: 'Products', icon: Package },
-      { path: '/quotes', label: 'Quotes', icon: FileText },
-      { path: '/invoices', label: 'Invoices', icon: Receipt },
+      { path: '/quotes', label: 'Quotes', icon: FileText, requiredPermission: 'manage_quotes' },
+      { path: '/invoices', label: 'Invoices', icon: Receipt, requiredPermission: 'manage_invoices' },
     ],
   },
   {
     label: 'Automation & Config',
     items: [
-      { path: '/automation', label: 'Automation', icon: Zap },
-      { path: '/pipeline-stages', label: 'Pipeline Stages', icon: GitBranch },
+      { path: '/automation', label: 'Automation', icon: Zap, adminOnly: true },
+      { path: '/pipeline-stages', label: 'Pipeline Stages', icon: GitBranch, adminOnly: true },
       { path: '/templates', label: 'Email Templates', icon: Mail },
-      { path: '/forms', label: 'Lead Forms', icon: FileInput },
+      { path: '/forms', label: 'Lead Forms', icon: FileInput, adminOnly: true },
     ],
   },
   {
@@ -96,7 +106,7 @@ const navGroups: NavGroup[] = [
     items: [
       { path: '/documents', label: 'Documents', icon: Paperclip },
       { path: '/logs', label: 'Action Logs', icon: ClipboardList },
-      { path: '/trash', label: 'Trash', icon: Trash2 },
+      { path: '/trash', label: 'Trash', icon: Trash2, requiredPermission: 'restore_trash' },
     ],
   },
 ];
