@@ -91,7 +91,7 @@ export function AdminChatsView() {
           </div>
           <div className="max-h-[60vh] overflow-auto divide-y">
             {filtered.map(m => {
-              const sender = profiles[m.sender_id];
+              const sender = profiles.get(m.sender_id);
               return (
                 <div key={m.id} className="grid grid-cols-[1fr_1fr_2fr_auto] gap-2 p-3 text-sm hover:bg-secondary/10">
                   <span className="truncate text-muted-foreground">{clientNames[m.client_id] || m.client_id.slice(0, 8)}</span>
