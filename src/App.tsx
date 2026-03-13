@@ -74,6 +74,8 @@ const App = () => (
               <Route path="trash" element={<TrashView />} />
               <Route path="admin" element={<AdminUsersView />} />
               <Route path="permissions" element={<RolePermissionsView />} />
+              <Route path="bulk-assign" element={<BulkAssignView />} />
+              <Route path="chats" element={<AdminChatsView />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
