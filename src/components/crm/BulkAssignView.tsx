@@ -30,7 +30,7 @@ export function BulkAssignView() {
     );
   }
 
-  const profilesList = Object.entries(profiles).map(([id, p]) => ({ id, ...p }));
+  const profilesList = Array.from(profiles.entries()).map(([id, p]) => ({ id, full_name: p.fullName, email: p.email }));
 
   const toggleSelect = (id: string) => {
     setSelected(prev => {

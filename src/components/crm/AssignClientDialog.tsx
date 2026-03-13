@@ -23,10 +23,10 @@ export function AssignClientDialog({ open, onOpenChange, clientId, clientName }:
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const profiles = useProfilesMap();
+  const { profiles } = useProfilesMap();
   const { assignClient, uploadFile } = useClientAssignments(clientId);
 
-  const profilesList = Object.entries(profiles).map(([id, p]) => ({ id, ...p }));
+  const profilesList = Array.from(profiles.entries()).map(([id, p]) => ({ id, full_name: p.fullName, email: p.email }));
 
   const handleSubmit = async () => {
     if (!assignedTo) { toast.error('Please select a sales assistant'); return; }
