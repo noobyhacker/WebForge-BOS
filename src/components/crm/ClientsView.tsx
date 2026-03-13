@@ -3,6 +3,7 @@ import { Client, FollowUp, FollowUpStatus } from '@/types/crm';
 import { ClientCard } from './ClientCard';
 import { ClientDetails } from './ClientDetails';
 import { AddClientDialog } from './AddClientDialog';
+import { ClientChatDialog } from './ClientChatDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,6 +21,7 @@ export function ClientsView() {
 
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [showAddClient, setShowAddClient] = useState(false);
+  const [chatClient, setChatClient] = useState<Client | null>(null);
 
   const currentSelectedClient = selectedClient
     ? clients.find((c) => c.id === selectedClient.id) || null
