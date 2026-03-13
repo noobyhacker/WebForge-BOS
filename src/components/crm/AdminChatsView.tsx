@@ -95,7 +95,7 @@ export function AdminChatsView() {
               return (
                 <div key={m.id} className="grid grid-cols-[1fr_1fr_2fr_auto] gap-2 p-3 text-sm hover:bg-secondary/10">
                   <span className="truncate text-muted-foreground">{clientNames[m.client_id] || m.client_id.slice(0, 8)}</span>
-                  <span className="truncate">{sender?.full_name || sender?.email || 'Unknown'}</span>
+                  <span className="truncate">{sender?.fullName || sender?.email || 'Unknown'}</span>
                   <span className="truncate">{m.content}</span>
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
                     {format(new Date(m.created_at), 'MMM d, HH:mm')}

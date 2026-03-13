@@ -55,8 +55,8 @@ export function ClientChatPanel({ clientId, clientName }: ClientChatPanelProps) 
         ) : (
           messages.map(msg => {
             const isMe = msg.sender_id === user?.id;
-            const senderProfile = profiles[msg.sender_id];
-            const senderName = senderProfile?.full_name || senderProfile?.email || 'Unknown';
+            const senderProfile = profiles.get(msg.sender_id);
+            const senderName = senderProfile?.fullName || senderProfile?.email || 'Unknown';
             return (
               <div key={msg.id} className={cn('flex flex-col max-w-[85%]', isMe ? 'ml-auto items-end' : 'items-start')}>
                 <span className="text-[10px] text-muted-foreground mb-0.5 px-1">{senderName}</span>
