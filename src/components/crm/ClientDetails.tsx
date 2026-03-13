@@ -3,11 +3,15 @@ import { Client, FollowUp, FollowUpStatus } from '@/types/crm';
 import { StatusBadge } from './StatusBadge';
 import { FollowUpItem } from './FollowUpItem';
 import { Button } from '@/components/ui/button';
-import { Building2, Mail, Phone, Calendar, FileText, Plus, X, Pencil, Share2 } from 'lucide-react';
+import { Building2, Mail, Phone, Calendar, FileText, Plus, X, Pencil, Share2, UserPlus } from 'lucide-react';
 import { AddFollowUpDialog } from './AddFollowUpDialog';
 import { EditFollowUpDialog } from './EditFollowUpDialog';
 import { EditClientDialog } from './EditClientDialog';
 import { ShareClientDialog } from './ShareClientDialog';
+import { AssignClientDialog } from './AssignClientDialog';
+import { ClientAssignmentSection } from './ClientAssignmentSection';
+import { ClientChatPanel } from './ClientChatPanel';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ClientDetailsProps {
