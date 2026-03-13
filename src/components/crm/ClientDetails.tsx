@@ -3,11 +3,15 @@ import { Client, FollowUp, FollowUpStatus } from '@/types/crm';
 import { StatusBadge } from './StatusBadge';
 import { FollowUpItem } from './FollowUpItem';
 import { Button } from '@/components/ui/button';
-import { Building2, Mail, Phone, Calendar, FileText, Plus, X, Pencil, Share2 } from 'lucide-react';
+import { Building2, Mail, Phone, Calendar, FileText, Plus, X, Pencil, Share2, UserPlus } from 'lucide-react';
 import { AddFollowUpDialog } from './AddFollowUpDialog';
 import { EditFollowUpDialog } from './EditFollowUpDialog';
 import { EditClientDialog } from './EditClientDialog';
 import { ShareClientDialog } from './ShareClientDialog';
+import { AssignClientDialog } from './AssignClientDialog';
+import { ClientAssignmentSection } from './ClientAssignmentSection';
+import { ClientChatPanel } from './ClientChatPanel';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ClientDetailsProps {
@@ -31,14 +35,16 @@ export function ClientDetails({
   onEditClient,
   onDeleteClient,
 }: ClientDetailsProps) {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isSalesManager, hasPermission } = useAuth();
   const [showAddFollowUp, setShowAddFollowUp] = useState(false);
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUp | null>(null);
   const [showEditClient, setShowEditClient] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
 
   // Only owners and admins can share
   const canShare = isAdmin || client.userId === user?.id;
+  const canAssign = isAdmin || isSalesManager || hasPermission('assign_clients');
 
   const sortedFollowUps = [...client.followUps].sort((a, b) => {
     if (a.status === 'completed' && b.status !== 'completed') return 1;
@@ -70,6 +76,11 @@ export function ClientDetails({
       <div className="flex items-center justify-between p-4 border-b">
         <h2 className="font-semibold text-lg">Client Details</h2>
         <div className="flex items-center gap-1">
+          {canAssign && (
+            <Button variant="ghost" size="icon" onClick={() => setShowAssignDialog(true)} title="Assign client">
+              <UserPlus className="h-4 w-4" />
+            </Button>
+          )}
           {canShare && (
             <Button variant="ghost" size="icon" onClick={() => setShowShareDialog(true)} title="Share client">
               <Share2 className="h-4 w-4" />
@@ -194,6 +205,14 @@ export function ClientDetails({
             </div>
           )}
         </div>
+
+        {/* Assignment Section */}
+        <ClientAssignmentSection clientId={client.id} onAssign={() => setShowAssignDialog(true)} />
+
+        {/* Chat */}
+        <div className="border rounded-lg overflow-hidden h-64">
+          <ClientChatPanel clientId={client.id} clientName={client.name} />
+        </div>
       </div>
 
       <AddFollowUpDialog
@@ -224,6 +243,13 @@ export function ClientDetails({
       <ShareClientDialog
         open={showShareDialog}
         onOpenChange={setShowShareDialog}
+        clientId={client.id}
+        clientName={client.name}
+      />
+
+      <AssignClientDialog
+        open={showAssignDialog}
+        onOpenChange={setShowAssignDialog}
         clientId={client.id}
         clientName={client.name}
       />

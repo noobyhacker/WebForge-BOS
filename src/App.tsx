@@ -28,6 +28,8 @@ import { TasksView } from "@/components/crm/TasksView";
 import { RolePermissionsView } from "@/components/crm/RolePermissionsView";
 import { FormsView } from "@/components/crm/FormsView";
 import { KpisView } from "@/components/crm/KpisView";
+import { BulkAssignView } from "@/components/crm/BulkAssignView";
+import { AdminChatsView } from "@/components/crm/AdminChatsView";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -72,6 +74,8 @@ const App = () => (
               <Route path="trash" element={<TrashView />} />
               <Route path="admin" element={<AdminUsersView />} />
               <Route path="permissions" element={<RolePermissionsView />} />
+              <Route path="bulk-assign" element={<BulkAssignView />} />
+              <Route path="chats" element={<AdminChatsView />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
