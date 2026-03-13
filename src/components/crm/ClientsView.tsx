@@ -69,6 +69,7 @@ export function ClientsView() {
                 isSelected={currentSelectedClient?.id === client.id}
                 onClaimClient={claimClient}
                 onServeClient={serveClient}
+                onOpenChat={(c) => setChatClient(c)}
               />
             ))}
           </div>
