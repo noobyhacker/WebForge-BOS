@@ -205,6 +205,14 @@ export function ClientDetails({
             </div>
           )}
         </div>
+
+        {/* Assignment Section */}
+        <ClientAssignmentSection clientId={client.id} onAssign={() => setShowAssignDialog(true)} />
+
+        {/* Chat */}
+        <div className="border rounded-lg overflow-hidden h-64">
+          <ClientChatPanel clientId={client.id} clientName={client.name} />
+        </div>
       </div>
 
       <AddFollowUpDialog
