@@ -44,6 +44,7 @@ export function ClientDetails({
 
   // Only owners and admins can share
   const canShare = isAdmin || client.userId === user?.id;
+  const canAssign = isAdmin || isSalesManager || hasPermission('assign_clients');
 
   const sortedFollowUps = [...client.followUps].sort((a, b) => {
     if (a.status === 'completed' && b.status !== 'completed') return 1;
