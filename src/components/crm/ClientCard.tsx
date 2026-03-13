@@ -1,6 +1,6 @@
 import { Client } from '@/types/crm';
 import { StatusBadge } from './StatusBadge';
-import { Building2, Mail, Phone, Calendar, UserPlus, CheckCircle } from 'lucide-react';
+import { Building2, Mail, Phone, Calendar, UserPlus, CheckCircle, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +11,7 @@ interface ClientCardProps {
   isSelected?: boolean;
   onClaimClient?: (clientId: string) => void;
   onServeClient?: (clientId: string) => void;
+  onOpenChat?: (client: Client) => void;
 }
 
 export function ClientCard({ client, onClick, isSelected, onClaimClient, onServeClient }: ClientCardProps) {
