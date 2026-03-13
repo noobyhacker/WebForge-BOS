@@ -102,6 +102,15 @@ export function ClientsView() {
       )}
 
       <AddClientDialog open={showAddClient} onOpenChange={setShowAddClient} onAdd={addClient} />
+
+      {chatClient && (
+        <ClientChatDialog
+          open={!!chatClient}
+          onOpenChange={(open) => !open && setChatClient(null)}
+          clientId={chatClient.id}
+          clientName={chatClient.name}
+        />
+      )}
     </div>
   );
 }
