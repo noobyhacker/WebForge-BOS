@@ -39,8 +39,8 @@ export function ClientAssignmentSection({ clientId, onAssign }: ClientAssignment
       ) : (
         <div className="space-y-2">
           {assignments.map(a => {
-            const assignee = profiles[a.assigned_to];
-            const assigner = profiles[a.assigned_by];
+            const assignee = profiles.get(a.assigned_to);
+            const assigner = profiles.get(a.assigned_by);
             const assignmentFiles = files.filter(f => f.assignment_id === a.id);
             return (
               <div key={a.id} className="p-3 rounded-lg bg-secondary/50 space-y-2">
