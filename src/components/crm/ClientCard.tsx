@@ -50,18 +50,18 @@ export function ClientCard({ client, onClick, isSelected, onClaimClient, onServe
         <StatusBadge status={client.status} className="flex-shrink-0" />
       </div>
 
-      <div className="space-y-1.5 text-sm text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <Mail className="h-3.5 w-3.5" />
+      <div className="space-y-1.5 text-sm text-muted-foreground min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <Mail className="h-3.5 w-3.5 flex-shrink-0" />
           <span className="truncate">{client.email}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Phone className="h-3.5 w-3.5" />
-          <span>{client.phone}</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <Phone className="h-3.5 w-3.5 flex-shrink-0" />
+          <span className="truncate">{client.phone}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Calendar className="h-3.5 w-3.5" />
-          <span>Last contact: {new Date(client.lastContact).toLocaleDateString()}</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
+          <span className="truncate">Last contact: {new Date(client.lastContact).toLocaleDateString()}</span>
         </div>
       </div>
 
