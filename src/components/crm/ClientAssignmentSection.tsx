@@ -47,10 +47,10 @@ export function ClientAssignmentSection({ clientId, onAssign }: ClientAssignment
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">
-                      → {assignee?.full_name || assignee?.email || 'Unknown'}
+                      → {assignee?.fullName || assignee?.email || 'Unknown'}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
-                      by {assigner?.full_name || assigner?.email || 'Unknown'} · {format(new Date(a.created_at), 'MMM d, yyyy')}
+                      by {assigner?.fullName || assigner?.email || 'Unknown'} · {format(new Date(a.created_at), 'MMM d, yyyy')}
                     </p>
                   </div>
                   {canAssign && (

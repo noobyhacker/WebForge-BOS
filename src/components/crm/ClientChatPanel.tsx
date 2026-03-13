@@ -16,7 +16,7 @@ interface ClientChatPanelProps {
 export function ClientChatPanel({ clientId, clientName }: ClientChatPanelProps) {
   const { user } = useAuth();
   const { messages, loading, sendMessage } = useChatMessages(clientId);
-  const profiles = useProfilesMap();
+  const { profiles } = useProfilesMap();
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
