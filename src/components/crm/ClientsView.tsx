@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Client, FollowUp, FollowUpStatus } from '@/types/crm';
 import { ClientCard } from './ClientCard';
 import { ClientDetails } from './ClientDetails';
