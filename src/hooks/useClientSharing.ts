@@ -93,6 +93,60 @@ export function useClientSharing(clientId: string | null) {
         return { error: error.message };
       }
 
+      // Auto-share linked Account and Contact
+      try {
+        // Find the client to get company/name info
+        const { data: clientData } = await supabase
+          .from('clients')
+          .select('name, company')
+          .eq('id', clientId)
+          .single();
+
+        if (clientData) {
+          // Find linked account by company name and owner
+          if (clientData.company) {
+            const { data: accounts } = await supabase
+              .from('accounts')
+              .select('id')
+              .eq('name', clientData.company)
+              .limit(1);
+
+            if (accounts && accounts.length > 0) {
+              await supabase.from('entity_shares').insert({
+                entity_type: 'account',
+                entity_id: accounts[0].id,
+                user_id: userIdToShare,
+                permission,
+                created_by: user.id,
+              }).then(({ error: e }) => { if (e) console.warn('Auto-share account:', e.message); });
+            }
+          }
+
+          // Find linked contact by client name
+          if (clientData.name) {
+            const nameParts = clientData.name.trim().split(/\s+/);
+            const firstName = nameParts[0];
+            let query = supabase.from('contacts').select('id').eq('first_name', firstName).limit(1);
+            if (nameParts.length > 1) {
+              query = query.eq('last_name', nameParts.slice(1).join(' '));
+            }
+            const { data: contacts } = await query;
+
+            if (contacts && contacts.length > 0) {
+              await supabase.from('entity_shares').insert({
+                entity_type: 'contact',
+                entity_id: contacts[0].id,
+                user_id: userIdToShare,
+                permission,
+                created_by: user.id,
+              }).then(({ error: e }) => { if (e) console.warn('Auto-share contact:', e.message); });
+            }
+          }
+        }
+      } catch (autoShareErr) {
+        console.warn('Auto-share account/contact failed:', autoShareErr);
+      }
+
       await fetchShares();
       return { error: null };
     } catch (error) {
