@@ -158,32 +158,41 @@ function SidebarContent({
       </div>
 
       <nav className="flex-1 p-3 space-y-4 overflow-y-auto">
-        {navGroups.map((group) => (
-          <div key={group.label} className="space-y-0.5">
-            {!collapsed && (
-              <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                {group.label}
-              </p>
-            )}
-            {collapsed && <div className="border-t border-sidebar-border my-1" />}
-            {group.items.map((item) => (
-              <button
-                key={item.path}
-                onClick={() => handleNavClick(item.path)}
-                className={cn(
-                  'w-full flex items-center gap-3 py-2 rounded-lg text-sm font-medium transition-all',
-                  collapsed ? 'justify-center px-2' : 'px-3',
-                  isActive(item.path)
-                    ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-[0_0_12px_hsl(var(--neon-glow)/0.5),0_0_24px_hsl(var(--neon-glow)/0.2)]'
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                )}
-              >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
-              </button>
-            ))}
-          </div>
-        ))}
+        {navGroups.map((group) => {
+          const visibleItems = group.items.filter((item) => {
+            if (isAdmin) return true;
+            if (item.adminOnly) return false;
+            if (item.requiredPermission && !hasPermission(item.requiredPermission)) return false;
+            return true;
+          });
+          if (visibleItems.length === 0) return null;
+          return (
+            <div key={group.label} className="space-y-0.5">
+              {!collapsed && (
+                <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  {group.label}
+                </p>
+              )}
+              {collapsed && <div className="border-t border-sidebar-border my-1" />}
+              {visibleItems.map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => handleNavClick(item.path)}
+                  className={cn(
+                    'w-full flex items-center gap-3 py-2 rounded-lg text-sm font-medium transition-all',
+                    collapsed ? 'justify-center px-2' : 'px-3',
+                    isActive(item.path)
+                      ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-[0_0_12px_hsl(var(--neon-glow)/0.5),0_0_24px_hsl(var(--neon-glow)/0.2)]'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                  )}
+                >
+                  <item.icon className="h-5 w-5 flex-shrink-0" />
+                  {!collapsed && <span>{item.label}</span>}
+                </button>
+              ))}
+            </div>
+          );
+        })}
 
         {/* Admin Section */}
         {isAdmin && (
