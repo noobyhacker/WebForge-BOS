@@ -35,11 +35,12 @@ export function ClientDetails({
   onEditClient,
   onDeleteClient,
 }: ClientDetailsProps) {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isSalesManager, hasPermission } = useAuth();
   const [showAddFollowUp, setShowAddFollowUp] = useState(false);
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUp | null>(null);
   const [showEditClient, setShowEditClient] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
 
   // Only owners and admins can share
   const canShare = isAdmin || client.userId === user?.id;
