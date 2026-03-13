@@ -26,42 +26,42 @@ export function ClientCard({ client, onClick, isSelected, onClaimClient, onServe
     <div
       onClick={onClick}
       className={cn(
-        'group cursor-pointer rounded-lg border-2 border-primary/40 bg-card p-4 transition-all hover-lift shadow-sm hover:border-primary hover:shadow-md',
+        'group cursor-pointer rounded-lg border-2 border-primary/40 bg-card p-4 transition-all hover-lift shadow-sm hover:border-primary hover:shadow-md overflow-hidden',
         isSelected && 'ring-2 ring-primary border-primary'
       )}
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+      <div className="flex items-start justify-between gap-2 mb-3 min-w-0">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
             <span className="text-sm font-semibold text-primary">
               {client.name.split(' ').map((n) => n[0]).join('')}
             </span>
           </div>
-          <div>
-            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+          <div className="min-w-0 flex-1">
+            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">
               {client.name}
             </h3>
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Building2 className="h-3.5 w-3.5" />
-              {client.company}
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0">
+              <Building2 className="h-3.5 w-3.5 flex-shrink-0" />
+              <span className="truncate">{client.company}</span>
             </div>
           </div>
         </div>
-        <StatusBadge status={client.status} />
+        <StatusBadge status={client.status} className="flex-shrink-0" />
       </div>
 
-      <div className="space-y-1.5 text-sm text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <Mail className="h-3.5 w-3.5" />
+      <div className="space-y-1.5 text-sm text-muted-foreground min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <Mail className="h-3.5 w-3.5 flex-shrink-0" />
           <span className="truncate">{client.email}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Phone className="h-3.5 w-3.5" />
-          <span>{client.phone}</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <Phone className="h-3.5 w-3.5 flex-shrink-0" />
+          <span className="truncate">{client.phone}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Calendar className="h-3.5 w-3.5" />
-          <span>Last contact: {new Date(client.lastContact).toLocaleDateString()}</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
+          <span className="truncate">Last contact: {new Date(client.lastContact).toLocaleDateString()}</span>
         </div>
       </div>
 

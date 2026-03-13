@@ -29,17 +29,18 @@ export function ClientsView() {
     <div className="flex h-full animate-fade-in">
       <div className="flex-1 flex flex-col min-w-0">
         <div className="space-y-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="min-w-0">
               <h1 className="text-2xl font-bold tracking-tight">Clients</h1>
-              <p className="text-muted-foreground">Manage and track all your client relationships.</p>
+              <p className="text-muted-foreground text-sm">Manage and track all your client relationships.</p>
             </div>
-            <Button onClick={() => setShowAddClient(true)} className="gap-2">
+            <Button onClick={() => setShowAddClient(true)} className="gap-2 flex-shrink-0">
               <Plus className="h-4 w-4" />
-              Add Client
+              <span className="hidden sm:inline">Add Client</span>
+              <span className="sm:hidden">Add</span>
             </Button>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search clients..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />

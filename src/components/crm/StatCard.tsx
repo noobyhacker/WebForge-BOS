@@ -76,10 +76,10 @@ export function StatCard({ title, value, icon: Icon, trend, sparklineData, varia
         </div>
       )}
 
-      <div className="flex items-start justify-between relative z-10">
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-2xl font-semibold tracking-tight">{value}</p>
+      <div className="flex items-start justify-between gap-2 relative z-10 min-w-0">
+        <div className="space-y-1 min-w-0 flex-1">
+          <p className="text-sm font-medium text-muted-foreground truncate">{title}</p>
+          <p className="text-2xl font-semibold tracking-tight truncate">{value}</p>
           {trend && (
             <p
               className={cn(
@@ -91,8 +91,8 @@ export function StatCard({ title, value, icon: Icon, trend, sparklineData, varia
             </p>
           )}
         </div>
-        <div className={cn('rounded-lg p-2.5', iconVariantStyles[variant])}>
-          <Icon className="h-5 w-5" />
+        <div className={cn('rounded-lg p-2.5 flex-shrink-0', iconVariantStyles[variant])}>
+          <Icon className="h-5 w-5 flex-shrink-0" />
         </div>
       </div>
     </div>
