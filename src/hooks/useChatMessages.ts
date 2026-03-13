@@ -9,6 +9,9 @@ export interface ChatMessage {
   content: string;
   created_at: string;
   reply_to?: string | null;
+  file_url?: string | null;
+  file_name?: string | null;
+  file_type?: string | null;
 }
 
 export function useChatMessages(clientId?: string) {
@@ -48,14 +51,19 @@ export function useChatMessages(clientId?: string) {
     return () => { supabase.removeChannel(channel); };
   }, [clientId]);
 
-  const sendMessage = useCallback(async (content: string, replyTo?: string) => {
-    if (!user || !clientId || !content.trim()) return;
+  const sendMessage = useCallback(async (content: string, replyTo?: string, file?: { url: string; name: string; type: string }) => {
+    if (!user || !clientId || (!content.trim() && !file)) return;
     const row: any = {
       client_id: clientId,
       sender_id: user.id,
-      content: content.trim(),
+      content: content.trim() || `📎 ${file?.name || 'File'}`,
     };
     if (replyTo) row.reply_to = replyTo;
+    if (file) {
+      row.file_url = file.url;
+      row.file_name = file.name;
+      row.file_type = file.type;
+    }
     const { error } = await supabase.from('chat_messages' as any).insert(row);
     if (error) { console.error('Error sending message:', error); throw error; }
   }, [user, clientId]);
@@ -98,7 +106,6 @@ export function useActiveChats() {
 
   const fetchChats = useCallback(async () => {
     if (!user) { setChats([]); setLoading(false); return; }
-    // Get clients the user has access to that have chat messages
     const { data: clientRows } = await supabase
       .from('clients' as any)
       .select('id, name')
@@ -109,7 +116,6 @@ export function useActiveChats() {
     const clientIds = (clientRows as any[]).map(c => c.id);
     const clientMap = new Map((clientRows as any[]).map(c => [c.id, c.name]));
 
-    // Get the latest message per client
     const { data: msgs } = await supabase
       .from('chat_messages' as any)
       .select('client_id, content, created_at')
@@ -119,7 +125,6 @@ export function useActiveChats() {
 
     if (!msgs || msgs.length === 0) { setChats([]); setLoading(false); return; }
 
-    // Group by client, take latest
     const latestByClient = new Map<string, { content: string; created_at: string }>();
     for (const m of msgs as any[]) {
       if (!latestByClient.has(m.client_id)) {
@@ -142,7 +147,6 @@ export function useActiveChats() {
 
   useEffect(() => { fetchChats(); }, [fetchChats]);
 
-  // Realtime: refresh when any new message comes in
   useEffect(() => {
     if (!user) return;
     const channel = supabase

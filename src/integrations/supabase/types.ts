@@ -229,6 +229,9 @@ export type Database = {
           client_id: string
           content: string
           created_at: string
+          file_name: string | null
+          file_type: string | null
+          file_url: string | null
           id: string
           reply_to: string | null
           sender_id: string
@@ -237,6 +240,9 @@ export type Database = {
           client_id: string
           content: string
           created_at?: string
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
           id?: string
           reply_to?: string | null
           sender_id: string
@@ -245,6 +251,9 @@ export type Database = {
           client_id?: string
           content?: string
           created_at?: string
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
           id?: string
           reply_to?: string | null
           sender_id?: string
