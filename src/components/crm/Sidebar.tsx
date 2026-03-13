@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useState, useEffect } from 'react';
+import { useActiveChats } from '@/hooks/useChatMessages';
 import { Switch } from '@/components/ui/switch';
 import { useNavigate, useLocation } from 'react-router-dom';
 
