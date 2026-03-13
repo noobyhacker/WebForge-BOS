@@ -71,6 +71,7 @@ const navGroups: NavGroup[] = [
       { path: '/deals', label: 'Deals', icon: Handshake },
       { path: '/activities', label: 'Activities', icon: ListTodo },
       { path: '/followups', label: 'Follow-ups', icon: Calendar },
+      { path: '/bulk-assign', label: 'Assign Clients', icon: UserPlus },
     ],
   },
   {
