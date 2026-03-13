@@ -12,7 +12,7 @@ import { useEffect } from 'react';
 export function AdminChatsView() {
   const { isAdmin } = useAuth();
   const { messages, loading } = useAllChatMessages();
-  const profiles = useProfilesMap();
+  const { profiles } = useProfilesMap();
   const [searchQuery, setSearchQuery] = useState('');
   const [clientFilter, setClientFilter] = useState('all');
   const [clientNames, setClientNames] = useState<Record<string, string>>({});
