@@ -123,6 +123,7 @@ function SidebarContent({
   onNavigate 
 }: SidebarProps & { onNavigate?: () => void }) {
   const { isAdmin, signOut, profile, hasPermission } = useAuth();
+  const { chats: activeChats } = useActiveChats();
   const navigate = useNavigate();
   const location = useLocation();
 
