@@ -68,6 +68,16 @@ export function useClientAssignments(clientId?: string) {
       .select()
       .single();
     if (error) { console.error('Error assigning client:', error); throw error; }
+
+    // Auto-share the client with the assigned user so they can see it via RLS
+    await supabase.from('client_shares').upsert({
+      client_id: targetClientId,
+      shared_with_user_id: assignedTo,
+      permission: 'edit',
+      created_by: user.id,
+      user_id: user.id,
+    }, { onConflict: 'client_id,shared_with_user_id' }).select();
+
     await fetchAssignments();
     return data as unknown as ClientAssignment;
   }, [user, fetchAssignments]);

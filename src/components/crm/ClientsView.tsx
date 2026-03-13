@@ -3,6 +3,7 @@ import { Client, FollowUp, FollowUpStatus } from '@/types/crm';
 import { ClientCard } from './ClientCard';
 import { ClientDetails } from './ClientDetails';
 import { AddClientDialog } from './AddClientDialog';
+import { ClientChatDialog } from './ClientChatDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,6 +21,7 @@ export function ClientsView() {
 
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [showAddClient, setShowAddClient] = useState(false);
+  const [chatClient, setChatClient] = useState<Client | null>(null);
 
   const currentSelectedClient = selectedClient
     ? clients.find((c) => c.id === selectedClient.id) || null
@@ -67,6 +69,7 @@ export function ClientsView() {
                 isSelected={currentSelectedClient?.id === client.id}
                 onClaimClient={claimClient}
                 onServeClient={serveClient}
+                onOpenChat={(c) => setChatClient(c)}
               />
             ))}
           </div>
@@ -99,6 +102,15 @@ export function ClientsView() {
       )}
 
       <AddClientDialog open={showAddClient} onOpenChange={setShowAddClient} onAdd={addClient} />
+
+      {chatClient && (
+        <ClientChatDialog
+          open={!!chatClient}
+          onOpenChange={(open) => !open && setChatClient(null)}
+          clientId={chatClient.id}
+          clientName={chatClient.name}
+        />
+      )}
     </div>
   );
 }
