@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Client, FollowUp, FollowUpStatus } from '@/types/crm';
 import { ClientCard } from './ClientCard';
 import { ClientDetails } from './ClientDetails';
@@ -22,6 +23,20 @@ export function ClientsView() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [showAddClient, setShowAddClient] = useState(false);
   const [chatClient, setChatClient] = useState<Client | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Auto-open chat from sidebar link
+  useEffect(() => {
+    const chatId = searchParams.get('chat');
+    if (chatId && clients.length > 0) {
+      const client = clients.find(c => c.id === chatId);
+      if (client) {
+        setChatClient(client);
+        searchParams.delete('chat');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [searchParams, clients]);
 
   const currentSelectedClient = selectedClient
     ? clients.find((c) => c.id === selectedClient.id) || null

@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useState, useEffect } from 'react';
+import { useActiveChats } from '@/hooks/useChatMessages';
 import { Switch } from '@/components/ui/switch';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -122,6 +123,7 @@ function SidebarContent({
   onNavigate 
 }: SidebarProps & { onNavigate?: () => void }) {
   const { isAdmin, signOut, profile, hasPermission } = useAuth();
+  const { chats: activeChats } = useActiveChats();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -193,6 +195,37 @@ function SidebarContent({
             </div>
           );
         })}
+
+        {/* My Chats Section */}
+        {activeChats.length > 0 && (
+          <div className="space-y-0.5">
+            {!collapsed && (
+              <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                My Chats
+              </p>
+            )}
+            {collapsed && <div className="border-t border-sidebar-border my-1" />}
+            {activeChats.slice(0, 8).map(chat => (
+              <button
+                key={chat.clientId}
+                onClick={() => handleNavClick(`/clients?chat=${chat.clientId}`)}
+                className={cn(
+                  'w-full flex items-center gap-3 py-2 rounded-lg text-sm font-medium transition-all',
+                  collapsed ? 'justify-center px-2' : 'px-3',
+                  'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                )}
+              >
+                <MessageCircle className="h-4 w-4 flex-shrink-0" />
+                {!collapsed && (
+                  <div className="flex-1 min-w-0 text-left">
+                    <span className="block truncate text-sm">{chat.clientName}</span>
+                    <span className="block truncate text-[10px] text-muted-foreground">{chat.lastMessage.slice(0, 30)}</span>
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Admin Section */}
         {isAdmin && (

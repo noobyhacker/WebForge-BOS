@@ -230,6 +230,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          reply_to: string | null
           sender_id: string
         }
         Insert: {
@@ -237,6 +238,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          reply_to?: string | null
           sender_id: string
         }
         Update: {
@@ -244,6 +246,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          reply_to?: string | null
           sender_id?: string
         }
         Relationships: [
@@ -252,6 +255,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
             referencedColumns: ["id"]
           },
         ]
