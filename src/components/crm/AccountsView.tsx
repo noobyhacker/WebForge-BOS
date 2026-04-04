@@ -2,14 +2,15 @@ import { useState } from 'react';
 import { Account } from '@/types/crm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { Search, Plus, Building2, Globe, Phone, MapPin, Trash2, Pencil, UserCircle } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Search, Plus, Building2, Trash2, Pencil } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { ConfirmDialog } from './ConfirmDialog';
 import { EntityDetailPanel } from './EntityDetailPanel';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useProfilesMap } from '@/hooks/useProfilesMap';
+import { cn } from '@/lib/utils';
 
 export function AccountsView() {
   const { accounts, addAccount, updateAccount, deleteAccount } = useAccounts();
@@ -49,10 +50,10 @@ export function AccountsView() {
   return (
     <div className="flex h-full animate-fade-in">
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Accounts</h1>
-            <p className="text-muted-foreground">Companies and organizations you work with.</p>
+            <p className="text-muted-foreground text-sm">Companies and organizations you work with.</p>
           </div>
           <Button onClick={() => setShowAdd(true)} className="gap-2"><Plus className="h-4 w-4" />Add Account</Button>
         </div>
@@ -63,30 +64,49 @@ export function AccountsView() {
         </div>
 
         {filtered.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 overflow-auto pb-4">
-            {filtered.map(a => (
-              <Card key={a.id} className={`hover:shadow-md transition-shadow cursor-pointer ${currentSelected?.id === a.id ? 'ring-2 ring-primary' : ''}`} onClick={() => setSelectedAccount(a)}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><Building2 className="h-4 w-4 text-primary" /></div>
-                      <div>
-                        <p className="font-semibold text-sm">{a.name}</p>
-                        {a.industry && <p className="text-xs text-muted-foreground">{a.industry}</p>}
+          <div className="rounded-md border overflow-auto flex-1">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[200px]">Company</TableHead>
+                  <TableHead>Industry</TableHead>
+                  <TableHead>Website</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Address</TableHead>
+                  <TableHead>Owner</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map(a => (
+                  <TableRow
+                    key={a.id}
+                    className={cn('cursor-pointer', currentSelected?.id === a.id && 'bg-primary/5')}
+                    onClick={() => setSelectedAccount(a)}
+                  >
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Building2 className="h-3.5 w-3.5 text-primary" />
+                        </div>
+                        <span className="truncate">{a.name}</span>
                       </div>
-                    </div>
-                  </div>
-                  {a.website && <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><Globe className="h-3 w-3" />{a.website}</p>}
-                  {a.phone && <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><Phone className="h-3 w-3" />{a.phone}</p>}
-                  {a.address && <p className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" />{a.address}</p>}
-                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><UserCircle className="h-3 w-3" />Owner: {getOwnerName(a.ownerId)} · {getOwnerRole(a.ownerId)}</p>
-                  <div className="flex gap-1 mt-3" onClick={e => e.stopPropagation()}>
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(a)}><Pencil className="h-3 w-3" /></Button>
-                    <Button variant="ghost" size="sm" onClick={() => setDeleteId(a.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{a.industry || '—'}</TableCell>
+                    <TableCell className="text-muted-foreground truncate max-w-[150px]">{a.website || '—'}</TableCell>
+                    <TableCell className="text-muted-foreground">{a.phone || '—'}</TableCell>
+                    <TableCell className="text-muted-foreground truncate max-w-[150px]">{a.address || '—'}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs">{getOwnerName(a.ownerId)}</TableCell>
+                    <TableCell className="text-right" onClick={e => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(a)}><Pencil className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteId(a.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         ) : (
           <div className="text-center py-12 text-muted-foreground">
@@ -100,8 +120,8 @@ export function AccountsView() {
           <EntityDetailPanel entityType="account" entityId={currentSelected.id} entityName={currentSelected.name} onClose={() => setSelectedAccount(null)}>
             <div className="space-y-1 text-sm">
               {currentSelected.industry && <p className="text-muted-foreground">{currentSelected.industry}</p>}
-              {currentSelected.website && <p className="text-muted-foreground"><Globe className="h-3 w-3 inline mr-1" />{currentSelected.website}</p>}
-              {currentSelected.phone && <p className="text-muted-foreground"><Phone className="h-3 w-3 inline mr-1" />{currentSelected.phone}</p>}
+              {currentSelected.website && <p className="text-muted-foreground">🌐 {currentSelected.website}</p>}
+              {currentSelected.phone && <p className="text-muted-foreground">☎ {currentSelected.phone}</p>}
             </div>
           </EntityDetailPanel>
         </div>

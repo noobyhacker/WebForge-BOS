@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { Contact } from '@/types/crm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, User, Mail, Phone, Building2, Trash2, Pencil, UserCircle } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Search, Plus, User, Trash2, Pencil } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,6 +13,22 @@ import { EntityDetailPanel } from './EntityDetailPanel';
 import { useContacts } from '@/hooks/useContacts';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useProfilesMap } from '@/hooks/useProfilesMap';
+import { cn } from '@/lib/utils';
+
+const STATUS_TABS = [
+  { value: 'all', label: 'All' },
+  { value: 'prospect', label: 'Prospect' },
+  { value: 'active', label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
+];
+
+const statusBadgeVariant = (s: string) => {
+  switch (s) {
+    case 'active': return 'default' as const;
+    case 'inactive': return 'secondary' as const;
+    default: return 'outline' as const;
+  }
+};
 
 export function ContactsView() {
   const { contacts, addContact, updateContact, deleteContact } = useContacts();
@@ -20,15 +36,18 @@ export function ContactsView() {
   const { getOwnerName, getOwnerRole } = useProfilesMap();
 
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
-  const [form, setForm] = useState<{ firstName: string; lastName: string; email: string; phone: string; accountId: string; status: 'active' | 'inactive' | 'prospect'; source: string; title: string }>({ firstName: '', lastName: '', email: '', phone: '', accountId: '', status: 'prospect', source: '', title: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', accountId: '', status: 'prospect' as 'active' | 'inactive' | 'prospect', source: '', title: '' });
 
-  const filtered = contacts.filter(c =>
-    `${c.firstName} ${c.lastName} ${c.email} ${c.accountName}`.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = contacts.filter(c => {
+    const matchSearch = `${c.firstName} ${c.lastName} ${c.email} ${c.accountName}`.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === 'all' || c.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
 
   const currentSelected = selectedContact ? contacts.find(c => c.id === selectedContact.id) || null : null;
   const resetForm = () => setForm({ firstName: '', lastName: '', email: '', phone: '', accountId: '', status: 'prospect', source: '', title: '' });
@@ -39,7 +58,6 @@ export function ContactsView() {
     setEditId(c.id);
   };
   const handleUpdate = () => { if (editId) { updateContact(editId, { ...form, accountId: form.accountId || undefined }); setEditId(null); resetForm(); } };
-  const statusColor = (s: string) => s === 'active' ? 'default' : s === 'inactive' ? 'secondary' : 'outline';
 
   const formDialog = (open: boolean, onClose: () => void, onSubmit: () => void, title: string) => (
     <Dialog open={open} onOpenChange={(o) => { if (!o) { onClose(); resetForm(); } }}>
@@ -84,12 +102,30 @@ export function ContactsView() {
   return (
     <div className="flex h-full animate-fade-in">
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Contacts</h1>
-            <p className="text-muted-foreground">Manage individual contacts and link them to accounts.</p>
+            <p className="text-muted-foreground text-sm">Manage individual contacts and link them to accounts.</p>
           </div>
           <Button onClick={() => setShowAdd(true)} className="gap-2"><Plus className="h-4 w-4" />Add Contact</Button>
+        </div>
+
+        {/* Status tabs */}
+        <div className="flex gap-1 border-b mb-4">
+          {STATUS_TABS.map(tab => (
+            <button
+              key={tab.value}
+              onClick={() => setStatusFilter(tab.value)}
+              className={cn(
+                'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
+                statusFilter === tab.value
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         <div className="relative mb-4">
@@ -98,31 +134,53 @@ export function ContactsView() {
         </div>
 
         {filtered.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 overflow-auto pb-6">
-            {filtered.map(c => (
-              <Card key={c.id} className={`hover:shadow-md transition-shadow cursor-pointer ${currentSelected?.id === c.id ? 'ring-2 ring-primary' : ''}`} onClick={() => setSelectedContact(c)}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center"><User className="h-4 w-4 text-primary" /></div>
-                      <div>
-                        <p className="font-semibold text-sm">{c.firstName} {c.lastName}</p>
-                        {c.title && <p className="text-xs text-muted-foreground">{c.title}</p>}
+          <div className="rounded-md border overflow-auto flex-1">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[180px]">Name</TableHead>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Account</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Owner</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map(c => (
+                  <TableRow
+                    key={c.id}
+                    className={cn('cursor-pointer', currentSelected?.id === c.id && 'bg-primary/5')}
+                    onClick={() => setSelectedContact(c)}
+                  >
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <User className="h-3.5 w-3.5 text-primary" />
+                        </div>
+                        <span className="truncate">{c.firstName} {c.lastName}</span>
                       </div>
-                    </div>
-                    <Badge variant={statusColor(c.status)}>{c.status}</Badge>
-                  </div>
-                  {c.email && <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><Mail className="h-3 w-3" />{c.email}</p>}
-                  {c.phone && <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><Phone className="h-3 w-3" />{c.phone}</p>}
-                  {c.accountName && <p className="text-xs text-muted-foreground flex items-center gap-1"><Building2 className="h-3 w-3" />{c.accountName}</p>}
-                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><UserCircle className="h-3 w-3" />Owner: {getOwnerName(c.ownerId)} · {getOwnerRole(c.ownerId)}</p>
-                  <div className="flex gap-2 mt-3 pb-1" onClick={e => e.stopPropagation()}>
-                    <Button variant="ghost" size="sm" className="p-2" onClick={() => handleEdit(c)}><Pencil className="h-3 w-3" /></Button>
-                    <Button variant="ghost" size="sm" className="p-2" onClick={() => setDeleteId(c.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground truncate max-w-[120px]">{c.title || '—'}</TableCell>
+                    <TableCell className="text-muted-foreground truncate max-w-[180px]">{c.email || '—'}</TableCell>
+                    <TableCell className="text-muted-foreground">{c.phone || '—'}</TableCell>
+                    <TableCell className="text-muted-foreground truncate max-w-[120px]">{c.accountName || '—'}</TableCell>
+                    <TableCell>
+                      <Badge variant={statusBadgeVariant(c.status)} className="capitalize text-xs">{c.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-xs">{getOwnerName(c.ownerId)}</TableCell>
+                    <TableCell className="text-right" onClick={e => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(c)}><Pencil className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteId(c.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         ) : (
           <div className="text-center py-12 text-muted-foreground">
@@ -135,9 +193,9 @@ export function ContactsView() {
         <div className="w-96 border-l bg-card flex-shrink-0 ml-4">
           <EntityDetailPanel entityType="contact" entityId={currentSelected.id} entityName={`${currentSelected.firstName} ${currentSelected.lastName}`} onClose={() => setSelectedContact(null)}>
             <div className="space-y-1 text-sm">
-              {currentSelected.email && <p className="text-muted-foreground"><Mail className="h-3 w-3 inline mr-1" />{currentSelected.email}</p>}
-              {currentSelected.phone && <p className="text-muted-foreground"><Phone className="h-3 w-3 inline mr-1" />{currentSelected.phone}</p>}
-              {currentSelected.accountName && <p className="text-muted-foreground"><Building2 className="h-3 w-3 inline mr-1" />{currentSelected.accountName}</p>}
+              {currentSelected.email && <p className="text-muted-foreground">✉ {currentSelected.email}</p>}
+              {currentSelected.phone && <p className="text-muted-foreground">☎ {currentSelected.phone}</p>}
+              {currentSelected.accountName && <p className="text-muted-foreground">🏢 {currentSelected.accountName}</p>}
             </div>
           </EntityDetailPanel>
         </div>
