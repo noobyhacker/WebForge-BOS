@@ -52,6 +52,8 @@ export function useClients(userEmail: string = 'anonymous') {
         lastContact: c.last_contact,
         notes: c.notes || '',
         language: (c as any).language || '',
+        website: (c as any).website || '',
+        instagram: (c as any).instagram || '',
         userId: c.user_id,
         followUps: (followUpsData || [])
           .filter((f) => f.client_id === c.id)
