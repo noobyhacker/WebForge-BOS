@@ -42,6 +42,8 @@ export function AddClientDialog({ open, onOpenChange, onAdd }: AddClientDialogPr
         status,
         notes,
         language,
+        website,
+        instagram,
         lastContact: new Date().toISOString().split('T')[0],
       });
 
