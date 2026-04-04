@@ -57,6 +57,8 @@ export function AddClientDialog({ open, onOpenChange, onAdd }: AddClientDialogPr
         setStatus('lead');
         setNotes('');
         setLanguage('');
+        setWebsite('');
+        setInstagram('');
         onOpenChange(false);
       } else {
         toast({ 
