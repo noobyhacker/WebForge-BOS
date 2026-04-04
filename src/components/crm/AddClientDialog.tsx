@@ -22,6 +22,8 @@ export function AddClientDialog({ open, onOpenChange, onAdd }: AddClientDialogPr
   const [status, setStatus] = useState<'active' | 'inactive' | 'lead'>('lead');
   const [notes, setNotes] = useState('');
   const [language, setLanguage] = useState('');
+  const [website, setWebsite] = useState('');
+  const [instagram, setInstagram] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 

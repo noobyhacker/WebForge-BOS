@@ -298,6 +298,8 @@ export function useClients(userEmail: string = 'anonymous') {
         lastContact: latest?.last_contact ?? client.lastContact,
         notes: latest?.notes || client.notes || '',
         language: (latest as any)?.language || client.language || '',
+        website: (latest as any)?.website || client.website || '',
+        instagram: (latest as any)?.instagram || client.instagram || '',
         followUps: [],
       };
     } catch (error) {
