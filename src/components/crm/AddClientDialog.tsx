@@ -22,6 +22,8 @@ export function AddClientDialog({ open, onOpenChange, onAdd }: AddClientDialogPr
   const [status, setStatus] = useState<'active' | 'inactive' | 'lead'>('lead');
   const [notes, setNotes] = useState('');
   const [language, setLanguage] = useState('');
+  const [website, setWebsite] = useState('');
+  const [instagram, setInstagram] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -40,6 +42,8 @@ export function AddClientDialog({ open, onOpenChange, onAdd }: AddClientDialogPr
         status,
         notes,
         language,
+        website,
+        instagram,
         lastContact: new Date().toISOString().split('T')[0],
       });
 
@@ -53,6 +57,8 @@ export function AddClientDialog({ open, onOpenChange, onAdd }: AddClientDialogPr
         setStatus('lead');
         setNotes('');
         setLanguage('');
+        setWebsite('');
+        setInstagram('');
         onOpenChange(false);
       } else {
         toast({ 
@@ -154,6 +160,29 @@ export function AddClientDialog({ open, onOpenChange, onAdd }: AddClientDialogPr
                 <SelectItem value="en">English</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="website">Website</Label>
+              <Input
+                id="website"
+                type="url"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                placeholder="https://example.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="instagram">Instagram</Label>
+              <Input
+                id="instagram"
+                value={instagram}
+                onChange={(e) => setInstagram(e.target.value)}
+                placeholder="@username"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

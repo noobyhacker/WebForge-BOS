@@ -20,6 +20,8 @@ export interface Client {
   lastContact: string;
   notes: string;
   language: string;
+  website: string;
+  instagram: string;
   followUps: FollowUp[];
   userId?: string;
 }

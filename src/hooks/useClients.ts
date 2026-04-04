@@ -52,6 +52,8 @@ export function useClients(userEmail: string = 'anonymous') {
         lastContact: c.last_contact,
         notes: c.notes || '',
         language: (c as any).language || '',
+        website: (c as any).website || '',
+        instagram: (c as any).instagram || '',
         userId: c.user_id,
         followUps: (followUpsData || [])
           .filter((f) => f.client_id === c.id)
@@ -209,6 +211,8 @@ export function useClients(userEmail: string = 'anonymous') {
           status: client.status,
           notes: client.notes,
           language: client.language,
+          website: client.website || '',
+          instagram: client.instagram || '',
           last_contact: client.lastContact,
         } as any);
 
@@ -294,6 +298,8 @@ export function useClients(userEmail: string = 'anonymous') {
         lastContact: latest?.last_contact ?? client.lastContact,
         notes: latest?.notes || client.notes || '',
         language: (latest as any)?.language || client.language || '',
+        website: (latest as any)?.website || client.website || '',
+        instagram: (latest as any)?.instagram || client.instagram || '',
         followUps: [],
       };
     } catch (error) {
