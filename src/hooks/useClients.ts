@@ -211,6 +211,8 @@ export function useClients(userEmail: string = 'anonymous') {
           status: client.status,
           notes: client.notes,
           language: client.language,
+          website: client.website || '',
+          instagram: client.instagram || '',
           last_contact: client.lastContact,
         } as any);
 
