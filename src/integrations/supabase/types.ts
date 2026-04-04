@@ -400,6 +400,7 @@ export type Database = {
           deleted_by: string | null
           email: string | null
           id: string
+          instagram: string | null
           language: string | null
           last_contact: string | null
           name: string
@@ -408,6 +409,7 @@ export type Database = {
           phone: string | null
           status: string | null
           user_id: string
+          website: string | null
         }
         Insert: {
           company?: string | null
@@ -416,6 +418,7 @@ export type Database = {
           deleted_by?: string | null
           email?: string | null
           id?: string
+          instagram?: string | null
           language?: string | null
           last_contact?: string | null
           name: string
@@ -424,6 +427,7 @@ export type Database = {
           phone?: string | null
           status?: string | null
           user_id: string
+          website?: string | null
         }
         Update: {
           company?: string | null
@@ -432,6 +436,7 @@ export type Database = {
           deleted_by?: string | null
           email?: string | null
           id?: string
+          instagram?: string | null
           language?: string | null
           last_contact?: string | null
           name?: string
@@ -440,6 +445,7 @@ export type Database = {
           phone?: string | null
           status?: string | null
           user_id?: string
+          website?: string | null
         }
         Relationships: []
       }
