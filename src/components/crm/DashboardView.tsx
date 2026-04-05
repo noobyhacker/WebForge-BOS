@@ -174,62 +174,6 @@ export function DashboardView() {
         </div>
       </div>
 
-      {/* ── FOLLOW-UPS: TOP PRIORITY SECTION ── */}
-      <Card className="border-primary/50 bg-gradient-to-br from-primary/5 via-background to-background">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <CalendarClock className="h-5 w-5 text-primary" />
-              </div>
-              Upcoming Follow-ups
-              {upcomingFollowUps.length > 0 && (
-                <Badge variant="secondary" className="text-xs">{upcomingFollowUps.length}</Badge>
-              )}
-            </CardTitle>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/followups')}>
-              View all <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-          {overdueFollowUps.length > 0 && (
-            <p className="text-sm text-destructive font-medium mt-1">
-              ⚠ {overdueFollowUps.length} overdue — action needed
-            </p>
-          )}
-        </CardHeader>
-        <CardContent>
-          {upcomingFollowUps.length > 0 ? (
-            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-              {/* Overdue first */}
-              {overdueFollowUps.map((followUp) => (
-                <div key={followUp.id} className="ring-1 ring-destructive/30 rounded-lg">
-                  <FollowUpItem
-                    followUp={followUp}
-                    showClient
-                    onMarkComplete={(id) => updateFollowUpStatus(followUp.clientId, id, 'completed')}
-                  />
-                </div>
-              ))}
-              {/* Then scheduled/pending */}
-              {scheduledFollowUps.map((followUp) => (
-                <FollowUpItem
-                  key={followUp.id}
-                  followUp={followUp}
-                  showClient
-                  onMarkComplete={(id) => updateFollowUpStatus(followUp.clientId, id, 'completed')}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-10 text-muted-foreground">
-              <CalendarClock className="h-10 w-10 mx-auto mb-2 opacity-40" />
-              <p className="font-medium">No pending follow-ups</p>
-              <p className="text-sm opacity-70">You're all caught up!</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       {/* ── KPI ROW ── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <StatCard title="Leads This Month" value={leadsThisMonth} icon={Users} variant={leadsThisMonth > 0 ? 'primary' : 'default'} />
