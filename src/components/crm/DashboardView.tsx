@@ -187,7 +187,7 @@ export function DashboardView() {
                 <Badge variant="secondary" className="text-xs">{upcomingFollowUps.length}</Badge>
               )}
             </CardTitle>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/follow-ups')}>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/followups')}>
               View all <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           </div>

@@ -41,13 +41,13 @@ export function FollowUpItem({ followUp, showClient = false, onMarkComplete, onE
     <>
       <div
         className={cn(
-          'flex items-start gap-3 rounded-lg border-2 border-primary/40 bg-card p-3 transition-all shadow-sm hover:border-primary hover:shadow-md',
+          'flex items-start gap-3 rounded-lg border-2 border-primary/40 bg-card p-4 transition-all shadow-sm hover:border-primary hover:shadow-md',
           isCompleted && 'opacity-60 border-muted'
         )}
       >
         <div
           className={cn(
-            'rounded-lg p-2',
+            'rounded-lg p-2 shrink-0',
             followUp.status === 'overdue'
               ? 'bg-destructive/10 text-destructive'
               : followUp.status === 'completed'
@@ -58,30 +58,32 @@ export function FollowUpItem({ followUp, showClient = false, onMarkComplete, onE
           <Icon className="h-4 w-4" />
         </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className={cn('font-medium text-sm', isCompleted && 'line-through')}>
+        <div className="flex-1 min-w-0 space-y-2">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className={cn('font-medium text-sm break-words', isCompleted && 'line-through')}>
                 {followUp.notes}
               </p>
               {showClient && followUp.clientName && (
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-xs text-muted-foreground mt-1 truncate">
                   {followUp.clientName} • {followUp.clientCompany}
                 </p>
               )}
             </div>
-            <StatusBadge status={followUp.status} />
+            <div className="shrink-0">
+              <StatusBadge status={followUp.status} />
+            </div>
           </div>
 
-          <div className="flex items-center justify-between mt-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1 bg-secondary px-2 py-0.5 rounded">
+              <span className="inline-flex items-center gap-1 bg-secondary px-2 py-0.5 rounded whitespace-nowrap">
                 {typeLabels[followUp.type]}
               </span>
-              <span>{new Date(followUp.date).toLocaleDateString()}</span>
+              <span className="whitespace-nowrap">{new Date(followUp.date).toLocaleDateString()}</span>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               {onEdit && (
                 <Button
                   variant="ghost"
