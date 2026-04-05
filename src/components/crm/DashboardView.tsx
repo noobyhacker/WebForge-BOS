@@ -4,7 +4,8 @@ import { FollowUpItem } from './FollowUpItem';
 import { TaskCard } from './TaskCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, Clock, DollarSign, TrendingUp, Handshake, AlertTriangle, CheckSquare } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Users, Clock, DollarSign, TrendingUp, Handshake, AlertTriangle, CheckSquare, CalendarClock, ArrowRight, Bell } from 'lucide-react';
 import { useClients } from '@/hooks/useClients';
 import { useDeals } from '@/hooks/useDeals';
 import { useActivities } from '@/hooks/useActivities';
@@ -19,7 +20,6 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
   AreaChart, Area,
-  FunnelChart, Funnel, LabelList,
 } from 'recharts';
 
 const STAGE_COLORS: Record<string, string> = {
@@ -54,12 +54,10 @@ export function DashboardView() {
   const now = new Date();
   const monthStart = startOfMonth(now);
 
-  // KPI 1: Leads this month
   const leadsThisMonth = useMemo(() =>
     clients.filter(c => c.status === 'lead' && new Date(c.createdAt) >= monthStart).length,
   [clients, monthStart]);
 
-  // KPI 2: Avg response time (hours) for leads
   const avgResponseTime = useMemo(() => {
     const leads = clients.filter(c => c.status === 'lead');
     const responseTimes: number[] = [];
@@ -76,7 +74,6 @@ export function DashboardView() {
     return Math.round(responseTimes.reduce((s, t) => s + t, 0) / responseTimes.length);
   }, [clients, activities]);
 
-  // KPI 3: Revenue at risk
   const revenueAtRisk = useMemo(() => {
     const stalledValue = deals
       .filter(d => !['closed_won', 'closed_lost'].includes(d.stage))
@@ -87,23 +84,18 @@ export function DashboardView() {
         return differenceInDays(now, lastDate) >= 14;
       })
       .reduce((s, d) => s + d.value, 0);
-
     const idleQuoteValue = quotes
       .filter(q => q.status === 'sent' && differenceInDays(now, new Date(q.updatedAt)) >= 7)
       .reduce((s, q) => s + q.grandTotal, 0);
-
     const overdueValue = invoices
       .filter(inv => inv.status !== 'paid' && inv.dueDate && new Date(inv.dueDate) < now)
       .reduce((s, inv) => s + (inv.grandTotal - inv.paidAmount), 0);
-
     return stalledValue + idleQuoteValue + overdueValue;
   }, [deals, quotes, invoices, activities, now]);
 
-  // KPI 4: Deals in pipeline
   const openDeals = useMemo(() => deals.filter(d => !['closed_won', 'closed_lost'].includes(d.stage)), [deals]);
   const totalPipeline = openDeals.reduce((s, d) => s + d.value, 0);
 
-  // KPI 5: Win rate
   const winRate = useMemo(() => {
     const won = deals.filter(d => d.stage === 'closed_won').length;
     const lost = deals.filter(d => d.stage === 'closed_lost').length;
@@ -111,7 +103,6 @@ export function DashboardView() {
     return total > 0 ? Math.round((won / total) * 100) : 0;
   }, [deals]);
 
-  // Chart data: Deal stage distribution
   const stageDistribution = useMemo(() => {
     const stages = ['prospecting', 'qualification', 'proposal', 'negotiation', 'closed_won', 'closed_lost'];
     return stages.map(stage => ({
@@ -122,18 +113,6 @@ export function DashboardView() {
     })).filter(s => s.count > 0);
   }, [deals]);
 
-  // Chart data: Pipeline funnel (open stages only)
-  const funnelData = useMemo(() => {
-    const openStages = ['prospecting', 'qualification', 'proposal', 'negotiation'];
-    return openStages.map(stage => ({
-      name: stage.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      value: deals.filter(d => d.stage === stage).reduce((s, d) => s + d.value, 0),
-      count: deals.filter(d => d.stage === stage).length,
-      fill: STAGE_COLORS[stage] || PIE_COLORS[0],
-    }));
-  }, [deals]);
-
-  // Chart data: Leads per month (last 6 months)
   const leadsOverTime = useMemo(() => {
     const months: { name: string; leads: number }[] = [];
     for (let i = 5; i >= 0; i--) {
@@ -145,7 +124,6 @@ export function DashboardView() {
     return months;
   }, [clients, now]);
 
-  // Chart data: Win/Loss pie
   const winLossData = useMemo(() => {
     const won = deals.filter(d => d.stage === 'closed_won').length;
     const lost = deals.filter(d => d.stage === 'closed_lost').length;
@@ -155,6 +133,9 @@ export function DashboardView() {
       { name: 'Lost', value: lost, fill: 'hsl(var(--destructive))' },
     ];
   }, [deals]);
+
+  const overdueFollowUps = upcomingFollowUps.filter(f => f.status === 'overdue');
+  const scheduledFollowUps = upcomingFollowUps.filter(f => f.status !== 'overdue');
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
@@ -172,46 +153,93 @@ export function DashboardView() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Revenue engine overview.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">Revenue engine overview</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {overdueFollowUps.length > 0 && (
+            <Badge variant="destructive" className="gap-1.5 px-3 py-1.5 text-sm animate-pulse">
+              <Bell className="h-3.5 w-3.5" />
+              {overdueFollowUps.length} overdue follow-up{overdueFollowUps.length > 1 ? 's' : ''}
+            </Badge>
+          )}
+          {myOverdueTasks.length > 0 && (
+            <Badge variant="outline" className="gap-1.5 px-3 py-1.5 text-sm border-destructive text-destructive">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {myOverdueTasks.length} overdue task{myOverdueTasks.length > 1 ? 's' : ''}
+            </Badge>
+          )}
+        </div>
       </div>
 
-      {/* 5 Core KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard
-          title="Leads This Month"
-          value={leadsThisMonth}
-          icon={Users}
-          variant={leadsThisMonth > 0 ? 'primary' : 'default'}
-        />
-        <StatCard
-          title="Avg Response Time"
-          value={avgResponseTime !== null ? `${avgResponseTime}h` : 'N/A'}
-          icon={Clock}
-          variant={avgResponseTime !== null && avgResponseTime <= 1 ? 'success' : avgResponseTime !== null && avgResponseTime > 24 ? 'destructive' : 'default'}
-        />
-        <StatCard
-          title="Revenue at Risk"
-          value={`$${revenueAtRisk.toLocaleString()}`}
-          icon={revenueAtRisk > 0 ? AlertTriangle : DollarSign}
-          variant={revenueAtRisk > 0 ? 'destructive' : 'success'}
-        />
-        <StatCard
-          title="Pipeline"
-          value={`$${totalPipeline.toLocaleString()}`}
-          icon={TrendingUp}
-          variant="primary"
-        />
-        <StatCard
-          title="Win Rate"
-          value={deals.some(d => ['closed_won', 'closed_lost'].includes(d.stage)) ? `${winRate}%` : 'N/A'}
-          icon={Handshake}
-          variant={winRate >= 50 ? 'success' : winRate > 0 ? 'warning' : 'default'}
-        />
+      {/* ── FOLLOW-UPS: TOP PRIORITY SECTION ── */}
+      <Card className="border-primary/50 bg-gradient-to-br from-primary/5 via-background to-background">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2.5">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <CalendarClock className="h-5 w-5 text-primary" />
+              </div>
+              Upcoming Follow-ups
+              {upcomingFollowUps.length > 0 && (
+                <Badge variant="secondary" className="text-xs">{upcomingFollowUps.length}</Badge>
+              )}
+            </CardTitle>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/follow-ups')}>
+              View all <ArrowRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+          {overdueFollowUps.length > 0 && (
+            <p className="text-sm text-destructive font-medium mt-1">
+              ⚠ {overdueFollowUps.length} overdue — action needed
+            </p>
+          )}
+        </CardHeader>
+        <CardContent>
+          {upcomingFollowUps.length > 0 ? (
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              {/* Overdue first */}
+              {overdueFollowUps.map((followUp) => (
+                <div key={followUp.id} className="ring-1 ring-destructive/30 rounded-lg">
+                  <FollowUpItem
+                    followUp={followUp}
+                    showClient
+                    onMarkComplete={(id) => updateFollowUpStatus(followUp.clientId, id, 'completed')}
+                  />
+                </div>
+              ))}
+              {/* Then scheduled/pending */}
+              {scheduledFollowUps.map((followUp) => (
+                <FollowUpItem
+                  key={followUp.id}
+                  followUp={followUp}
+                  showClient
+                  onMarkComplete={(id) => updateFollowUpStatus(followUp.clientId, id, 'completed')}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-10 text-muted-foreground">
+              <CalendarClock className="h-10 w-10 mx-auto mb-2 opacity-40" />
+              <p className="font-medium">No pending follow-ups</p>
+              <p className="text-sm opacity-70">You're all caught up!</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── KPI ROW ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <StatCard title="Leads This Month" value={leadsThisMonth} icon={Users} variant={leadsThisMonth > 0 ? 'primary' : 'default'} />
+        <StatCard title="Avg Response" value={avgResponseTime !== null ? `${avgResponseTime}h` : 'N/A'} icon={Clock} variant={avgResponseTime !== null && avgResponseTime <= 1 ? 'success' : avgResponseTime !== null && avgResponseTime > 24 ? 'destructive' : 'default'} />
+        <StatCard title="At Risk" value={`$${revenueAtRisk.toLocaleString()}`} icon={revenueAtRisk > 0 ? AlertTriangle : DollarSign} variant={revenueAtRisk > 0 ? 'destructive' : 'success'} />
+        <StatCard title="Pipeline" value={`$${totalPipeline.toLocaleString()}`} icon={TrendingUp} variant="primary" />
+        <StatCard title="Win Rate" value={deals.some(d => ['closed_won', 'closed_lost'].includes(d.stage)) ? `${winRate}%` : 'N/A'} icon={Handshake} variant={winRate >= 50 ? 'success' : winRate > 0 ? 'warning' : 'default'} />
       </div>
 
-      {/* My Tasks */}
+      {/* ── TASKS + OPERATIONAL STATS ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-1">
           <CardHeader className="pb-2">
@@ -219,7 +247,7 @@ export function DashboardView() {
               <CheckSquare className="h-4 w-4" />
               My Tasks
               {myOverdueTasks.length > 0 && (
-                <span className="text-xs text-destructive font-medium">{myOverdueTasks.length} overdue</span>
+                <Badge variant="destructive" className="text-[10px] px-1.5 py-0">{myOverdueTasks.length} overdue</Badge>
               )}
             </CardTitle>
           </CardHeader>
@@ -244,13 +272,12 @@ export function DashboardView() {
           </CardContent>
         </Card>
 
-        {/* Quick Stats */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Operational Stats</CardTitle>
+            <CardTitle className="text-base">Quick Stats</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="text-center p-3 rounded-lg bg-muted/50">
                 <p className="text-2xl font-bold text-foreground">{openDeals.length}</p>
                 <p className="text-xs text-muted-foreground">Open Deals</p>
@@ -272,7 +299,7 @@ export function DashboardView() {
         </Card>
       </div>
 
-      {/* KPI Snapshot */}
+      {/* ── KPI TRACKER ── */}
       {kpis.filter(k => k.isActive).length > 0 && (
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
@@ -308,9 +335,8 @@ export function DashboardView() {
         </Card>
       )}
 
-      {/* Charts Row */}
+      {/* ── CHARTS ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Pipeline Value by Stage */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Pipeline by Stage</CardTitle>
@@ -337,7 +363,6 @@ export function DashboardView() {
           </CardContent>
         </Card>
 
-        {/* Win/Loss Pie */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Win / Loss Ratio</CardTitle>
@@ -347,18 +372,7 @@ export function DashboardView() {
               <div className="h-56 relative">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie
-                      data={winLossData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={80}
-                      paddingAngle={4}
-                      dataKey="value"
-                      strokeWidth={0}
-                      activeShape={false}
-                      style={{ cursor: 'default', outline: 'none' }}
-                    >
+                    <Pie data={winLossData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value" strokeWidth={0} activeShape={false} style={{ cursor: 'default', outline: 'none' }}>
                       {winLossData.map((entry, i) => (
                         <Cell key={i} fill={entry.fill} />
                       ))}
@@ -378,59 +392,30 @@ export function DashboardView() {
         </Card>
       </div>
 
-      {/* Leads Trend + Follow-ups */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Leads Over Time */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Leads Trend (6mo)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-44">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={leadsOverTime} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
-                  <defs>
-                    <linearGradient id="leadsFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} allowDecimals={false} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Area type="monotone" dataKey="leads" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#leadsFill)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Follow-ups */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Upcoming Follow-ups</h2>
-            <span className="text-sm text-muted-foreground">{upcomingFollowUps.length} pending</span>
+      {/* ── LEADS TREND ── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Leads Trend (6 months)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-44">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={leadsOverTime} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
+                <defs>
+                  <linearGradient id="leadsFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Area type="monotone" dataKey="leads" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#leadsFill)" />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
-          {upcomingFollowUps.length > 0 ? (
-            <div className="space-y-2 max-h-52 overflow-y-auto">
-              {upcomingFollowUps.map((followUp) => (
-                <FollowUpItem
-                  key={followUp.id}
-                  followUp={followUp}
-                  showClient
-                  onMarkComplete={(id) => updateFollowUpStatus(followUp.clientId, id, 'completed')}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 bg-card rounded-lg border">
-              <Clock className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
-              <p className="text-muted-foreground">No pending follow-ups</p>
-              <p className="text-sm text-muted-foreground/70">You're all caught up!</p>
-            </div>
-          )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
