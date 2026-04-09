@@ -290,24 +290,24 @@ export function DealsView() {
   return (
     <div className="flex h-full animate-fade-in">
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3 flex-shrink-0">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Deals</h1>
-            <p className="text-muted-foreground">Pipeline: <span className="font-semibold text-foreground">{formatCurrency(totalPipeline)}</span> · Weighted: <span className="font-semibold text-foreground">{formatCurrency(weightedPipeline)}</span></p>
+            <h1 className="text-xl font-bold tracking-tight">Deals</h1>
+            <p className="text-sm text-muted-foreground">Pipeline: <span className="font-semibold text-foreground">{formatCurrency(totalPipeline)}</span> · Weighted: <span className="font-semibold text-foreground">{formatCurrency(weightedPipeline)}</span></p>
           </div>
           <Button onClick={() => setShowAdd(true)} className="gap-2"><Plus className="h-4 w-4" />Add Deal</Button>
         </div>
 
-        <Tabs value={activeTab} onValueChange={v => { setActiveTab(v); setSelectedForArchive(new Set()); }} className="flex-1 flex flex-col min-h-0">
-          <TabsList className="mb-4 w-fit">
+        <Tabs value={activeTab} onValueChange={v => { setActiveTab(v); setSelectedForArchive(new Set()); }} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <TabsList className="mb-3 w-fit flex-shrink-0">
             <TabsTrigger value="active" className="gap-1.5"><TrendingUp className="h-3.5 w-3.5" />Active ({nonArchivedDeals.length})</TabsTrigger>
             <TabsTrigger value="archived" className="gap-1.5"><Archive className="h-3.5 w-3.5" />Archived ({archivedDeals.length})</TabsTrigger>
             <TabsTrigger value="analytics" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" />Analytics</TabsTrigger>
           </TabsList>
 
           {/* ── Active Deals (full pipeline with all 6 stages) ── */}
-          <TabsContent value="active" className="flex-1 flex flex-col min-h-0 mt-0">
-            <div className="flex items-center gap-2 mb-4">
+          <TabsContent value="active" className="flex-1 flex flex-col min-h-0 mt-0 overflow-hidden">
+            <div className="flex items-center gap-2 mb-3 flex-shrink-0">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Search deals..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
@@ -341,7 +341,7 @@ export function DealsView() {
             )}
 
             {viewMode === 'pipeline' ? (
-              <div className="flex gap-3 overflow-x-auto pb-4 flex-1">
+              <div className="flex gap-2 overflow-x-auto pb-4 flex-1 min-h-0">
                 {STAGES.map(stage => {
                   const stageDeals = filtered.filter(d => d.stage === stage.value);
                   const stageTotal = stageDeals.reduce((s, d) => s + d.value, 0);
@@ -349,7 +349,7 @@ export function DealsView() {
                   const isClosed = CLOSED_STAGES.includes(stage.value);
                   return (
                     <div key={stage.value}
-                      className={cn('min-w-[220px] flex-1 rounded-lg p-2 transition-colors', isOver && 'bg-primary/10 ring-2 ring-primary/30')}
+                      className={cn('min-w-[160px] flex-1 rounded-lg p-2 transition-colors bg-muted/30 overflow-y-auto', isOver && 'bg-primary/10 ring-2 ring-primary/30')}
                       onDragOver={(e) => handleDragOver(e, stage.value)}
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, stage.value)}
