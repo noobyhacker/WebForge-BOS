@@ -37,6 +37,8 @@ export function EditClientDialog({ open, onOpenChange, client, onSave, onDelete 
       setStatus(client.status);
       setNotes(client.notes);
       setLanguage(client.language || '');
+      setWebsite(client.website || '');
+      setInstagram(client.instagram || '');
     }
   }, [client]);
 
@@ -52,6 +54,8 @@ export function EditClientDialog({ open, onOpenChange, client, onSave, onDelete 
       status,
       notes,
       language,
+      website,
+      instagram,
     });
     onOpenChange(false);
   };
