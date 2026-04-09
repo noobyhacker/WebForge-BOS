@@ -3,7 +3,7 @@ import { Client, FollowUp, FollowUpStatus } from '@/types/crm';
 import { StatusBadge } from './StatusBadge';
 import { FollowUpItem } from './FollowUpItem';
 import { Button } from '@/components/ui/button';
-import { Building2, Mail, Phone, Calendar, FileText, Plus, X, Pencil, Share2, UserPlus } from 'lucide-react';
+import { Building2, Mail, Phone, Calendar, FileText, Plus, X, Pencil, Share2, UserPlus, Globe, Instagram } from 'lucide-react';
 import { AddFollowUpDialog } from './AddFollowUpDialog';
 import { EditFollowUpDialog } from './EditFollowUpDialog';
 import { EditClientDialog } from './EditClientDialog';
@@ -135,6 +135,28 @@ export function ClientDetails({
               <Phone className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">{client.phone}</span>
             </a>
+            {client.website && (
+              <a
+                href={client.website.startsWith('http') ? client.website : `https://${client.website}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+              >
+                <Globe className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm truncate">{client.website}</span>
+              </a>
+            )}
+            {client.instagram && (
+              <a
+                href={`https://instagram.com/${client.instagram.replace('@', '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+              >
+                <Instagram className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm truncate">@{client.instagram.replace('@', '')}</span>
+              </a>
+            )}
           </div>
         </div>
 

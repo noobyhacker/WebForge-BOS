@@ -24,6 +24,8 @@ export function EditClientDialog({ open, onOpenChange, client, onSave, onDelete 
   const [status, setStatus] = useState<'active' | 'inactive' | 'lead'>('lead');
   const [notes, setNotes] = useState('');
   const [language, setLanguage] = useState('');
+  const [website, setWebsite] = useState('');
+  const [instagram, setInstagram] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
@@ -35,6 +37,8 @@ export function EditClientDialog({ open, onOpenChange, client, onSave, onDelete 
       setStatus(client.status);
       setNotes(client.notes);
       setLanguage(client.language || '');
+      setWebsite(client.website || '');
+      setInstagram(client.instagram || '');
     }
   }, [client]);
 
@@ -50,6 +54,8 @@ export function EditClientDialog({ open, onOpenChange, client, onSave, onDelete 
       status,
       notes,
       language,
+      website,
+      instagram,
     });
     onOpenChange(false);
   };
@@ -142,6 +148,28 @@ export function EditClientDialog({ open, onOpenChange, client, onSave, onDelete 
                 <SelectItem value="en">English</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="website">Website</Label>
+              <Input
+                id="website"
+                type="url"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                placeholder="https://example.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="instagram">Instagram</Label>
+              <Input
+                id="instagram"
+                value={instagram}
+                onChange={(e) => setInstagram(e.target.value)}
+                placeholder="@username"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
