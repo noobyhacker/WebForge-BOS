@@ -189,8 +189,15 @@ export function ContactsView() {
         )}
       </div>
 
-      {currentSelected && (
-        <div className="w-96 border-l bg-card flex-shrink-0 ml-4">
+      <div
+        className={cn(
+          'w-96 border-l bg-card flex-shrink-0 ml-4 transition-all duration-300 ease-out overflow-hidden',
+          currentSelected
+            ? 'max-w-[24rem] opacity-100 translate-x-0'
+            : 'max-w-0 opacity-0 translate-x-full border-l-0 ml-0'
+        )}
+      >
+        {currentSelected && (
           <EntityDetailPanel entityType="contact" entityId={currentSelected.id} entityName={`${currentSelected.firstName} ${currentSelected.lastName}`} onClose={() => setSelectedContact(null)}>
             <div className="space-y-1 text-sm">
               {currentSelected.email && <p className="text-muted-foreground">✉ {currentSelected.email}</p>}
@@ -198,8 +205,8 @@ export function ContactsView() {
               {currentSelected.accountName && <p className="text-muted-foreground">🏢 {currentSelected.accountName}</p>}
             </div>
           </EntityDetailPanel>
-        </div>
-      )}
+        )}
+      </div>
 
       {formDialog(showAdd, () => setShowAdd(false), handleAdd, 'Add Contact')}
       {formDialog(!!editId, () => setEditId(null), handleUpdate, 'Edit Contact')}
