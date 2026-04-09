@@ -150,6 +150,28 @@ export function EditClientDialog({ open, onOpenChange, client, onSave, onDelete 
             </Select>
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="website">Website</Label>
+              <Input
+                id="website"
+                type="url"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                placeholder="https://example.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="instagram">Instagram</Label>
+              <Input
+                id="instagram"
+                value={instagram}
+                onChange={(e) => setInstagram(e.target.value)}
+                placeholder="@username"
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
             <Textarea
