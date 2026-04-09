@@ -370,6 +370,8 @@ export function useClients(userEmail: string = 'anonymous') {
       if (updates.status !== undefined) dbUpdates.status = updates.status;
       if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
       if (updates.language !== undefined) dbUpdates.language = updates.language;
+      if (updates.website !== undefined) dbUpdates.website = updates.website;
+      if (updates.instagram !== undefined) dbUpdates.instagram = updates.instagram;
       if (updates.lastContact !== undefined) dbUpdates.last_contact = updates.lastContact;
 
       const { error } = await supabase
