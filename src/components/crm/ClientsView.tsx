@@ -198,8 +198,15 @@ export function ClientsView() {
         )}
       </div>
 
-      {currentSelectedClient && (
-        <div className="w-96 border-l bg-card flex-shrink-0 ml-4">
+      <div
+        className={cn(
+          'w-96 border-l bg-card flex-shrink-0 ml-4 transition-all duration-300 ease-out overflow-hidden',
+          currentSelectedClient
+            ? 'max-w-[24rem] opacity-100 translate-x-0'
+            : 'max-w-0 opacity-0 translate-x-full border-l-0 ml-0'
+        )}
+      >
+        {currentSelectedClient && (
           <ClientDetails
             client={currentSelectedClient}
             onClose={() => setSelectedClient(null)}
@@ -210,8 +217,8 @@ export function ClientsView() {
             onEditClient={(updates) => updateClient(currentSelectedClient.id, updates)}
             onDeleteClient={() => { deleteClient(currentSelectedClient.id); setSelectedClient(null); }}
           />
-        </div>
-      )}
+        )}
+      </div>
 
       <AddClientDialog open={showAddClient} onOpenChange={setShowAddClient} onAdd={addClient} />
 
