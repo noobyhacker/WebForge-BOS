@@ -51,21 +51,14 @@ export function DealsView() {
   const [activeTab, setActiveTab] = useState('active');
   const [form, setForm] = useState({ name: '', accountId: '' as string | undefined, contactId: '' as string | undefined, stage: 'prospecting' as DealStage, value: 0, probability: 20, expectedCloseDate: '' });
 
-  // Drag-and-drop state
   const [draggedDealId, setDraggedDealId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<DealStage | null>(null);
-
-  // Bulk archive selection
   const [selectedForArchive, setSelectedForArchive] = useState<Set<string>>(new Set());
-
-  // Lost reason dialog state
   const [lostReasonDialog, setLostReasonDialog] = useState<{ dealId: string; fromStage: DealStage } | null>(null);
   const [lostReason, setLostReason] = useState('');
 
-  // Stage history
   const { history: stageHistory, addHistoryEntry } = useDealStageHistory(selectedDeal?.id || null);
 
-  // Filtered deals by tab
   const searchFiltered = useCallback((list: Deal[]) =>
     list.filter(d => `${d.name} ${d.accountName} ${d.contactName}`.toLowerCase().includes(search.toLowerCase())),
   [search]);
@@ -74,7 +67,6 @@ export function DealsView() {
   const currentSelected = selectedDeal ? deals.find(d => d.id === selectedDeal.id) || null : null;
   const resetForm = () => setForm({ name: '', accountId: '', contactId: '', stage: 'prospecting', value: 0, probability: 20, expectedCloseDate: '' });
 
-  // Stage change handler
   const changeDealStage = useCallback(async (dealId: string, fromStage: DealStage, toStage: DealStage, note?: string) => {
     await updateDeal(dealId, {
       stage: toStage,
@@ -103,7 +95,6 @@ export function DealsView() {
   const handleEdit = (d: Deal) => { setForm({ name: d.name, accountId: d.accountId || '', contactId: d.contactId || '', stage: d.stage, value: d.value, probability: d.probability, expectedCloseDate: d.expectedCloseDate }); setEditId(d.id); };
   const handleUpdate = () => { if (editId) { updateDeal(editId, { ...form, accountId: form.accountId || undefined, contactId: form.contactId || undefined }); setEditId(null); resetForm(); } };
 
-  // Bulk archive toggle
   const toggleArchiveSelection = useCallback((dealId: string) => {
     setSelectedForArchive(prev => {
       const next = new Set(prev);
@@ -121,13 +112,11 @@ export function DealsView() {
 
   const clearSelection = useCallback(() => setSelectedForArchive(new Set()), []);
 
-  // Archive = soft-delete closed deals so they appear in archived tab
   const handleBulkArchive = useCallback(async () => {
     await archiveDeals(Array.from(selectedForArchive));
     setSelectedForArchive(new Set());
   }, [selectedForArchive, archiveDeals]);
 
-  // Drag handlers
   const handleDragStart = useCallback((e: React.DragEvent, dealId: string) => {
     setDraggedDealId(dealId);
     e.dataTransfer.effectAllowed = 'move';
@@ -160,11 +149,10 @@ export function DealsView() {
     setDropTarget(null);
   }, [deals, handleStageChange]);
 
-  const activeStageDeals = useMemo(() => filtered.filter(d => !CLOSED_STAGES.includes(d.stage)), [filtered]);
+  const activeStageDeals = useMemo(() => deals.filter(d => !CLOSED_STAGES.includes(d.stage)), [deals]);
   const totalPipeline = activeStageDeals.reduce((s, d) => s + d.value, 0);
   const weightedPipeline = activeStageDeals.reduce((s, d) => s + d.value * d.probability / 100, 0);
 
-  // Analytics data
   const analytics = useMemo(() => {
     const wonDeals = deals.filter(d => d.stage === 'closed_won');
     const lostDeals = deals.filter(d => d.stage === 'closed_lost');
@@ -254,14 +242,13 @@ export function DealsView() {
     </Dialog>
   );
 
-  // Shared deal card renderer
   const renderDealCard = (d: Deal) => {
     const stageInfo = STAGES.find(s => s.value === d.stage);
     return (
       <Card key={d.id} className={`hover:shadow-md transition-shadow cursor-pointer ${currentSelected?.id === d.id ? 'ring-2 ring-primary' : ''}`} onClick={() => openDetail(d)}>
         <CardContent className="p-4">
-          <div className="flex items-start justify-between mb-2">
-            <p className="font-semibold text-sm">{d.name}</p>
+          <div className="flex items-start justify-between mb-2 gap-2">
+            <p className="font-semibold text-sm min-w-0 truncate">{d.name}</p>
             <Badge className={stageInfo?.color}>{stageInfo?.label}</Badge>
           </div>
           <p className="text-lg font-bold text-primary">${d.value.toLocaleString()}</p>
@@ -279,9 +266,9 @@ export function DealsView() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] animate-fade-in">
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <div className="flex items-center justify-between mb-3 flex-shrink-0">
+    <div className="flex h-[calc(100dvh-5rem)] min-h-[40rem] w-full overflow-hidden animate-fade-in">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="mb-3 flex flex-shrink-0 items-center justify-between">
           <div>
             <h1 className="text-xl font-bold tracking-tight">Deals</h1>
             <p className="text-sm text-muted-foreground">Pipeline: <span className="font-semibold text-foreground">{formatCurrency(totalPipeline)}</span> · Weighted: <span className="font-semibold text-foreground">{formatCurrency(weightedPipeline)}</span></p>
@@ -289,18 +276,17 @@ export function DealsView() {
           <Button onClick={() => setShowAdd(true)} className="gap-2"><Plus className="h-4 w-4" />Add Deal</Button>
         </div>
 
-        <Tabs value={activeTab} onValueChange={v => { setActiveTab(v); setSelectedForArchive(new Set()); }} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <Tabs value={activeTab} onValueChange={v => { setActiveTab(v); setSelectedForArchive(new Set()); }} className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <TabsList className="mb-3 w-fit flex-shrink-0">
             <TabsTrigger value="active" className="gap-1.5"><TrendingUp className="h-3.5 w-3.5" />Active ({deals.length})</TabsTrigger>
             <TabsTrigger value="archived" className="gap-1.5"><Archive className="h-3.5 w-3.5" />Archived ({archivedDealsFromDb.length})</TabsTrigger>
             <TabsTrigger value="analytics" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" />Analytics</TabsTrigger>
           </TabsList>
 
-          {/* ── Active Deals (full pipeline with all 6 stages) ── */}
-          <TabsContent value="active" className="flex-1 flex flex-col min-h-0 mt-0 overflow-hidden">
-            <div className="flex items-center gap-2 mb-3 flex-shrink-0">
+          <TabsContent value="active" className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="mb-3 flex flex-shrink-0 items-center gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input placeholder="Search deals..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
               </div>
               <div className="flex gap-1">
@@ -309,16 +295,15 @@ export function DealsView() {
               </div>
             </div>
 
-            {/* Bulk archive bar */}
             {closedDealsInPipeline.length > 0 && viewMode === 'pipeline' && (
-              <div className="flex items-center gap-2 mb-3 p-2 rounded-lg bg-muted/50 border">
+              <div className="mb-3 flex flex-shrink-0 items-center gap-2 rounded-lg border bg-muted/50 p-2">
                 <Archive className="h-4 w-4 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">{closedDealsInPipeline.length} closed deal(s) in pipeline</span>
-                <Button variant="ghost" size="sm" className="text-xs h-6" onClick={selectAllClosed}>Select All</Button>
+                <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={selectAllClosed}>Select All</Button>
                 {selectedForArchive.size > 0 && (
                   <>
-                    <Button variant="ghost" size="sm" className="text-xs h-6" onClick={clearSelection}>Clear</Button>
-                    <Button variant="destructive" size="sm" className="text-xs h-6 gap-1 ml-auto" onClick={handleBulkArchive}>
+                    <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={clearSelection}>Clear</Button>
+                    <Button variant="destructive" size="sm" className="ml-auto h-6 gap-1 text-xs" onClick={handleBulkArchive}>
                       <Trash2 className="h-3 w-3" />Archive {selectedForArchive.size} deal(s)
                     </Button>
                   </>
@@ -327,84 +312,91 @@ export function DealsView() {
             )}
 
             {viewMode === 'pipeline' ? (
-              <div className="flex gap-2 overflow-x-auto pb-4 flex-1 min-h-0">
-                {STAGES.map(stage => {
-                  const stageDeals = filtered.filter(d => d.stage === stage.value);
-                  const stageTotal = stageDeals.reduce((s, d) => s + d.value, 0);
-                  const isOver = dropTarget === stage.value && draggedDealId !== null;
-                  const isClosed = CLOSED_STAGES.includes(stage.value);
-                  return (
-                    <div key={stage.value}
-                      className={cn('min-w-[160px] flex-1 rounded-lg p-2 transition-colors bg-muted/30 overflow-y-auto', isOver && 'bg-primary/10 ring-2 ring-primary/30')}
-                      onDragOver={(e) => handleDragOver(e, stage.value)}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDrop(e, stage.value)}
-                    >
-                      <div className="mb-2 px-1">
-                        <div className="flex items-center justify-between">
-                          <span className={`text-xs font-semibold px-2 py-1 rounded ${stage.color}`}>{stage.label}</span>
-                          <span className="text-xs text-muted-foreground">{stageDeals.length}</span>
+              <div className="min-h-0 flex-1 overflow-x-auto pb-4">
+                <div className="grid h-full min-w-[1080px] grid-cols-6 gap-2">
+                  {STAGES.map(stage => {
+                    const stageDeals = filtered.filter(d => d.stage === stage.value);
+                    const stageTotal = stageDeals.reduce((s, d) => s + d.value, 0);
+                    const isOver = dropTarget === stage.value && draggedDealId !== null;
+                    const isClosed = CLOSED_STAGES.includes(stage.value);
+
+                    return (
+                      <div
+                        key={stage.value}
+                        className={cn('flex min-h-0 min-w-0 flex-col rounded-lg bg-muted/30 p-2 transition-colors', isOver && 'bg-primary/10 ring-2 ring-primary/30')}
+                        onDragOver={(e) => handleDragOver(e, stage.value)}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, stage.value)}
+                      >
+                        <div className="mb-2 px-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={`rounded px-2 py-1 text-xs font-semibold ${stage.color}`}>{stage.label}</span>
+                            <span className="text-xs text-muted-foreground">{stageDeals.length}</span>
+                          </div>
+                          <p className="mt-1 text-xs text-muted-foreground">{formatCurrency(stageTotal)}</p>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">{formatCurrency(stageTotal)}</p>
-                      </div>
-                      <div className="space-y-2 min-h-[60px]">
-                        {stageDeals.map(d => (
-                          <Card key={d.id} draggable
-                            onDragStart={(e) => handleDragStart(e, d.id)}
-                            onDragEnd={handleDragEnd}
-                            className={cn('hover:shadow-md transition-all cursor-grab active:cursor-grabbing',
-                              currentSelected?.id === d.id && 'ring-2 ring-primary',
-                              draggedDealId === d.id && 'opacity-50',
-                              selectedForArchive.has(d.id) && 'ring-2 ring-destructive'
-                            )}
-                            onClick={() => openDetail(d)}
-                          >
-                            <CardContent className="p-3">
-                              <div className="flex items-start gap-2">
-                                {isClosed && (
-                                  <div className="flex-shrink-0 mt-0.5" onClick={e => { e.stopPropagation(); toggleArchiveSelection(d.id); }}>
-                                    <Checkbox checked={selectedForArchive.has(d.id)} />
+
+                        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                          {stageDeals.map(d => (
+                            <Card
+                              key={d.id}
+                              draggable
+                              onDragStart={(e) => handleDragStart(e, d.id)}
+                              onDragEnd={handleDragEnd}
+                              className={cn(
+                                'cursor-grab transition-all hover:shadow-md active:cursor-grabbing',
+                                currentSelected?.id === d.id && 'ring-2 ring-primary',
+                                draggedDealId === d.id && 'opacity-50',
+                                selectedForArchive.has(d.id) && 'ring-2 ring-destructive'
+                              )}
+                              onClick={() => openDetail(d)}
+                            >
+                              <CardContent className="p-3">
+                                <div className="flex items-start gap-2">
+                                  {isClosed && (
+                                    <div className="mt-0.5 flex-shrink-0" onClick={e => { e.stopPropagation(); toggleArchiveSelection(d.id); }}>
+                                      <Checkbox checked={selectedForArchive.has(d.id)} />
+                                    </div>
+                                  )}
+                                  <GripVertical className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground/40" />
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-medium">{d.name}</p>
+                                    <div className="mt-1 flex items-center justify-between gap-2">
+                                      <span className="flex items-center gap-1 text-sm font-semibold text-primary"><DollarSign className="h-3 w-3" />{d.value.toLocaleString()}</span>
+                                      <span className="flex items-center gap-1 text-xs text-muted-foreground"><TrendingUp className="h-3 w-3" />{d.probability}%</span>
+                                    </div>
+                                    {d.accountName && <p className="mt-1 truncate text-xs text-muted-foreground">{d.accountName}</p>}
+                                    {d.expectedCloseDate && <p className="text-xs text-muted-foreground">Close: {d.expectedCloseDate}</p>}
+                                    <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground"><UserCircle className="h-3 w-3" />{getOwnerName(d.ownerId)}</p>
+                                    {d.lostReason && <p className="mt-0.5 truncate text-xs text-destructive">Lost: {d.lostReason}</p>}
                                   </div>
-                                )}
-                                <GripVertical className="h-4 w-4 text-muted-foreground/40 mt-0.5 flex-shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-sm truncate">{d.name}</p>
-                                  <div className="flex items-center justify-between mt-1">
-                                    <span className="text-sm font-semibold text-primary flex items-center gap-1"><DollarSign className="h-3 w-3" />{d.value.toLocaleString()}</span>
-                                    <span className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" />{d.probability}%</span>
-                                  </div>
-                                  {d.accountName && <p className="text-xs text-muted-foreground mt-1 truncate">{d.accountName}</p>}
-                                  {d.expectedCloseDate && <p className="text-xs text-muted-foreground">Close: {d.expectedCloseDate}</p>}
-                                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><UserCircle className="h-3 w-3" />{getOwnerName(d.ownerId)}</p>
-                                  {d.lostReason && <p className="text-xs text-destructive mt-0.5 truncate">Lost: {d.lostReason}</p>}
                                 </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 overflow-auto pb-4">
+              <div className="grid flex-1 grid-cols-1 gap-4 overflow-auto pb-4 md:grid-cols-2 xl:grid-cols-3">
                 {filtered.map(renderDealCard)}
               </div>
             )}
           </TabsContent>
 
-          {/* ── Archived Deals ── */}
-          <TabsContent value="archived" className="flex-1 flex flex-col min-h-0 mt-0">
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <TabsContent value="archived" className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="relative mb-4 flex-shrink-0">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input placeholder="Search archived deals..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="mb-4 grid flex-shrink-0 grid-cols-2 gap-4">
               <Card>
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center"><Trophy className="h-5 w-5 text-green-600 dark:text-green-400" /></div>
+                <CardContent className="flex items-center gap-3 p-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/10"><Trophy className="h-5 w-5 text-green-600 dark:text-green-400" /></div>
                   <div>
                     <p className="text-2xl font-bold text-foreground">{archivedDealsFromDb.filter(d => d.stage === 'closed_won').length}</p>
                     <p className="text-xs text-muted-foreground">Won · {formatCurrency(archivedDealsFromDb.filter(d => d.stage === 'closed_won').reduce((s, d) => s + d.value, 0))}</p>
@@ -412,8 +404,8 @@ export function DealsView() {
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center"><XCircle className="h-5 w-5 text-red-600 dark:text-red-400" /></div>
+                <CardContent className="flex items-center gap-3 p-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/10"><XCircle className="h-5 w-5 text-red-600 dark:text-red-400" /></div>
                   <div>
                     <p className="text-2xl font-bold text-foreground">{archivedDealsFromDb.filter(d => d.stage === 'closed_lost').length}</p>
                     <p className="text-xs text-muted-foreground">Lost · {formatCurrency(archivedDealsFromDb.filter(d => d.stage === 'closed_lost').reduce((s, d) => s + d.value, 0))}</p>
@@ -423,113 +415,108 @@ export function DealsView() {
             </div>
 
             {filtered.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 overflow-auto pb-4">
+              <div className="grid flex-1 grid-cols-1 gap-4 overflow-auto pb-4 md:grid-cols-2 xl:grid-cols-3">
                 {filtered.map(renderDealCard)}
               </div>
             ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <Archive className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <div className="py-12 text-center text-muted-foreground">
+                <Archive className="mx-auto mb-3 h-12 w-12 opacity-50" />
                 <p>No archived deals found</p>
               </div>
             )}
           </TabsContent>
 
-          {/* ── Analytics ── */}
-          <TabsContent value="analytics" className="flex-1 overflow-auto mt-0">
-            {/* KPI Summary */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <Card><CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-foreground">{deals.length}</p>
-                <p className="text-xs text-muted-foreground">Total Deals</p>
-              </CardContent></Card>
-              <Card><CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.winRate}%</p>
-                <p className="text-xs text-muted-foreground">Win Rate</p>
-              </CardContent></Card>
-              <Card><CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-primary">{formatCurrency(analytics.totalRevenue)}</p>
-                <p className="text-xs text-muted-foreground">Revenue (Won)</p>
-              </CardContent></Card>
-              <Card><CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-foreground">{formatCurrency(analytics.avgDealSize)}</p>
-                <p className="text-xs text-muted-foreground">Avg Deal Size</p>
-              </CardContent></Card>
-            </div>
+          <TabsContent value="analytics" className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="flex-1 overflow-auto pb-4">
+              <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+                <Card><CardContent className="p-4 text-center">
+                  <p className="text-2xl font-bold text-foreground">{deals.length}</p>
+                  <p className="text-xs text-muted-foreground">Total Deals</p>
+                </CardContent></Card>
+                <Card><CardContent className="p-4 text-center">
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.winRate}%</p>
+                  <p className="text-xs text-muted-foreground">Win Rate</p>
+                </CardContent></Card>
+                <Card><CardContent className="p-4 text-center">
+                  <p className="text-2xl font-bold text-primary">{formatCurrency(analytics.totalRevenue)}</p>
+                  <p className="text-xs text-muted-foreground">Revenue (Won)</p>
+                </CardContent></Card>
+                <Card><CardContent className="p-4 text-center">
+                  <p className="text-2xl font-bold text-foreground">{formatCurrency(analytics.avgDealSize)}</p>
+                  <p className="text-xs text-muted-foreground">Avg Deal Size</p>
+                </CardContent></Card>
+              </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-4">
-              {/* Won vs Lost Trend */}
-              <Card>
-                <CardContent className="p-4">
-                  <h3 className="font-semibold text-foreground mb-3">Won vs Lost (6 months)</h3>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={analytics.monthlyData}>
-                      <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-                      <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
-                      <RechartsTooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }} formatter={(v: number) => formatCurrency(v)} />
-                      <Bar dataKey="won" name="Won" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="lost" name="Lost" fill="hsl(0, 84%, 60%)" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <Card>
+                  <CardContent className="p-4">
+                    <h3 className="mb-3 font-semibold text-foreground">Won vs Lost (6 months)</h3>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={analytics.monthlyData}>
+                        <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                        <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
+                        <RechartsTooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }} formatter={(v: number) => formatCurrency(v)} />
+                        <Bar dataKey="won" name="Won" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="lost" name="Lost" fill="hsl(0, 84%, 60%)" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
 
-              {/* Stage Distribution */}
-              <Card>
-                <CardContent className="p-4">
-                  <h3 className="font-semibold text-foreground mb-3">Deal Distribution by Stage</h3>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <PieChart>
-                      <Pie data={analytics.stageDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, value }) => `${name} (${value})`}>
-                        {analytics.stageDistribution.map((_, i) => (
-                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                <Card>
+                  <CardContent className="p-4">
+                    <h3 className="mb-3 font-semibold text-foreground">Deal Distribution by Stage</h3>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <PieChart>
+                        <Pie data={analytics.stageDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, value }) => `${name} (${value})`}>
+                          {analytics.stageDistribution.map((_, i) => (
+                            <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Legend />
+                        <RechartsTooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-4">
+                    <h3 className="mb-3 font-semibold text-foreground">Pipeline Value by Stage</h3>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={analytics.valueByStage} layout="vertical">
+                        <XAxis type="number" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
+                        <YAxis type="category" dataKey="stage" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" width={100} />
+                        <RechartsTooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }} formatter={(v: number) => formatCurrency(v)} />
+                        <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-4">
+                    <h3 className="mb-3 font-semibold text-foreground">Top Reasons for Lost Deals</h3>
+                    {analytics.topLostReasons.length > 0 ? (
+                      <div className="space-y-3">
+                        {analytics.topLostReasons.map((r, i) => (
+                          <div key={i} className="flex items-center justify-between">
+                            <p className="mr-2 flex-1 truncate text-sm text-foreground">{r.reason}</p>
+                            <Badge variant="secondary">{r.count}</Badge>
+                          </div>
                         ))}
-                      </Pie>
-                      <Legend />
-                      <RechartsTooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              {/* Value by Stage */}
-              <Card>
-                <CardContent className="p-4">
-                  <h3 className="font-semibold text-foreground mb-3">Pipeline Value by Stage</h3>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={analytics.valueByStage} layout="vertical">
-                      <XAxis type="number" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
-                      <YAxis type="category" dataKey="stage" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" width={100} />
-                      <RechartsTooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }} formatter={(v: number) => formatCurrency(v)} />
-                      <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              {/* Top Lost Reasons */}
-              <Card>
-                <CardContent className="p-4">
-                  <h3 className="font-semibold text-foreground mb-3">Top Reasons for Lost Deals</h3>
-                  {analytics.topLostReasons.length > 0 ? (
-                    <div className="space-y-3">
-                      {analytics.topLostReasons.map((r, i) => (
-                        <div key={i} className="flex items-center justify-between">
-                          <p className="text-sm text-foreground truncate flex-1 mr-2">{r.reason}</p>
-                          <Badge variant="secondary">{r.count}</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground py-8 text-center">No lost deals with reasons recorded yet</p>
-                  )}
-                </CardContent>
-              </Card>
+                      </div>
+                    ) : (
+                      <p className="py-8 text-center text-sm text-muted-foreground">No lost deals with reasons recorded yet</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </TabsContent>
         </Tabs>
       </div>
 
-      {/* Detail Panel */}
       {currentSelected && (
         <div className="w-96 border-l bg-card flex-shrink-0 ml-4">
           <EntityDetailPanel entityType="deal" entityId={currentSelected.id} entityName={currentSelected.name} onClose={() => setSelectedDeal(null)}>
@@ -578,7 +565,6 @@ export function DealsView() {
       {formDialog(!!editId, () => setEditId(null), handleUpdate, 'Edit Deal')}
       <ConfirmDialog open={!!deleteId} onOpenChange={o => { if (!o) setDeleteId(null); }} title="Delete Deal" description="Are you sure you want to delete this deal?" onConfirm={() => { if (deleteId) { deleteDeal(deleteId); setDeleteId(null); } }} />
 
-      {/* Lost Reason Dialog */}
       <Dialog open={!!lostReasonDialog} onOpenChange={o => { if (!o) { setLostReasonDialog(null); setLostReason(''); } }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Why was this deal lost?</DialogTitle></DialogHeader>
