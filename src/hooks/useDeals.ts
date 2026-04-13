@@ -6,33 +6,47 @@ import { useAuth } from '@/contexts/AuthContext';
 export function useDeals() {
   const { user, isApproved } = useAuth();
   const [deals, setDeals] = useState<Deal[]>([]);
+  const [archivedDeals, setArchivedDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const mapDeal = (d: any): Deal => ({
+    id: d.id,
+    name: d.name,
+    accountId: d.account_id || undefined,
+    accountName: d.accounts?.name || '',
+    contactId: d.contact_id || undefined,
+    contactName: d.contacts ? `${d.contacts.first_name} ${d.contacts.last_name}`.trim() : '',
+    ownerId: d.owner_id,
+    stage: d.stage as DealStage,
+    value: Number(d.value) || 0,
+    probability: d.probability || 0,
+    expectedCloseDate: d.expected_close_date || '',
+    lostReason: d.lost_reason || '',
+    createdAt: d.created_at,
+    updatedAt: d.updated_at,
+  });
+
   const fetchDeals = useCallback(async () => {
-    if (!user || !isApproved) { setDeals([]); setLoading(false); return; }
+    if (!user || !isApproved) { setDeals([]); setArchivedDeals([]); setLoading(false); return; }
     try {
+      // Active deals (not soft-deleted)
       const { data, error } = await supabase
         .from('deals')
         .select('*, accounts(name), contacts(first_name, last_name)')
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
       if (error) { console.error('Error fetching deals:', error); return; }
-      setDeals((data || []).map((d: any) => ({
-        id: d.id,
-        name: d.name,
-        accountId: d.account_id || undefined,
-        accountName: d.accounts?.name || '',
-        contactId: d.contact_id || undefined,
-        contactName: d.contacts ? `${d.contacts.first_name} ${d.contacts.last_name}`.trim() : '',
-        ownerId: d.owner_id,
-        stage: d.stage as DealStage,
-        value: Number(d.value) || 0,
-        probability: d.probability || 0,
-        expectedCloseDate: d.expected_close_date || '',
-        lostReason: d.lost_reason || '',
-        createdAt: d.created_at,
-        updatedAt: d.updated_at,
-      })));
+      setDeals((data || []).map(mapDeal));
+
+      // Archived deals (soft-deleted, closed_won or closed_lost)
+      const { data: archData, error: archError } = await supabase
+        .from('deals')
+        .select('*, accounts(name), contacts(first_name, last_name)')
+        .not('deleted_at', 'is', null)
+        .in('stage', ['closed_won', 'closed_lost'])
+        .order('updated_at', { ascending: false });
+      if (archError) { console.error('Error fetching archived deals:', archError); return; }
+      setArchivedDeals((archData || []).map(mapDeal));
     } finally { setLoading(false); }
   }, [user, isApproved]);
 
@@ -77,6 +91,14 @@ export function useDeals() {
     await fetchDeals();
   }, [user, fetchDeals]);
 
+  const archiveDeals = useCallback(async (ids: string[]) => {
+    if (!user || ids.length === 0) return;
+    for (const id of ids) {
+      await supabase.from('deals').update({ deleted_at: new Date().toISOString(), deleted_by: user.id }).eq('id', id);
+    }
+    await fetchDeals();
+  }, [user, fetchDeals]);
+
   const bulkImportDeals = useCallback(async (rows: Omit<Deal, 'id' | 'createdAt' | 'updatedAt' | 'ownerId' | 'accountName' | 'contactName'>[]) => {
     if (!user) return;
     const inserts = rows.map(r => ({
@@ -94,5 +116,5 @@ export function useDeals() {
     await fetchDeals();
   }, [user, fetchDeals]);
 
-  return { deals, loading, addDeal, updateDeal, deleteDeal, bulkImportDeals, refetch: fetchDeals };
+  return { deals, archivedDeals, loading, addDeal, updateDeal, deleteDeal, archiveDeals, bulkImportDeals, refetch: fetchDeals };
 }

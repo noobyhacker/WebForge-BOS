@@ -19,7 +19,7 @@ import { useContacts } from '@/hooks/useContacts';
 import { useProfilesMap } from '@/hooks/useProfilesMap';
 import { useDealStageHistory } from '@/hooks/useDealStageHistory';
 import { cn } from '@/lib/utils';
-import { format, subDays, isAfter } from 'date-fns';
+import { format } from 'date-fns';
 import { XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
 
 const STAGES: { value: DealStage; label: string; color: string }[] = [
@@ -37,7 +37,7 @@ const PIE_COLORS = ['hsl(217, 91%, 60%)', 'hsl(271, 91%, 65%)', 'hsl(45, 93%, 47
 const getStageName = (stage: string) => STAGES.find(s => s.value === stage)?.label || stage;
 
 export function DealsView() {
-  const { deals, addDeal, updateDeal, deleteDeal } = useDeals();
+  const { deals, archivedDeals: archivedDealsFromDb, addDeal, updateDeal, deleteDeal, archiveDeals } = useDeals();
   const { accounts } = useAccounts();
   const { contacts } = useContacts();
   const { getOwnerName, getOwnerRole } = useProfilesMap();
@@ -49,7 +49,6 @@ export function DealsView() {
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'pipeline'>('pipeline');
   const [activeTab, setActiveTab] = useState('active');
-  const [activeDaysFilter, setActiveDaysFilter] = useState<30 | 60 | 90>(90);
   const [form, setForm] = useState({ name: '', accountId: '' as string | undefined, contactId: '' as string | undefined, stage: 'prospecting' as DealStage, value: 0, probability: 20, expectedCloseDate: '' });
 
   // Drag-and-drop state
@@ -67,16 +66,11 @@ export function DealsView() {
   const { history: stageHistory, addHistoryEntry } = useDealStageHistory(selectedDeal?.id || null);
 
   // Filtered deals by tab
-  const cutoffDate = useMemo(() => subDays(new Date(), activeDaysFilter), [activeDaysFilter]);
-  // Active = non-archived deals (including recently closed ones still visible in pipeline)
-  const nonArchivedDeals = useMemo(() => deals.filter(d => isAfter(new Date(d.createdAt), cutoffDate)), [deals, cutoffDate]);
-  const archivedDeals = useMemo(() => deals.filter(d => CLOSED_STAGES.includes(d.stage) && !isAfter(new Date(d.createdAt), cutoffDate)), [deals, cutoffDate]);
-
   const searchFiltered = useCallback((list: Deal[]) =>
     list.filter(d => `${d.name} ${d.accountName} ${d.contactName}`.toLowerCase().includes(search.toLowerCase())),
   [search]);
 
-  const filtered = searchFiltered(activeTab === 'active' ? nonArchivedDeals : activeTab === 'archived' ? archivedDeals : deals);
+  const filtered = searchFiltered(activeTab === 'active' ? deals : activeTab === 'archived' ? archivedDealsFromDb : deals);
   const currentSelected = selectedDeal ? deals.find(d => d.id === selectedDeal.id) || null : null;
   const resetForm = () => setForm({ name: '', accountId: '', contactId: '', stage: 'prospecting', value: 0, probability: 20, expectedCloseDate: '' });
 
@@ -127,14 +121,11 @@ export function DealsView() {
 
   const clearSelection = useCallback(() => setSelectedForArchive(new Set()), []);
 
-  // "Archive" = delete from active view. Here we just bulk-delete selected deals.
-  // In a real app this might set an "archived" flag. For now we delete them.
+  // Archive = soft-delete closed deals so they appear in archived tab
   const handleBulkArchive = useCallback(async () => {
-    for (const id of selectedForArchive) {
-      await deleteDeal(id);
-    }
+    await archiveDeals(Array.from(selectedForArchive));
     setSelectedForArchive(new Set());
-  }, [selectedForArchive, deleteDeal]);
+  }, [selectedForArchive, archiveDeals]);
 
   // Drag handlers
   const handleDragStart = useCallback((e: React.DragEvent, dealId: string) => {
@@ -288,7 +279,7 @@ export function DealsView() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-5rem)] animate-fade-in">
+    <div className="flex h-[calc(100vh-3.5rem)] animate-fade-in">
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <div className="flex items-center justify-between mb-3 flex-shrink-0">
           <div>
@@ -300,8 +291,8 @@ export function DealsView() {
 
         <Tabs value={activeTab} onValueChange={v => { setActiveTab(v); setSelectedForArchive(new Set()); }} className="flex-1 flex flex-col min-h-0 overflow-hidden">
           <TabsList className="mb-3 w-fit flex-shrink-0">
-            <TabsTrigger value="active" className="gap-1.5"><TrendingUp className="h-3.5 w-3.5" />Active ({nonArchivedDeals.length})</TabsTrigger>
-            <TabsTrigger value="archived" className="gap-1.5"><Archive className="h-3.5 w-3.5" />Archived ({archivedDeals.length})</TabsTrigger>
+            <TabsTrigger value="active" className="gap-1.5"><TrendingUp className="h-3.5 w-3.5" />Active ({deals.length})</TabsTrigger>
+            <TabsTrigger value="archived" className="gap-1.5"><Archive className="h-3.5 w-3.5" />Archived ({archivedDealsFromDb.length})</TabsTrigger>
             <TabsTrigger value="analytics" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" />Analytics</TabsTrigger>
           </TabsList>
 
@@ -311,11 +302,6 @@ export function DealsView() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Search deals..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
-              </div>
-              <div className="flex gap-1">
-                {([30, 60, 90] as const).map(d => (
-                  <Button key={d} variant={activeDaysFilter === d ? 'default' : 'outline'} size="sm" onClick={() => setActiveDaysFilter(d)}>{d}d</Button>
-                ))}
               </div>
               <div className="flex gap-1">
                 <Button variant={viewMode === 'pipeline' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('pipeline')}>Pipeline</Button>
@@ -420,8 +406,8 @@ export function DealsView() {
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center"><Trophy className="h-5 w-5 text-green-600 dark:text-green-400" /></div>
                   <div>
-                    <p className="text-2xl font-bold text-foreground">{archivedDeals.filter(d => d.stage === 'closed_won').length}</p>
-                    <p className="text-xs text-muted-foreground">Won · {formatCurrency(archivedDeals.filter(d => d.stage === 'closed_won').reduce((s, d) => s + d.value, 0))}</p>
+                    <p className="text-2xl font-bold text-foreground">{archivedDealsFromDb.filter(d => d.stage === 'closed_won').length}</p>
+                    <p className="text-xs text-muted-foreground">Won · {formatCurrency(archivedDealsFromDb.filter(d => d.stage === 'closed_won').reduce((s, d) => s + d.value, 0))}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -429,8 +415,8 @@ export function DealsView() {
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center"><XCircle className="h-5 w-5 text-red-600 dark:text-red-400" /></div>
                   <div>
-                    <p className="text-2xl font-bold text-foreground">{archivedDeals.filter(d => d.stage === 'closed_lost').length}</p>
-                    <p className="text-xs text-muted-foreground">Lost · {formatCurrency(archivedDeals.filter(d => d.stage === 'closed_lost').reduce((s, d) => s + d.value, 0))}</p>
+                    <p className="text-2xl font-bold text-foreground">{archivedDealsFromDb.filter(d => d.stage === 'closed_lost').length}</p>
+                    <p className="text-xs text-muted-foreground">Lost · {formatCurrency(archivedDealsFromDb.filter(d => d.stage === 'closed_lost').reduce((s, d) => s + d.value, 0))}</p>
                   </div>
                 </CardContent>
               </Card>
