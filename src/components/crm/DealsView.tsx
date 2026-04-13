@@ -292,8 +292,8 @@ export function DealsView() {
 
         <Tabs value={activeTab} onValueChange={v => { setActiveTab(v); setSelectedForArchive(new Set()); }} className="flex-1 flex flex-col min-h-0 overflow-hidden">
           <TabsList className="mb-3 w-fit flex-shrink-0">
-            <TabsTrigger value="active" className="gap-1.5"><TrendingUp className="h-3.5 w-3.5" />Active ({nonArchivedDeals.length})</TabsTrigger>
-            <TabsTrigger value="archived" className="gap-1.5"><Archive className="h-3.5 w-3.5" />Archived ({archivedDeals.length})</TabsTrigger>
+            <TabsTrigger value="active" className="gap-1.5"><TrendingUp className="h-3.5 w-3.5" />Active ({deals.length})</TabsTrigger>
+            <TabsTrigger value="archived" className="gap-1.5"><Archive className="h-3.5 w-3.5" />Archived ({archivedDealsFromDb.length})</TabsTrigger>
             <TabsTrigger value="analytics" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" />Analytics</TabsTrigger>
           </TabsList>
 
@@ -412,8 +412,8 @@ export function DealsView() {
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center"><Trophy className="h-5 w-5 text-green-600 dark:text-green-400" /></div>
                   <div>
-                    <p className="text-2xl font-bold text-foreground">{archivedDeals.filter(d => d.stage === 'closed_won').length}</p>
-                    <p className="text-xs text-muted-foreground">Won · {formatCurrency(archivedDeals.filter(d => d.stage === 'closed_won').reduce((s, d) => s + d.value, 0))}</p>
+                    <p className="text-2xl font-bold text-foreground">{archivedDealsFromDb.filter(d => d.stage === 'closed_won').length}</p>
+                    <p className="text-xs text-muted-foreground">Won · {formatCurrency(archivedDealsFromDb.filter(d => d.stage === 'closed_won').reduce((s, d) => s + d.value, 0))}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -421,8 +421,8 @@ export function DealsView() {
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center"><XCircle className="h-5 w-5 text-red-600 dark:text-red-400" /></div>
                   <div>
-                    <p className="text-2xl font-bold text-foreground">{archivedDeals.filter(d => d.stage === 'closed_lost').length}</p>
-                    <p className="text-xs text-muted-foreground">Lost · {formatCurrency(archivedDeals.filter(d => d.stage === 'closed_lost').reduce((s, d) => s + d.value, 0))}</p>
+                    <p className="text-2xl font-bold text-foreground">{archivedDealsFromDb.filter(d => d.stage === 'closed_lost').length}</p>
+                    <p className="text-xs text-muted-foreground">Lost · {formatCurrency(archivedDealsFromDb.filter(d => d.stage === 'closed_lost').reduce((s, d) => s + d.value, 0))}</p>
                   </div>
                 </CardContent>
               </Card>
