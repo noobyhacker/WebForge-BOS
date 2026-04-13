@@ -19,7 +19,7 @@ import { useContacts } from '@/hooks/useContacts';
 import { useProfilesMap } from '@/hooks/useProfilesMap';
 import { useDealStageHistory } from '@/hooks/useDealStageHistory';
 import { cn } from '@/lib/utils';
-import { format, subDays, isAfter } from 'date-fns';
+import { format } from 'date-fns';
 import { XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
 
 const STAGES: { value: DealStage; label: string; color: string }[] = [
@@ -49,7 +49,6 @@ export function DealsView() {
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'pipeline'>('pipeline');
   const [activeTab, setActiveTab] = useState('active');
-  const [activeDaysFilter, setActiveDaysFilter] = useState<30 | 60 | 90>(90);
   const [form, setForm] = useState({ name: '', accountId: '' as string | undefined, contactId: '' as string | undefined, stage: 'prospecting' as DealStage, value: 0, probability: 20, expectedCloseDate: '' });
 
   // Drag-and-drop state
