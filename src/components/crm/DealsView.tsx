@@ -37,7 +37,7 @@ const PIE_COLORS = ['hsl(217, 91%, 60%)', 'hsl(271, 91%, 65%)', 'hsl(45, 93%, 47
 const getStageName = (stage: string) => STAGES.find(s => s.value === stage)?.label || stage;
 
 export function DealsView() {
-  const { deals, addDeal, updateDeal, deleteDeal } = useDeals();
+  const { deals, archivedDeals: archivedDealsFromDb, addDeal, updateDeal, deleteDeal, archiveDeals } = useDeals();
   const { accounts } = useAccounts();
   const { contacts } = useContacts();
   const { getOwnerName, getOwnerRole } = useProfilesMap();
@@ -67,16 +67,11 @@ export function DealsView() {
   const { history: stageHistory, addHistoryEntry } = useDealStageHistory(selectedDeal?.id || null);
 
   // Filtered deals by tab
-  const cutoffDate = useMemo(() => subDays(new Date(), activeDaysFilter), [activeDaysFilter]);
-  // Active = non-archived deals (including recently closed ones still visible in pipeline)
-  const nonArchivedDeals = useMemo(() => deals.filter(d => isAfter(new Date(d.createdAt), cutoffDate)), [deals, cutoffDate]);
-  const archivedDeals = useMemo(() => deals.filter(d => CLOSED_STAGES.includes(d.stage) && !isAfter(new Date(d.createdAt), cutoffDate)), [deals, cutoffDate]);
-
   const searchFiltered = useCallback((list: Deal[]) =>
     list.filter(d => `${d.name} ${d.accountName} ${d.contactName}`.toLowerCase().includes(search.toLowerCase())),
   [search]);
 
-  const filtered = searchFiltered(activeTab === 'active' ? nonArchivedDeals : activeTab === 'archived' ? archivedDeals : deals);
+  const filtered = searchFiltered(activeTab === 'active' ? deals : activeTab === 'archived' ? archivedDealsFromDb : deals);
   const currentSelected = selectedDeal ? deals.find(d => d.id === selectedDeal.id) || null : null;
   const resetForm = () => setForm({ name: '', accountId: '', contactId: '', stage: 'prospecting', value: 0, probability: 20, expectedCloseDate: '' });
 
@@ -127,14 +122,11 @@ export function DealsView() {
 
   const clearSelection = useCallback(() => setSelectedForArchive(new Set()), []);
 
-  // "Archive" = delete from active view. Here we just bulk-delete selected deals.
-  // In a real app this might set an "archived" flag. For now we delete them.
+  // Archive = soft-delete closed deals so they appear in archived tab
   const handleBulkArchive = useCallback(async () => {
-    for (const id of selectedForArchive) {
-      await deleteDeal(id);
-    }
+    await archiveDeals(Array.from(selectedForArchive));
     setSelectedForArchive(new Set());
-  }, [selectedForArchive, deleteDeal]);
+  }, [selectedForArchive, archiveDeals]);
 
   // Drag handlers
   const handleDragStart = useCallback((e: React.DragEvent, dealId: string) => {
