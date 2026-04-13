@@ -304,11 +304,6 @@ export function DealsView() {
                 <Input placeholder="Search deals..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
               </div>
               <div className="flex gap-1">
-                {([30, 60, 90] as const).map(d => (
-                  <Button key={d} variant={activeDaysFilter === d ? 'default' : 'outline'} size="sm" onClick={() => setActiveDaysFilter(d)}>{d}d</Button>
-                ))}
-              </div>
-              <div className="flex gap-1">
                 <Button variant={viewMode === 'pipeline' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('pipeline')}>Pipeline</Button>
                 <Button variant={viewMode === 'list' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('list')}>List</Button>
               </div>
