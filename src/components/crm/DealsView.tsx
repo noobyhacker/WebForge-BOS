@@ -279,7 +279,7 @@ export function DealsView() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-5rem)] animate-fade-in">
+    <div className="flex h-[calc(100vh-3.5rem)] animate-fade-in">
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <div className="flex items-center justify-between mb-3 flex-shrink-0">
           <div>
