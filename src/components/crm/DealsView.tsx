@@ -312,8 +312,8 @@ export function DealsView() {
             )}
 
             {viewMode === 'pipeline' ? (
-              <div className="min-h-0 flex-1 overflow-x-auto pb-4">
-                <div className="grid h-full min-w-[1080px] grid-cols-6 gap-2">
+              <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
+                <div className="grid h-full min-w-[1080px] grid-cols-6 gap-2 pb-1">
                   {STAGES.map(stage => {
                     const stageDeals = filtered.filter(d => d.stage === stage.value);
                     const stageTotal = stageDeals.reduce((s, d) => s + d.value, 0);
