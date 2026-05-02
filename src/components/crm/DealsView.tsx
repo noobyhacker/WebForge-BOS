@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Search, Plus, DollarSign, Trash2, Pencil, TrendingUp, GripVertical, UserCircle, ArrowRight, Clock, Archive, BarChart3, Trophy, XCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -268,7 +268,7 @@ export function DealsView() {
   return (
     <div className="-m-4 md:-m-6 flex h-[calc(100%+2rem)] md:h-[calc(100%+3rem)] w-[calc(100%+2rem)] md:w-[calc(100%+3rem)] overflow-hidden p-3 animate-fade-in">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <Tabs value={activeTab} onValueChange={v => { setActiveTab(v); setSelectedForArchive(new Set()); }} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <Tabs value={activeTab} onValueChange={v => { setActiveTab(v); setSelectedForArchive(new Set()); }} className="flex-shrink-0">
           <div className="mb-2 flex flex-shrink-0 flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-3">
               <h1 className="text-lg font-bold tracking-tight">Deals</h1>
@@ -281,8 +281,10 @@ export function DealsView() {
             </TabsList>
             <Button onClick={() => setShowAdd(true)} size="sm" className="gap-2"><Plus className="h-4 w-4" />Add Deal</Button>
           </div>
+        </Tabs>
 
-          <TabsContent value="active" className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden">
+        {activeTab === 'active' && (
+          <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <div className="mb-3 flex flex-shrink-0 items-center gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -384,9 +386,11 @@ export function DealsView() {
                 {filtered.map(renderDealCard)}
               </div>
             )}
-          </TabsContent>
+          </section>
+        )}
 
-          <TabsContent value="archived" className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden">
+        {activeTab === 'archived' && (
+          <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <div className="relative mb-4 flex-shrink-0">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input placeholder="Search archived deals..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
@@ -423,9 +427,11 @@ export function DealsView() {
                 <p>No archived deals found</p>
               </div>
             )}
-          </TabsContent>
+          </section>
+        )}
 
-          <TabsContent value="analytics" className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden">
+        {activeTab === 'analytics' && (
+          <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <div className="flex-1 overflow-auto pb-4">
               <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
                 <Card><CardContent className="p-4 text-center">
@@ -512,8 +518,8 @@ export function DealsView() {
                 </Card>
               </div>
             </div>
-          </TabsContent>
-        </Tabs>
+          </section>
+        )}
       </div>
 
       {currentSelected && (
