@@ -268,20 +268,19 @@ export function DealsView() {
   return (
     <div className="-m-4 md:-m-6 flex h-[calc(100%+2rem)] md:h-[calc(100%+3rem)] w-[calc(100%+2rem)] md:w-[calc(100%+3rem)] overflow-hidden p-3 animate-fade-in">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="mb-3 flex flex-shrink-0 items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">Deals</h1>
-            <p className="text-sm text-muted-foreground">Pipeline: <span className="font-semibold text-foreground">{formatCurrency(totalPipeline)}</span> · Weighted: <span className="font-semibold text-foreground">{formatCurrency(weightedPipeline)}</span></p>
-          </div>
-          <Button onClick={() => setShowAdd(true)} className="gap-2"><Plus className="h-4 w-4" />Add Deal</Button>
-        </div>
-
         <Tabs value={activeTab} onValueChange={v => { setActiveTab(v); setSelectedForArchive(new Set()); }} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <TabsList className="mb-3 w-fit flex-shrink-0">
-            <TabsTrigger value="active" className="gap-1.5"><TrendingUp className="h-3.5 w-3.5" />Active ({deals.length})</TabsTrigger>
-            <TabsTrigger value="archived" className="gap-1.5"><Archive className="h-3.5 w-3.5" />Archived ({archivedDealsFromDb.length})</TabsTrigger>
-            <TabsTrigger value="analytics" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" />Analytics</TabsTrigger>
-          </TabsList>
+          <div className="mb-2 flex flex-shrink-0 flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-3">
+              <h1 className="text-lg font-bold tracking-tight">Deals</h1>
+              <p className="text-xs text-muted-foreground">Pipeline: <span className="font-semibold text-foreground">{formatCurrency(totalPipeline)}</span> · Weighted: <span className="font-semibold text-foreground">{formatCurrency(weightedPipeline)}</span></p>
+            </div>
+            <TabsList className="flex-shrink-0">
+              <TabsTrigger value="active" className="gap-1.5"><TrendingUp className="h-3.5 w-3.5" />Active ({deals.length})</TabsTrigger>
+              <TabsTrigger value="archived" className="gap-1.5"><Archive className="h-3.5 w-3.5" />Archived ({archivedDealsFromDb.length})</TabsTrigger>
+              <TabsTrigger value="analytics" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" />Analytics</TabsTrigger>
+            </TabsList>
+            <Button onClick={() => setShowAdd(true)} size="sm" className="gap-2"><Plus className="h-4 w-4" />Add Deal</Button>
+          </div>
 
           <TabsContent value="active" className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden">
             <div className="mb-3 flex flex-shrink-0 items-center gap-2">
