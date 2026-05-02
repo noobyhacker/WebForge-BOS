@@ -14,7 +14,7 @@ export function CrmLayout() {
         <div className="flex-shrink-0 flex justify-end px-4 pt-3 pb-1 md:px-6 md:pt-4 md:pb-0">
           <NotificationBell />
         </div>
-        <div className="flex-1 overflow-auto p-4 md:p-6 pt-0">
+        <div className="flex-1 min-h-0 overflow-auto p-4 md:p-6 pt-0">
           <Outlet />
         </div>
       </main>
