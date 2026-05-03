@@ -225,9 +225,20 @@ export function DealsView() {
           </div>
           <div><Label>Expected Close Date</Label><Input type="date" value={form.expectedCloseDate} onChange={e => setForm(f => ({ ...f, expectedCloseDate: e.target.value }))} /></div>
           <div>
+            <Label>Lead (parent pursuit) *</Label>
+            <Select value={form.leadId || 'none'} onValueChange={v => {
+              const lead = leads.find(l => l.id === v);
+              setForm(f => ({ ...f, leadId: v === 'none' ? '' : v, accountId: (lead as any)?.accountId || f.accountId }));
+            }}>
+              <SelectTrigger><SelectValue placeholder="Select a lead" /></SelectTrigger>
+              <SelectContent><SelectItem value="none">No lead</SelectItem>{leads.map(l => <SelectItem key={l.id} value={l.id}>{l.name}{l.company ? ` — ${l.company}` : ''}</SelectItem>)}</SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">A deal must belong to a lead. Account is auto-derived.</p>
+          </div>
+          <div>
             <Label>Account</Label>
             <Select value={form.accountId || 'none'} onValueChange={v => setForm(f => ({ ...f, accountId: v === 'none' ? '' : v }))}>
-              <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Auto from lead" /></SelectTrigger>
               <SelectContent><SelectItem value="none">No account</SelectItem>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
