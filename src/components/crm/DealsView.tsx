@@ -41,6 +41,7 @@ export function DealsView() {
   const { deals, archivedDeals: archivedDealsFromDb, addDeal, updateDeal, deleteDeal, archiveDeals } = useDeals();
   const { accounts } = useAccounts();
   const { contacts } = useContacts();
+  const { clients: leads } = useClients();
   const { getOwnerName, getOwnerRole } = useProfilesMap();
 
   const [search, setSearch] = useState('');
