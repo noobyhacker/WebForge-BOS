@@ -67,7 +67,7 @@ export function DealsView() {
 
   const filtered = searchFiltered(activeTab === 'active' ? deals : activeTab === 'archived' ? archivedDealsFromDb : deals);
   const currentSelected = selectedDeal ? deals.find(d => d.id === selectedDeal.id) || null : null;
-  const resetForm = () => setForm({ name: '', accountId: '', contactId: '', stage: 'prospecting', value: 0, probability: 20, expectedCloseDate: '' });
+  const resetForm = () => setForm({ name: '', leadId: '', accountId: '', contactId: '', stage: 'prospecting', value: 0, probability: 20, expectedCloseDate: '' });
 
   const changeDealStage = useCallback(async (dealId: string, fromStage: DealStage, toStage: DealStage, note?: string) => {
     await updateDeal(dealId, {
