@@ -97,39 +97,51 @@ export type Database = {
       }
       activities: {
         Row: {
+          account_id: string
           completed_at: string | null
+          contact_id: string | null
           created_at: string
+          deal_id: string | null
           description: string | null
           due_date: string | null
           entity_id: string | null
           entity_type: string | null
           id: string
+          lead_id: string | null
           owner_id: string
           status: Database["public"]["Enums"]["activity_status"]
           subject: string
           type: Database["public"]["Enums"]["activity_type"]
         }
         Insert: {
+          account_id: string
           completed_at?: string | null
+          contact_id?: string | null
           created_at?: string
+          deal_id?: string | null
           description?: string | null
           due_date?: string | null
           entity_id?: string | null
           entity_type?: string | null
           id?: string
+          lead_id?: string | null
           owner_id: string
           status?: Database["public"]["Enums"]["activity_status"]
           subject: string
           type?: Database["public"]["Enums"]["activity_type"]
         }
         Update: {
+          account_id?: string
           completed_at?: string | null
+          contact_id?: string | null
           created_at?: string
+          deal_id?: string | null
           description?: string | null
           due_date?: string | null
           entity_id?: string | null
           entity_type?: string | null
           id?: string
+          lead_id?: string | null
           owner_id?: string
           status?: Database["public"]["Enums"]["activity_status"]
           subject?: string
@@ -394,6 +406,7 @@ export type Database = {
       }
       clients: {
         Row: {
+          account_id: string
           company: string | null
           created_at: string | null
           deleted_at: string | null
@@ -403,15 +416,22 @@ export type Database = {
           instagram: string | null
           language: string | null
           last_contact: string | null
+          lead_score: number | null
           name: string
           nationality: string | null
+          next_action_date: string | null
+          next_action_type: string | null
           notes: string | null
           phone: string | null
+          pipeline_stage: string | null
+          primary_contact_id: string
+          qualification_status: string | null
           status: string | null
           user_id: string
           website: string | null
         }
         Insert: {
+          account_id: string
           company?: string | null
           created_at?: string | null
           deleted_at?: string | null
@@ -421,15 +441,22 @@ export type Database = {
           instagram?: string | null
           language?: string | null
           last_contact?: string | null
+          lead_score?: number | null
           name: string
           nationality?: string | null
+          next_action_date?: string | null
+          next_action_type?: string | null
           notes?: string | null
           phone?: string | null
+          pipeline_stage?: string | null
+          primary_contact_id: string
+          qualification_status?: string | null
           status?: string | null
           user_id: string
           website?: string | null
         }
         Update: {
+          account_id?: string
           company?: string | null
           created_at?: string | null
           deleted_at?: string | null
@@ -439,10 +466,16 @@ export type Database = {
           instagram?: string | null
           language?: string | null
           last_contact?: string | null
+          lead_score?: number | null
           name?: string
           nationality?: string | null
+          next_action_date?: string | null
+          next_action_type?: string | null
           notes?: string | null
           phone?: string | null
+          pipeline_stage?: string | null
+          primary_contact_id?: string
+          qualification_status?: string | null
           status?: string | null
           user_id?: string
           website?: string | null
@@ -451,7 +484,7 @@ export type Database = {
       }
       contacts: {
         Row: {
-          account_id: string | null
+          account_id: string
           created_at: string
           deleted_at: string | null
           deleted_by: string | null
@@ -467,7 +500,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          account_id?: string | null
+          account_id: string
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
@@ -483,7 +516,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          account_id?: string | null
+          account_id?: string
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
@@ -616,13 +649,14 @@ export type Database = {
       }
       deals: {
         Row: {
-          account_id: string | null
+          account_id: string
           contact_id: string | null
           created_at: string
           deleted_at: string | null
           deleted_by: string | null
           expected_close_date: string | null
           id: string
+          lead_id: string
           lost_reason: string | null
           name: string
           owner_id: string
@@ -632,13 +666,14 @@ export type Database = {
           value: number | null
         }
         Insert: {
-          account_id?: string | null
+          account_id: string
           contact_id?: string | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
           expected_close_date?: string | null
           id?: string
+          lead_id: string
           lost_reason?: string | null
           name: string
           owner_id: string
@@ -648,13 +683,14 @@ export type Database = {
           value?: number | null
         }
         Update: {
-          account_id?: string | null
+          account_id?: string
           contact_id?: string | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
           expected_close_date?: string | null
           id?: string
+          lead_id?: string
           lost_reason?: string | null
           name?: string
           owner_id?: string
@@ -2051,12 +2087,36 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      entity_timeline: {
+        Row: {
+          account_id: string | null
+          actor_id: string | null
+          body: string | null
+          contact_id: string | null
+          created_at: string | null
+          deal_id: string | null
+          id: string | null
+          kind: string | null
+          lead_id: string | null
+          subtype: string | null
+          title: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_edit_client: {
         Args: { _client_id: string; _user_id: string }
         Returns: boolean
+      }
+      convert_lead_to_deal: {
+        Args: {
+          _lead_id: string
+          _name: string
+          _stage?: string
+          _value?: number
+        }
+        Returns: string
       }
       has_client_access:
         | { Args: { _client_id: string }; Returns: boolean }

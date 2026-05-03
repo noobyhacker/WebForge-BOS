@@ -1,318 +1,138 @@
 
+# Relational Refactor: One Connected Account Graph
 
-# BOS v1.1 -- Operational Control Layer
+Single-tenant BOS already exists. The fix is to enforce a strict relational backbone across the existing entities, eliminate orphans, and unify the timeline — without inventing a new tenant layer.
 
-## Summary
+## Naming reconciliation
 
-Upgrade the BOS from an automation-first CRM to an operational control system by adding: **Tasks**, **Entity Comments**, **RBAC with permissions**, and **executive-level analytics**. No feature bloat, no AI, no chat app.
+Your spec uses "Client" as tenant. This app is single-tenant, and the existing `clients` table is functionally the **Lead/pursuit record** (per memory). To match your spec semantically:
 
----
+- `clients` table → renamed to `leads` (the sales-state layer)
+- All existing UI labels stay "Leads" (already the case in sidebar)
+- `accounts`, `contacts`, `deals`, `activities` keep their names
+- Tenant layer is implicit (single tenant) — no `client_id` columns added
 
-## What Already Exists (Leverage, Don't Rebuild)
-
-- `user_roles` table with `app_role` enum (`admin`, `user`, `sales`, `sales_manager`)
-- `has_role()` security definer function used in all RLS policies
-- `notifications` table with realtime subscription + `NotificationBell` component
-- `notes` table + `NotesList` component on entity detail panels
-- `activities` table (tasks, calls, emails, meetings)
-- `action_logs` table for audit
-- `domain_events` table (append-only)
-- `useProfilesMap` hook for resolving user names
-- Revenue leakage detection with stalled deals, idle quotes, overdue invoices
-- Dashboard with 5 KPIs + charts
-
----
-
-## 1. Database Migrations
-
-### A. `tasks` table
+## Target hierarchy (enforced)
 
 ```text
-tasks
-------
-id           uuid PK default gen_random_uuid()
-title        text NOT NULL
-description  text default ''
-status       text NOT NULL default 'todo'    -- todo, in_progress, blocked, done
-priority     text NOT NULL default 'medium'  -- low, medium, high, critical
-due_date     timestamptz
-assigned_to  uuid NOT NULL (references no FK to auth.users)
-created_by   uuid NOT NULL
-related_entity_type text    -- lead, deal, invoice, client, quote, contact
-related_entity_id   uuid
-created_at   timestamptz default now()
-updated_at   timestamptz default now()
-completed_at timestamptz
-deleted_at   timestamptz
-deleted_by   uuid
+Account (company)            ── parent commercial entity
+  ├── Contact (person)       ── account_id NOT NULL
+  ├── Lead (pursuit)         ── account_id NOT NULL, primary_contact_id NOT NULL
+  │     └── Deal             ── lead_id NOT NULL, account_id NOT NULL (denormalized)
+  └── Activity (event)       ── account_id NOT NULL; contact_id, lead_id, deal_id optional
+                                but at least one of {lead_id, deal_id, contact_id} required
 ```
 
-**RLS Policies:**
-- SELECT: admin sees all; users see tasks assigned to them or created by them
-- INSERT: approved users, `created_by = auth.uid()`
-- UPDATE: admin, or assigned_to = auth.uid(), or created_by = auth.uid()
-- DELETE: admin, or created_by = auth.uid()
+## Phase 1 — Schema migration
 
-**Indexes:**
-- `tasks(assigned_to, status, deleted_at)` for "My Tasks" dashboard
-- `tasks(related_entity_type, related_entity_id)` for entity detail panels
-- `tasks(due_date, status)` for overdue detection
+### 1a. Rename + structural changes
+- Rename table `clients` → `leads`. Update all FK references and the generated types regenerate automatically.
+- Rename `clients.user_id` → `leads.owner_rep_id` (semantic alignment, keep as uuid).
+- Add to `leads`: `account_id uuid`, `primary_contact_id uuid`, `pipeline_stage text`, `lead_score int default 0`, `qualification_status text default 'unqualified'`, `next_action_type text`, `next_action_date timestamptz`. Keep existing `status`, `notes`, etc.
+- Add to `deals`: `lead_id uuid`. Keep existing `account_id`, drop `contact_id` (redundant — reachable via lead).
+- Add to `activities`: `account_id uuid`, `contact_id uuid`, `lead_id uuid`, `deal_id uuid`. Keep `entity_type/entity_id` for one migration cycle, then drop after backfill.
+- Add to `contacts`: nothing new — `account_id` already exists, just enforce.
 
-### B. `entity_comments` table
+### 1b. Backfill (auto-create missing parents)
+Run inside the migration:
+
+1. For every `contact` with NULL `account_id`: create a placeholder Account `"<Contact name> (auto)"` owned by the contact's owner, attach.
+2. For every `lead` (formerly client) with no account: create placeholder Account from `company` field (or name); attach.
+3. For every `lead` with no primary contact: create a Contact from `name`/`email`/`phone` under the lead's account; attach.
+4. For every `deal` with NULL `account_id` but having `contact_id`: copy `contact.account_id`.
+5. For every `deal` with no lead: create a placeholder Lead under the deal's account using the deal's name; attach.
+6. For every `activity` with `entity_type='client'`: set `lead_id = entity_id`, then `account_id` and `contact_id` from that lead.
+7. For every `activity` with `entity_type='contact'`: set `contact_id`, derive `account_id`.
+8. For every `activity` with `entity_type='deal'`: set `deal_id`, derive `lead_id` and `account_id`.
+9. Same pattern for `entity_comments`, `documents`, `follow_ups` — map polymorphic ref to typed columns where safe.
+
+### 1c. Constraints (after backfill)
+- `ALTER TABLE contacts ALTER COLUMN account_id SET NOT NULL;`
+- `ALTER TABLE leads ALTER COLUMN account_id SET NOT NULL, ALTER COLUMN primary_contact_id SET NOT NULL;`
+- `ALTER TABLE deals ALTER COLUMN account_id SET NOT NULL, ALTER COLUMN lead_id SET NOT NULL;`
+- `ALTER TABLE activities ALTER COLUMN account_id SET NOT NULL;`
+- Add real foreign keys with `ON DELETE RESTRICT` (soft-delete pattern means we never hard delete; this enforces integrity).
+- Add CHECK on activities: `(contact_id IS NOT NULL OR lead_id IS NOT NULL OR deal_id IS NOT NULL)`.
+- Add validation triggers (per project rules, not CHECK) to enforce:
+  - `contacts.account_id` exists and not soft-deleted
+  - `leads.primary_contact_id.account_id = leads.account_id`
+  - `deals.lead_id.account_id = deals.account_id`
+  - `activities` parent chain consistency (deal→lead→account, contact→account)
+
+### 1d. Indexes
+Add indexes on every new FK column for rollup performance.
+
+## Phase 2 — Backend logic (triggers + functions)
+
+- **Cascade-derive trigger** on `activities` insert/update: if only `deal_id` is provided, auto-fill `lead_id`, `account_id`, `contact_id` from the deal chain. Same for lead-only or contact-only inserts. This guarantees clients can pass minimal data and the row still rolls up.
+- **Cascade-derive trigger** on `deals`: auto-fill `account_id` from `lead_id` if missing.
+- **Cascade-derive trigger** on `leads`: auto-fill `account_id` from `primary_contact_id.account_id` if missing.
+- **Soft-delete propagation**: when an Account is soft-deleted, block (raise) if it still has live children. Force user to detach/delete children first. Same for Contact (block if it's a lead's primary_contact). Surfaces orphan risk before it happens.
+- **Lead → Deal conversion function** `convert_lead_to_deal(lead_id, value, name)`: creates a deal preserving lead_id, account_id; never duplicates contacts/activities.
+- Update existing `handle_new_user`, `notify_chat_message`, etc. to reference `leads` instead of `clients`.
+- Update `has_client_access`, `is_client_owner`, `can_edit_client` → renamed to `has_lead_access`, etc., with same logic.
+
+## Phase 3 — RLS updates
+
+All existing policies referencing `clients` get renamed to `leads`. No semantic change to access rules. `accounts`, `contacts`, `deals` policies remain — but since records now always have a parent chain, add a complementary policy: a user with access to a Lead automatically gets read on its Account + primary Contact + Deals + Activities (via `has_entity_access` extensions).
+
+## Phase 4 — Unified activity timeline
+
+Create a SQL view `entity_timeline` that is the single source for all timeline UI:
 
 ```text
-entity_comments
----------------
-id          uuid PK default gen_random_uuid()
-entity_type text NOT NULL
-entity_id   uuid NOT NULL
-user_id     uuid NOT NULL
-content     text NOT NULL
-created_at  timestamptz default now()
+SELECT 'activity' as kind, id, account_id, contact_id, lead_id, deal_id,
+       owner_id as actor_id, subject as title, description as body,
+       created_at, type
+FROM activities WHERE deleted_at IS NULL
+UNION ALL same shape from entity_comments, follow_ups, deal_stage_history,
+domain_events (filtered to user-visible types), chat_messages.
 ```
 
-**RLS Policies:**
-- SELECT: admin sees all; approved users see comments on entities they own or have access to (via `has_entity_access` or ownership check)
-- INSERT: approved users, `user_id = auth.uid()`
-- DELETE: admin or comment author (`user_id = auth.uid()`)
-- No UPDATE (comments are immutable)
+UI timeline components (`ActivityTimeline.tsx`) query this view filtered by whichever entity is open:
+- Account view: `WHERE account_id = $1`
+- Contact view: `WHERE contact_id = $1`
+- Lead view: `WHERE lead_id = $1`
+- Deal view: `WHERE deal_id = $1`
 
-**Indexes:**
-- `entity_comments(entity_type, entity_id, created_at)` for timeline
+One view, one component, four contexts. Eliminates the current fragmented timeline implementations.
 
-### C. `permissions` table
+## Phase 5 — Frontend refactor
 
-```text
-permissions
------------
-id          uuid PK default gen_random_uuid()
-key         text UNIQUE NOT NULL    -- e.g. 'delete_invoice', 'view_revenue', 'manage_tasks'
-description text default ''
-created_at  timestamptz default now()
-```
+### Hooks (`src/hooks/`)
+- Rename `useClients.ts` → `useLeads.ts`. Update all imports across ~40 files.
+- Update all hooks to send/expect the new required FK fields.
+- `useDeals`: require `leadId` on create. Drop `contactId`.
+- `useActivities`: accept any of `{accountId, contactId, leadId, dealId}` and let the trigger fill the rest; UI only needs to provide the most-specific one.
+- New `useEntityTimeline(entity, id)` hook reading from the timeline view.
 
-**RLS:** admin full CRUD, all authenticated SELECT.
+### Components (`src/components/crm/`)
+- `AddClientDialog` → `AddLeadDialog`. Now requires picking/creating an Account and primary Contact inline (with "create new" affordance for both, single submit).
+- Add Deal flow: requires picking a Lead (which scopes the Account automatically).
+- Add Contact flow: requires Account.
+- Add Activity flow: requires picking ONE parent (Account/Contact/Lead/Deal). Trigger fills the rest.
+- `EntityDetailPanel`: replace per-entity ad-hoc tabs with a unified layout — Header, Children counts (rollup), unified Timeline, Comments. Used by Account/Contact/Lead/Deal detail views.
+- Account detail: tabs for Contacts | Leads | Deals | Activities — all powered by typed FK queries, not entity_shares scans.
+- Lead detail: shows the primary contact prominently, deal(s) underneath, full pursuit timeline.
 
-**Seed data (via insert tool after migration):**
-- `view_dashboard`, `view_revenue`, `manage_clients`, `delete_client`, `manage_deals`, `delete_deal`, `manage_invoices`, `delete_invoice`, `manage_quotes`, `delete_quote`, `manage_tasks`, `delete_task`, `manage_users`, `view_reports`, `restore_trash`
+### Sidebar / labels
+- "Clients" → "Leads" everywhere user-facing (already mostly the case).
 
-### D. `role_permissions` table
+## Phase 6 — Cleanup (final migration)
+After UI is migrated and stable:
+- Drop `activities.entity_type`, `activities.entity_id`.
+- Drop `entity_comments` polymorphic columns in favor of typed FKs (or keep polymorphic for true cross-entity notes — TBD during impl).
+- Drop unused `client_assignments` if superseded by `entity_shares`, or keep and rename to `lead_assignments`.
 
-```text
-role_permissions
-----------------
-id            uuid PK default gen_random_uuid()
-role          app_role NOT NULL
-permission_id uuid NOT NULL references permissions(id) on delete cascade
-UNIQUE(role, permission_id)
-```
+## Risks & decisions baked in
 
-**RLS:** admin full CRUD, all authenticated SELECT.
+- **Naming**: chose "Leads" (pursuit) over inventing a tenant `clients`. Matches single-tenant memory and current product reality.
+- **Backfill**: auto-creates placeholder Accounts/Contacts for orphans so NOT NULL constraints can be applied without data loss. Placeholders are clearly marked `(auto)` so users can merge later.
+- **No god components**: timeline view + small per-context wrapper, no monolithic component.
+- **Memory updates needed** after impl: rename "Clients (Leads)" entries, update Lead Lifecycle entry, mark Activity model as canonical relational (not polymorphic).
 
-### E. `has_permission()` security definer function
+## Out of scope (intentionally)
 
-```sql
-CREATE OR REPLACE FUNCTION public.has_permission(_user_id uuid, _permission_key text)
-RETURNS boolean
-LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1
-    FROM public.user_roles ur
-    JOIN public.role_permissions rp ON rp.role = ur.role
-    JOIN public.permissions p ON p.id = rp.permission_id
-    WHERE ur.user_id = _user_id AND p.key = _permission_key
-  )
-$$;
-```
-
-### F. Update `app_role` enum
-
-Add `finance` and `viewer` roles:
-```sql
-ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'finance';
-ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'viewer';
-```
-
-### G. Add `updated_at` trigger on `tasks`
-
-Reuse existing `update_updated_at_column()` trigger function.
-
----
-
-## 2. Hooks (New)
-
-### `useTasks.ts`
-- Fetch tasks for current user (assigned or created), filtered by `deleted_at IS NULL`
-- CRUD operations
-- Filter by status, priority, entity
-- `myOverdueTasks` computed: status != 'done' AND due_date < now
-- `completeTask` sets `completed_at` and `status = 'done'`
-- Soft delete
-
-### `useEntityComments.ts`
-- Fetch comments for a given entity_type + entity_id
-- Add comment (insert + create notification for entity owner)
-- Delete comment (author only)
-- Parse @mentions from content and create notifications
-
-### `usePermissions.ts`
-- Fetch all permissions
-- Fetch role_permissions mapping
-- `userCan(permissionKey)` helper using current user's roles
-- Admin CRUD for role_permissions
-
----
-
-## 3. Frontend Components
-
-### A. `TasksView.tsx` (new route: `/tasks`)
-- Full task list with filters: status, priority, assigned user
-- Create/edit task dialog with entity linking (optional)
-- Overdue tasks highlighted in red
-- Bulk status update
-- Sidebar nav item added
-
-### B. `TaskCard.tsx` (new)
-- Compact card for embedding in dashboard + entity detail panels
-- Shows title, priority badge, due date, assigned user
-- Quick-complete button
-
-### C. `EntityCommentsSection.tsx` (new)
-- Comment list with user avatars/names
-- Input box with @mention support (simple text-based, no autocomplete UI)
-- Integrated into `EntityDetailPanel` as a new tab
-
-### D. `RolePermissionsView.tsx` (new route: `/admin/permissions`)
-- Admin-only page
-- Table: rows = roles, columns = permissions
-- Toggle checkboxes to grant/revoke
-- Linked from Admin section in sidebar
-
-### E. Dashboard Updates (`DashboardView.tsx`)
-- Add "My Tasks" section showing up to 5 overdue/upcoming tasks
-- Add new analytics cards:
-  - Avg deal cycle time (days from creation to closed_won)
-  - Revenue per sales rep (bar chart, uses `useProfilesMap`)
-  - SLA breach count
-  - Overdue tasks count
-- Each metric clickable to navigate to filtered view
-
-### F. Revenue Leakage Updates (`RevenueLeakageView.tsx`)
-- Add "Overdue Tasks" as a 5th leakage category
-- Add revenue-per-rep comparison chart
-- Add deal cycle time trend (line chart, last 6 months)
-
-### G. Entity Detail Panel Updates (`EntityDetailPanel.tsx`)
-- Add "Tasks" tab showing tasks linked to the entity
-- Add "Comments" tab using `EntityCommentsSection`
-- Add inline "Add Task" button
-
-### H. Sidebar Updates
-- Add "Tasks" nav item (with CheckSquare icon)
-- Add "Permissions" under admin section
-
----
-
-## 4. AuthContext Updates
-
-- Add `userPermissions: string[]` state (fetched via role_permissions join)
-- Add `hasPermission(key: string): boolean` helper
-- Expose in context so all components can gate actions
-
----
-
-## 5. Permission Enforcement in UI
-
-Key enforcement points:
-- Delete buttons: check `delete_client`, `delete_deal`, etc.
-- Trash restore: check `restore_trash`
-- Revenue Leakage page: check `view_revenue`
-- Admin pages: check `manage_users`
-- Task management: check `manage_tasks`
-
-All checks use `hasPermission()` from AuthContext. Backend enforcement via RLS using `has_permission()` function where critical (delete operations).
-
----
-
-## 6. Cron Processor Updates
-
-Update `cron-processor` Edge Function to:
-- Auto-cancel tasks when related entity is soft-deleted
-- Include overdue task count in domain events
-
----
-
-## 7. Implementation Order
-
-1. Database migration (all tables + functions + indexes in one migration)
-2. Seed permissions data (via insert tool)
-3. Seed default role_permissions mappings (admin gets all, sales gets manage_clients/deals/tasks, etc.)
-4. Update AuthContext with permissions
-5. New hooks: useTasks, useEntityComments, usePermissions
-6. New components: TasksView, TaskCard, EntityCommentsSection, RolePermissionsView
-7. Update existing: DashboardView, RevenueLeakageView, EntityDetailPanel, Sidebar, App.tsx
-8. Update cron-processor for task auto-cancel
-9. Verification: RLS, permissions, soft-delete, indexes
-
----
-
-## Technical Details
-
-### File Changes Summary
-
-| Action | File |
-|--------|------|
-| Migration | Create tasks, entity_comments, permissions, role_permissions tables |
-| Migration | Add has_permission() function |
-| Migration | Add finance/viewer to app_role enum |
-| Migration | Add indexes on tasks, entity_comments |
-| Insert | Seed permissions rows |
-| Insert | Seed role_permissions mappings |
-| Create | `src/hooks/useTasks.ts` |
-| Create | `src/hooks/useEntityComments.ts` |
-| Create | `src/hooks/usePermissions.ts` |
-| Create | `src/components/crm/TasksView.tsx` |
-| Create | `src/components/crm/TaskCard.tsx` |
-| Create | `src/components/crm/EntityCommentsSection.tsx` |
-| Create | `src/components/crm/RolePermissionsView.tsx` |
-| Edit | `src/contexts/AuthContext.tsx` (add permissions) |
-| Edit | `src/components/crm/DashboardView.tsx` (My Tasks + analytics) |
-| Edit | `src/components/crm/RevenueLeakageView.tsx` (overdue tasks + charts) |
-| Edit | `src/components/crm/EntityDetailPanel.tsx` (tasks + comments tabs) |
-| Edit | `src/components/crm/Sidebar.tsx` (add Tasks + Permissions nav) |
-| Edit | `src/App.tsx` (add routes) |
-| Edit | `supabase/functions/cron-processor/index.ts` (task auto-cancel) |
-
-### Default Role Permission Matrix
-
-```text
-Permission         | admin | sales_manager | sales | finance | viewer | user
--------------------|-------|---------------|-------|---------|--------|-----
-view_dashboard     |  X    |      X        |   X   |    X    |   X    |  X
-view_revenue       |  X    |      X        |       |    X    |   X    |
-view_reports       |  X    |      X        |       |    X    |   X    |
-manage_clients     |  X    |      X        |   X   |         |        |  X
-delete_client      |  X    |      X        |       |         |        |
-manage_deals       |  X    |      X        |   X   |         |        |  X
-delete_deal        |  X    |      X        |       |         |        |
-manage_invoices    |  X    |      X        |       |    X    |        |
-delete_invoice     |  X    |               |       |         |        |
-manage_quotes      |  X    |      X        |   X   |         |        |  X
-delete_quote       |  X    |               |       |         |        |
-manage_tasks       |  X    |      X        |   X   |    X    |        |  X
-delete_task        |  X    |      X        |       |         |        |
-manage_users       |  X    |               |       |         |        |
-restore_trash      |  X    |               |       |         |        |
-```
-
-### Items NOT Being Implemented (per spec)
-
-- Full chat system, chat rooms, typing indicators, presence
-- Emoji reactions
-- AI suggestions
-- Complex permission inheritance (flat role-to-permission mapping only)
-- Feature flags
-- Multi-tenant infrastructure
-
+- True multi-tenancy (`client_id` on every table) — vetoed per single-tenant constraint.
+- Hard-deleting orphans — backfill instead.
+- UI redesign beyond what's needed to enforce the new required parents on create flows.

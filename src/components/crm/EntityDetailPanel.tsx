@@ -72,7 +72,7 @@ export function EntityDetailPanel({ entityType, entityId, entityName, onClose, c
       owner_id: user.id,
       due_date: activityForm.dueDate || null,
       status: 'pending',
-    });
+    } as any);
     if (error) { console.error('Error adding activity:', error); return; }
     setShowAddActivity(false);
     setActivityForm({ type: 'task', subject: '', description: '', dueDate: '' });

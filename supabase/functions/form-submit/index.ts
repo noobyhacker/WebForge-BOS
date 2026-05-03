@@ -187,7 +187,47 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ═══ CREATE CLIENT (LEAD) if mapped — always create at minimum ═══
+    // ═══ ENSURE ACCOUNT + CONTACT exist (relational requirement) ═══
+    if (!createdIds.account) {
+      const { data: account, error: accErr } = await supabase
+        .from('accounts')
+        .insert({
+          owner_id: assigneeId,
+          name: body.company ? sanitize(body.company, 100) : sanitize(body.name || 'Unknown', 100),
+          phone: body.phone ? sanitize(body.phone, 30) : '',
+        })
+        .select('id')
+        .single()
+      if (accErr || !account) {
+        console.error('Fallback account insert error:', accErr?.message)
+        return new Response(JSON.stringify({ error: 'Failed to create account' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+      createdIds.account = account.id
+    }
+
+    if (!createdIds.contact) {
+      const nameParts = (body.name || 'Unknown').trim().split(/\s+/)
+      const { data: contact, error: contErr } = await supabase
+        .from('contacts')
+        .insert({
+          owner_id: assigneeId,
+          status: 'prospect',
+          first_name: nameParts[0] || 'Unknown',
+          last_name: nameParts.slice(1).join(' '),
+          email: body.email ? body.email.toLowerCase().trim() : '',
+          phone: body.phone ? sanitize(body.phone, 30) : '',
+          account_id: createdIds.account,
+        })
+        .select('id')
+        .single()
+      if (contErr || !contact) {
+        console.error('Fallback contact insert error:', contErr?.message)
+        return new Response(JSON.stringify({ error: 'Failed to create contact' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+      createdIds.contact = contact.id
+    }
+
+    // ═══ CREATE LEAD ═══
     const clientPayload: Record<string, any> = {
       user_id: assigneeId,
       status: 'lead',
@@ -195,18 +235,20 @@ Deno.serve(async (req) => {
       email: body.email ? body.email.toLowerCase().trim() : null,
       phone: body.phone ? sanitize(body.phone, 30) : null,
       company: body.company ? sanitize(body.company, 100) : null,
+      account_id: createdIds.account,
+      primary_contact_id: createdIds.contact,
     }
 
-    // Apply explicit client field mappings
     if (entityData.client) {
       Object.assign(clientPayload, entityData.client)
-      // Ensure name exists
       if (!clientPayload.name || clientPayload.name === '') {
         clientPayload.name = body.name || 'Unknown'
       }
+      // never let mapping overwrite required FKs
+      clientPayload.account_id = createdIds.account
+      clientPayload.primary_contact_id = createdIds.contact
     }
 
-    // Add form reference to notes
     const existingNotes = clientPayload.notes || ''
     clientPayload.notes = `[Form: ${form.name}] ${existingNotes}`.trim()
 

@@ -16,6 +16,7 @@ import { EntityDetailPanel } from './EntityDetailPanel';
 import { useDeals } from '@/hooks/useDeals';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useContacts } from '@/hooks/useContacts';
+import { useClients } from '@/hooks/useClients';
 import { useProfilesMap } from '@/hooks/useProfilesMap';
 import { useDealStageHistory } from '@/hooks/useDealStageHistory';
 import { cn } from '@/lib/utils';
@@ -40,6 +41,7 @@ export function DealsView() {
   const { deals, archivedDeals: archivedDealsFromDb, addDeal, updateDeal, deleteDeal, archiveDeals } = useDeals();
   const { accounts } = useAccounts();
   const { contacts } = useContacts();
+  const { clients: leads } = useClients();
   const { getOwnerName, getOwnerRole } = useProfilesMap();
 
   const [search, setSearch] = useState('');
@@ -49,7 +51,7 @@ export function DealsView() {
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'pipeline'>('pipeline');
   const [activeTab, setActiveTab] = useState('active');
-  const [form, setForm] = useState({ name: '', accountId: '' as string | undefined, contactId: '' as string | undefined, stage: 'prospecting' as DealStage, value: 0, probability: 20, expectedCloseDate: '' });
+  const [form, setForm] = useState({ name: '', leadId: '' as string | undefined, accountId: '' as string | undefined, contactId: '' as string | undefined, stage: 'prospecting' as DealStage, value: 0, probability: 20, expectedCloseDate: '' });
 
   const [draggedDealId, setDraggedDealId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<DealStage | null>(null);
@@ -65,7 +67,7 @@ export function DealsView() {
 
   const filtered = searchFiltered(activeTab === 'active' ? deals : activeTab === 'archived' ? archivedDealsFromDb : deals);
   const currentSelected = selectedDeal ? deals.find(d => d.id === selectedDeal.id) || null : null;
-  const resetForm = () => setForm({ name: '', accountId: '', contactId: '', stage: 'prospecting', value: 0, probability: 20, expectedCloseDate: '' });
+  const resetForm = () => setForm({ name: '', leadId: '', accountId: '', contactId: '', stage: 'prospecting', value: 0, probability: 20, expectedCloseDate: '' });
 
   const changeDealStage = useCallback(async (dealId: string, fromStage: DealStage, toStage: DealStage, note?: string) => {
     await updateDeal(dealId, {
@@ -91,8 +93,8 @@ export function DealsView() {
     setLostReason('');
   };
 
-  const handleAdd = async () => { await addDeal({ ...form, accountId: form.accountId || undefined, contactId: form.contactId || undefined }); setShowAdd(false); resetForm(); };
-  const handleEdit = (d: Deal) => { setForm({ name: d.name, accountId: d.accountId || '', contactId: d.contactId || '', stage: d.stage, value: d.value, probability: d.probability, expectedCloseDate: d.expectedCloseDate }); setEditId(d.id); };
+  const handleAdd = async () => { await addDeal({ ...form, accountId: form.accountId || undefined, contactId: form.contactId || undefined } as any); setShowAdd(false); resetForm(); };
+  const handleEdit = (d: Deal) => { setForm({ name: d.name, leadId: '', accountId: d.accountId || '', contactId: d.contactId || '', stage: d.stage, value: d.value, probability: d.probability, expectedCloseDate: d.expectedCloseDate }); setEditId(d.id); };
   const handleUpdate = () => { if (editId) { updateDeal(editId, { ...form, accountId: form.accountId || undefined, contactId: form.contactId || undefined }); setEditId(null); resetForm(); } };
 
   const toggleArchiveSelection = useCallback((dealId: string) => {
@@ -223,9 +225,20 @@ export function DealsView() {
           </div>
           <div><Label>Expected Close Date</Label><Input type="date" value={form.expectedCloseDate} onChange={e => setForm(f => ({ ...f, expectedCloseDate: e.target.value }))} /></div>
           <div>
+            <Label>Lead (parent pursuit) *</Label>
+            <Select value={form.leadId || 'none'} onValueChange={v => {
+              const lead = leads.find(l => l.id === v);
+              setForm(f => ({ ...f, leadId: v === 'none' ? '' : v, accountId: (lead as any)?.accountId || f.accountId }));
+            }}>
+              <SelectTrigger><SelectValue placeholder="Select a lead" /></SelectTrigger>
+              <SelectContent><SelectItem value="none">No lead</SelectItem>{leads.map(l => <SelectItem key={l.id} value={l.id}>{l.name}{l.company ? ` — ${l.company}` : ''}</SelectItem>)}</SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">A deal must belong to a lead. Account is auto-derived.</p>
+          </div>
+          <div>
             <Label>Account</Label>
             <Select value={form.accountId || 'none'} onValueChange={v => setForm(f => ({ ...f, accountId: v === 'none' ? '' : v }))}>
-              <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Auto from lead" /></SelectTrigger>
               <SelectContent><SelectItem value="none">No account</SelectItem>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
