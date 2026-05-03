@@ -93,8 +93,8 @@ export function DealsView() {
     setLostReason('');
   };
 
-  const handleAdd = async () => { await addDeal({ ...form, accountId: form.accountId || undefined, contactId: form.contactId || undefined }); setShowAdd(false); resetForm(); };
-  const handleEdit = (d: Deal) => { setForm({ name: d.name, accountId: d.accountId || '', contactId: d.contactId || '', stage: d.stage, value: d.value, probability: d.probability, expectedCloseDate: d.expectedCloseDate }); setEditId(d.id); };
+  const handleAdd = async () => { await addDeal({ ...form, accountId: form.accountId || undefined, contactId: form.contactId || undefined } as any); setShowAdd(false); resetForm(); };
+  const handleEdit = (d: Deal) => { setForm({ name: d.name, leadId: '', accountId: d.accountId || '', contactId: d.contactId || '', stage: d.stage, value: d.value, probability: d.probability, expectedCloseDate: d.expectedCloseDate }); setEditId(d.id); };
   const handleUpdate = () => { if (editId) { updateDeal(editId, { ...form, accountId: form.accountId || undefined, contactId: form.contactId || undefined }); setEditId(null); resetForm(); } };
 
   const toggleArchiveSelection = useCallback((dealId: string) => {
