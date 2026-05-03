@@ -114,7 +114,7 @@ export function useDeals() {
       probability: r.probability || 0,
       expected_close_date: r.expectedCloseDate || null,
     }));
-    const { error } = await supabase.from('deals').insert(inserts);
+    const { error } = await supabase.from('deals').insert(inserts as any);
     if (error) { console.error('Error bulk importing deals:', error); throw error; }
     await fetchDeals();
   }, [user, fetchDeals]);
