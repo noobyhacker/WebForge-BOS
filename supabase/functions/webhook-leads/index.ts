@@ -98,8 +98,38 @@ Deno.serve(async (req) => {
         notes: body.message ? `[Webhook update] ${sanitize(body.message, 2000)}` : undefined,
       }).eq('id', leadId)
     } else {
-      // Create new lead
+      // Create new lead — must have account + primary contact (relational schema)
       eventType = 'lead.created'
+
+      // 1. Account
+      const { data: account, error: accErr } = await supabase.from('accounts').insert({
+        name: body.company ? sanitize(body.company, 100) : sanitize(body.name, 100),
+        owner_id: assigneeId,
+        phone: body.phone ? sanitize(body.phone, 30) : '',
+      }).select('id').single()
+      if (accErr || !account) {
+        console.error('Account insert error:', accErr?.message)
+        return new Response(JSON.stringify({ error: 'Failed to create account' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+
+      // 2. Contact
+      const nameParts = sanitize(body.name, 100).trim().split(/\s+/)
+      const { data: contact, error: ctErr } = await supabase.from('contacts').insert({
+        first_name: nameParts[0] || 'Unnamed',
+        last_name: nameParts.slice(1).join(' '),
+        email: body.email.toLowerCase().trim().slice(0, 255),
+        phone: body.phone ? sanitize(body.phone, 30) : '',
+        account_id: account.id,
+        owner_id: assigneeId,
+        status: 'prospect',
+        source: body.source || 'webhook',
+      }).select('id').single()
+      if (ctErr || !contact) {
+        console.error('Contact insert error:', ctErr?.message)
+        return new Response(JSON.stringify({ error: 'Failed to create contact' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+
+      // 3. Lead
       const { data: lead, error: leadError } = await supabase.from('clients').insert({
         name: sanitize(body.name, 100),
         email: body.email.toLowerCase().trim().slice(0, 255),
@@ -108,6 +138,8 @@ Deno.serve(async (req) => {
         notes: body.message ? `[Webhook] ${sanitize(body.message, 2000)}` : '[Webhook submission]',
         user_id: assigneeId,
         status: 'lead',
+        account_id: account.id,
+        primary_contact_id: contact.id,
       }).select().single()
 
       if (leadError) {
