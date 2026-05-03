@@ -579,7 +579,7 @@ export function useClients(userEmail: string = 'anonymous') {
           status: data.status,
           notes: data.notes,
           last_contact: data.lastContact,
-        });
+        } as any);
 
         if (error) {
           console.error('Error restoring client:', error);
