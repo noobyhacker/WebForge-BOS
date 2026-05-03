@@ -54,16 +54,19 @@ export function useDeals() {
 
   const addDeal = useCallback(async (deal: Omit<Deal, 'id' | 'createdAt' | 'updatedAt' | 'ownerId' | 'accountName' | 'contactName'>) => {
     if (!user) return;
+    // account_id and lead_id are required; if caller doesn't pass lead_id, the DB cascade trigger
+    // will only fill account_id when lead_id is present. Cast to any for legacy callers.
     const { error } = await supabase.from('deals').insert({
       name: deal.name,
       account_id: deal.accountId || null,
       contact_id: deal.contactId || null,
+      lead_id: (deal as any).leadId || null,
       owner_id: user.id,
       stage: deal.stage,
       value: deal.value,
       probability: deal.probability,
       expected_close_date: deal.expectedCloseDate || null,
-    });
+    } as any);
     if (error) { console.error('Error adding deal:', error); throw error; }
     await fetchDeals();
   }, [user, fetchDeals]);
