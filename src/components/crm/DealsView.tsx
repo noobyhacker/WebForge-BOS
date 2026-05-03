@@ -16,6 +16,7 @@ import { EntityDetailPanel } from './EntityDetailPanel';
 import { useDeals } from '@/hooks/useDeals';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useContacts } from '@/hooks/useContacts';
+import { useClients } from '@/hooks/useClients';
 import { useProfilesMap } from '@/hooks/useProfilesMap';
 import { useDealStageHistory } from '@/hooks/useDealStageHistory';
 import { cn } from '@/lib/utils';
