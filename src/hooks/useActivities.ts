@@ -36,7 +36,8 @@ export function useActivities() {
 
   const addActivity = useCallback(async (activity: Omit<Activity, 'id' | 'createdAt' | 'ownerId' | 'entityName'>) => {
     if (!user) return;
-    const { error } = await supabase.from('activities').insert({
+    // account_id is auto-filled by DB trigger from entity_type/entity_id (or lead/contact/deal FKs)
+    const insertRow: any = {
       type: activity.type,
       subject: activity.subject,
       description: activity.description,
@@ -45,7 +46,8 @@ export function useActivities() {
       owner_id: user.id,
       due_date: activity.dueDate || null,
       status: activity.status,
-    });
+    };
+    const { error } = await supabase.from('activities').insert(insertRow);
     if (error) { console.error('Error adding activity:', error); throw error; }
     await fetchActivities();
   }, [user, fetchActivities]);
