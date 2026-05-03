@@ -198,8 +198,50 @@ export function useClients(userEmail: string = 'anonymous') {
     }
 
     try {
-      // IMPORTANT: avoid `.select().single()` on insert because RLS can block RETURNING
-      // which makes the insert look like it failed even if it succeeded.
+      // 1. Create Account (parent). Required for the new relational schema.
+      const accountName = (client.company || client.name || 'Unnamed').trim();
+      const { data: accountData, error: accountErr } = await supabase
+        .from('accounts')
+        .insert({
+          name: accountName,
+          owner_id: user.id,
+          phone: client.phone || '',
+        })
+        .select('id')
+        .single();
+      if (accountErr || !accountData) {
+        console.error('Error auto-creating account:', accountErr);
+        throw new Error(accountErr?.message || 'Failed to create account');
+      }
+      const accountId = accountData.id;
+      await logAction('create', 'account', accountName, `Auto-created from lead ${client.name}`);
+
+      // 2. Create primary Contact under that account.
+      const nameParts = (client.name || '').trim().split(/\s+/);
+      const firstName = nameParts[0] || client.name || 'Unnamed';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      const { data: contactData, error: contactErr } = await supabase
+        .from('contacts')
+        .insert({
+          first_name: firstName,
+          last_name: lastName,
+          email: client.email || '',
+          phone: client.phone || '',
+          owner_id: user.id,
+          status: 'prospect' as const,
+          source: 'lead',
+          account_id: accountId,
+        })
+        .select('id')
+        .single();
+      if (contactErr || !contactData) {
+        console.error('Error auto-creating contact:', contactErr);
+        throw new Error(contactErr?.message || 'Failed to create contact');
+      }
+      const contactId = contactData.id;
+      await logAction('create', 'contact', client.name, `Auto-created from lead ${client.name}`);
+
+      // 3. Create Lead with required parent FKs.
       const { error: insertError } = await supabase
         .from('clients')
         .insert({
@@ -214,78 +256,25 @@ export function useClients(userEmail: string = 'anonymous') {
           website: client.website || '',
           instagram: client.instagram || '',
           last_contact: client.lastContact,
+          account_id: accountId,
+          primary_contact_id: contactId,
         } as any);
 
       if (insertError) {
-        console.error('Error adding client:', insertError);
+        console.error('Error adding lead:', insertError);
         throw new Error(insertError.message);
       }
 
-      await logAction('create', 'client', client.name, `Created client ${client.name} (${client.company})`);
+      await logAction('create', 'client', client.name, `Created lead ${client.name} (${client.company || ''})`);
       await fetchClients();
 
-      // Best-effort: fetch latest client for this user so callers can treat as success.
-      const { data: latest, error: latestError } = await supabase
+      const { data: latest } = await supabase
         .from('clients')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
-
-      if (latestError) {
-        console.warn('Could not fetch newly created client:', latestError);
-      }
-
-      // Auto-create Account from company name (best-effort)
-      let accountId: string | undefined;
-      if (client.company) {
-        try {
-          const { data: accountData } = await supabase
-            .from('accounts')
-            .insert({
-              name: client.company,
-              owner_id: user.id,
-              phone: client.phone || '',
-            })
-            .select('id')
-            .single();
-          accountId = accountData?.id;
-          if (accountId) {
-            await logAction('create', 'account', client.company, `Auto-created from client ${client.name}`);
-          }
-        } catch (e) {
-          console.warn('Auto-create account failed:', e);
-        }
-      }
-
-      // Auto-create Contact from client info (best-effort)
-      try {
-        const nameParts = client.name.trim().split(/\s+/);
-        const firstName = nameParts[0] || client.name;
-        const lastName = nameParts.slice(1).join(' ') || '';
-
-        const { data: contactData } = await supabase
-          .from('contacts')
-          .insert({
-            first_name: firstName,
-            last_name: lastName,
-            email: client.email || '',
-            phone: client.phone || '',
-            owner_id: user.id,
-            status: 'prospect' as const,
-            source: 'client',
-            account_id: accountId || null,
-          })
-          .select('id')
-          .single();
-
-        if (contactData?.id) {
-          await logAction('create', 'contact', client.name, `Auto-created from client ${client.name}`);
-        }
-      } catch (e) {
-        console.warn('Auto-create contact failed:', e);
-      }
 
       return {
         id: latest?.id ?? crypto.randomUUID(),
@@ -307,8 +296,6 @@ export function useClients(userEmail: string = 'anonymous') {
       throw error instanceof Error ? error : new Error('Failed to add client');
     }
   }, [user, logAction, fetchClients]);
-
-  // Claim a lead – assign current user as owner
   const claimClient = useCallback(async (id: string) => {
     if (!user) return;
 
