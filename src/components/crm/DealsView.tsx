@@ -51,7 +51,7 @@ export function DealsView() {
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'pipeline'>('pipeline');
   const [activeTab, setActiveTab] = useState('active');
-  const [form, setForm] = useState({ name: '', accountId: '' as string | undefined, contactId: '' as string | undefined, stage: 'prospecting' as DealStage, value: 0, probability: 20, expectedCloseDate: '' });
+  const [form, setForm] = useState({ name: '', leadId: '' as string | undefined, accountId: '' as string | undefined, contactId: '' as string | undefined, stage: 'prospecting' as DealStage, value: 0, probability: 20, expectedCloseDate: '' });
 
   const [draggedDealId, setDraggedDealId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<DealStage | null>(null);
