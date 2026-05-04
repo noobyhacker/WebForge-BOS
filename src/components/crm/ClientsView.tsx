@@ -53,6 +53,15 @@ export function ClientsView() {
         setSearchParams(searchParams, { replace: true });
       }
     }
+    const selectedId = searchParams.get('selected');
+    if (selectedId && clients.length > 0) {
+      const client = clients.find(c => c.id === selectedId);
+      if (client) {
+        setSelectedClient(client);
+        searchParams.delete('selected');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
   }, [searchParams, clients]);
 
   const currentSelectedClient = selectedClient

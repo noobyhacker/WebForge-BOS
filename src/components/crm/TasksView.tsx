@@ -189,10 +189,19 @@ export function TasksView() {
           </Card>
         ) : (
           filteredTasks.map(task => (
-            <Card key={task.id} className={cn(isOverdue(task) && 'border-destructive/50')}>
+            <Card
+              key={task.id}
+              className={cn(
+                isOverdue(task) && 'border-destructive/50',
+                task.relatedEntityId && 'cursor-pointer hover:border-primary/50 transition-colors'
+              )}
+              onClick={() => openRelated(task)}
+              role={task.relatedEntityId ? 'button' : undefined}
+              title={task.relatedEntityId ? `Open related ${task.relatedEntityType}` : undefined}
+            >
               <CardContent className="py-3 px-4 flex items-center gap-3">
                 {task.status !== 'done' ? (
-                  <button onClick={() => completeTask(task.id)} className="flex-shrink-0 text-muted-foreground hover:text-success transition-colors">
+                  <button onClick={(e) => { e.stopPropagation(); completeTask(task.id); }} className="flex-shrink-0 text-muted-foreground hover:text-success transition-colors">
                     <CheckCircle2 className="h-5 w-5" />
                   </button>
                 ) : (
@@ -211,15 +220,22 @@ export function TasksView() {
                       </span>
                     )}
                     <span className="text-xs text-muted-foreground">→ {getOwnerName(task.assignedTo)}</span>
+                    {task.relatedEntityId && task.relatedEntityType && (
+                      <Badge variant="outline" className="text-[10px] text-primary border-primary/40">
+                        ↗ open {task.relatedEntityType}
+                      </Badge>
+                    )}
                   </div>
                 </div>
-                <Select value={task.status} onValueChange={(v) => updateTask(task.id, { status: v })}>
-                  <SelectTrigger className="w-28 h-7 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {STATUS_OPTIONS.map(s => <SelectItem key={s} value={s}>{s.replace('_', ' ')}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(task.id)}>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <Select value={task.status} onValueChange={(v) => updateTask(task.id, { status: v })}>
+                    <SelectTrigger className="w-28 h-7 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map(s => <SelectItem key={s} value={s}>{s.replace('_', ' ')}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteId(task.id); }}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </CardContent>

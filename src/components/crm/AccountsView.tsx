@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Account } from '@/types/crm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,19 @@ export function AccountsView() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [form, setForm] = useState({ name: '', industry: '', website: '', phone: '', address: '' });
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const selectedId = searchParams.get('selected');
+    if (selectedId && accounts.length > 0) {
+      const a = accounts.find(x => x.id === selectedId);
+      if (a) {
+        setSelectedAccount(a);
+        searchParams.delete('selected');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [searchParams, accounts]);
 
   const filtered = accounts.filter(a => `${a.name} ${a.industry}`.toLowerCase().includes(search.toLowerCase()));
   const currentSelected = selectedAccount ? accounts.find(a => a.id === selectedAccount.id) || null : null;

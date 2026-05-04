@@ -1,4 +1,5 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Deal, DealStage } from '@/types/crm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,12 +62,27 @@ export function DealsView() {
 
   const { history: stageHistory, addHistoryEntry } = useDealStageHistory(selectedDeal?.id || null);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const selectedId = searchParams.get('selected');
+    if (!selectedId) return;
+    const all = [...deals, ...archivedDealsFromDb];
+    if (all.length === 0) return;
+    const d = all.find(x => x.id === selectedId);
+    if (d) {
+      setSelectedDeal(d);
+      if (archivedDealsFromDb.some(x => x.id === d.id)) setActiveTab('archived');
+      searchParams.delete('selected');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, deals, archivedDealsFromDb]);
+
   const searchFiltered = useCallback((list: Deal[]) =>
     list.filter(d => `${d.name} ${d.accountName} ${d.contactName}`.toLowerCase().includes(search.toLowerCase())),
   [search]);
 
   const filtered = searchFiltered(activeTab === 'active' ? deals : activeTab === 'archived' ? archivedDealsFromDb : deals);
-  const currentSelected = selectedDeal ? deals.find(d => d.id === selectedDeal.id) || null : null;
+  const currentSelected = selectedDeal ? ([...deals, ...archivedDealsFromDb].find(d => d.id === selectedDeal.id) || null) : null;
   const resetForm = () => setForm({ name: '', leadId: '', accountId: '', contactId: '', stage: 'prospecting', value: 0, probability: 20, expectedCloseDate: '' });
 
   const changeDealStage = useCallback(async (dealId: string, fromStage: DealStage, toStage: DealStage, note?: string) => {

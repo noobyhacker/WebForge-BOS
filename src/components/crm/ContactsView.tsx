@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Contact } from '@/types/crm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +43,19 @@ export function ContactsView() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', accountId: '', status: 'prospect' as 'active' | 'inactive' | 'prospect', source: '', title: '' });
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const selectedId = searchParams.get('selected');
+    if (selectedId && contacts.length > 0) {
+      const c = contacts.find(x => x.id === selectedId);
+      if (c) {
+        setSelectedContact(c);
+        searchParams.delete('selected');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [searchParams, contacts]);
 
   const filtered = contacts.filter(c => {
     const matchSearch = `${c.firstName} ${c.lastName} ${c.email} ${c.accountName}`.toLowerCase().includes(search.toLowerCase());
