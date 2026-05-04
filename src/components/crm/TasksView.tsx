@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +38,17 @@ export function TasksView() {
   const canManageAll = isAdmin || isSalesManager;
   const { tasks, addTask, updateTask, completeTask, deleteTask } = useTasks();
   const { profiles, getOwnerName } = useProfilesMap();
+  const navigate = useNavigate();
+
+  const ENTITY_ROUTE: Record<string, string> = {
+    client: '/clients', lead: '/clients', contact: '/contacts',
+    account: '/accounts', deal: '/deals',
+  };
+  const openRelated = (t: Task) => {
+    if (!t.relatedEntityType || !t.relatedEntityId) return;
+    const path = ENTITY_ROUTE[t.relatedEntityType];
+    if (path) navigate(`${path}?selected=${t.relatedEntityId}`);
+  };
   const [showCreate, setShowCreate] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
