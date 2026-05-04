@@ -62,6 +62,21 @@ export function DealsView() {
 
   const { history: stageHistory, addHistoryEntry } = useDealStageHistory(selectedDeal?.id || null);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const selectedId = searchParams.get('selected');
+    if (!selectedId) return;
+    const all = [...deals, ...archivedDealsFromDb];
+    if (all.length === 0) return;
+    const d = all.find(x => x.id === selectedId);
+    if (d) {
+      setSelectedDeal(d);
+      if (archivedDealsFromDb.some(x => x.id === d.id)) setActiveTab('archived');
+      searchParams.delete('selected');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, deals, archivedDealsFromDb]);
+
   const searchFiltered = useCallback((list: Deal[]) =>
     list.filter(d => `${d.name} ${d.accountName} ${d.contactName}`.toLowerCase().includes(search.toLowerCase())),
   [search]);
