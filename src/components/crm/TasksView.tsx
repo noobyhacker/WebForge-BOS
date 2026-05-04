@@ -189,8 +189,20 @@ export function TasksView() {
           </Card>
         ) : (
           filteredTasks.map(task => (
-            <Card key={task.id} className={cn(isOverdue(task) && 'border-destructive/50')}>
-              <CardContent className="py-3 px-4 flex items-center gap-3">
+            <Card
+              key={task.id}
+              className={cn(
+                isOverdue(task) && 'border-destructive/50',
+                task.relatedEntityId && 'cursor-pointer hover:border-primary/50 transition-colors'
+              )}
+              onClick={() => openRelated(task)}
+              role={task.relatedEntityId ? 'button' : undefined}
+              title={task.relatedEntityId ? `Open related ${task.relatedEntityType}` : undefined}
+            >
+              <CardContent
+                className="py-3 px-4 flex items-center gap-3"
+                onClick={(e) => e.stopPropagation()}
+              >
                 {task.status !== 'done' ? (
                   <button onClick={() => completeTask(task.id)} className="flex-shrink-0 text-muted-foreground hover:text-success transition-colors">
                     <CheckCircle2 className="h-5 w-5" />
