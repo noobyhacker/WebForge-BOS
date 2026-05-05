@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, Sun, Moon, Contact, Building2, Handshake, ListTodo, Package, Mail, Zap, TrendingDown, FileText, Receipt, Paperclip, GitBranch, Trash2, CheckSquare, Lock, FileInput, Target, MessageCircle, UserPlus } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Shield, LogOut, ChevronLeft, ClipboardList, Menu, Sun, Moon, Contact, Building2, Handshake, ListTodo, Package, Mail, Zap, TrendingDown, FileText, Receipt, Paperclip, GitBranch, Trash2, CheckSquare, Lock, FileInput, Target, MessageCircle, UserPlus, PhoneCall, PhoneForwarded } from 'lucide-react';
 import webforgeLogo from '@/assets/webforge-logo.png';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -83,6 +83,8 @@ const navGroups: NavGroup[] = [
       { path: '/activities', label: 'Activities', icon: ListTodo },
       { path: '/followups', label: 'Follow-ups', icon: Calendar },
       { path: '/bulk-assign', label: 'Assign Clients', icon: UserPlus, requiredPermission: 'assign_clients' },
+      { path: '/cold-calls', label: 'Cold Calling', icon: PhoneCall, requiredPermission: 'manage_clients' },
+      { path: '/cold-call-pipeline', label: 'Call Pipeline', icon: PhoneForwarded, requiredPermission: 'manage_clients' },
     ],
   },
   {

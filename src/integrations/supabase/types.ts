@@ -436,6 +436,9 @@ export type Database = {
       clients: {
         Row: {
           account_id: string
+          cold_call_last_at: string | null
+          cold_call_notes: string | null
+          cold_call_status: string | null
           company: string | null
           created_at: string | null
           deleted_at: string | null
@@ -461,6 +464,9 @@ export type Database = {
         }
         Insert: {
           account_id: string
+          cold_call_last_at?: string | null
+          cold_call_notes?: string | null
+          cold_call_status?: string | null
           company?: string | null
           created_at?: string | null
           deleted_at?: string | null
@@ -486,6 +492,9 @@ export type Database = {
         }
         Update: {
           account_id?: string
+          cold_call_last_at?: string | null
+          cold_call_notes?: string | null
+          cold_call_status?: string | null
           company?: string | null
           created_at?: string | null
           deleted_at?: string | null
