@@ -67,14 +67,14 @@ export function ColdCallPipelineView() {
   }, [leads]);
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col p-4 md:p-6 gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Cold Call Pipeline</h1>
-        <p className="text-sm text-muted-foreground">Leads grouped by their latest call outcome.</p>
+    <div className="h-[100dvh] md:h-[calc(100vh-4rem)] flex flex-col p-3 sm:p-4 md:p-6 gap-3 min-w-0">
+      <div className="min-w-0">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-semibold tracking-tight truncate">Cold Call Pipeline</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground truncate">Leads grouped by their latest call outcome.</p>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-x-auto">
-        <div className="grid grid-flow-col auto-cols-[minmax(240px,1fr)] gap-3 h-full pb-2">
+      <div className="flex-1 min-h-0 overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+        <div className="grid grid-flow-col auto-cols-[78vw] sm:auto-cols-[260px] lg:auto-cols-[minmax(220px,1fr)] gap-2.5 h-full pb-2">
           {COLUMNS.map(col => {
             const items = grouped[col.key] || [];
             return (

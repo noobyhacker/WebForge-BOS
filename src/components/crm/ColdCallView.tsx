@@ -147,21 +147,21 @@ export function ColdCallView() {
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col gap-4 p-4 md:p-6">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            <PhoneCall className="h-5 w-5 text-muted-foreground" />
-            Cold Calling
+    <div className="h-[100dvh] md:h-[calc(100vh-4rem)] flex flex-col gap-3 p-3 sm:p-4 md:p-6 min-w-0">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-semibold tracking-tight flex items-center gap-2 truncate">
+            <PhoneCall className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
+            <span className="truncate">Cold Calling</span>
           </h1>
-          <p className="text-sm text-muted-foreground">Work the queue. One click per outcome.</p>
+          <p className="text-xs sm:text-sm text-muted-foreground truncate">Work the queue. One click per outcome.</p>
         </div>
-        <Badge variant="secondary" className="font-mono">
+        <Badge variant="secondary" className="font-mono text-[10px] sm:text-xs flex-shrink-0">
           {queue.length} in queue
         </Badge>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4 flex-1 min-h-0">
+      <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] xl:grid-cols-[300px_1fr] gap-3 flex-1 min-h-0">
         {/* Queue */}
         <Card className="flex flex-col min-h-0 bg-card/50">
           <CardHeader className="pb-2">
@@ -246,18 +246,18 @@ export function ColdCallView() {
                 )}
 
                 <div>
-                  <p className="text-xs uppercase tracking-wider text-muted-foreground/70 mb-2">Outcome</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+                  <p className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground/70 mb-2">Outcome</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2">
                     {OUTCOMES.map(o => (
                       <Button
                         key={o.key}
                         disabled={saving}
                         onClick={() => recordOutcome(o.key)}
                         variant="outline"
-                        className="h-auto py-3 flex flex-col items-center gap-1.5 border-border/60 hover:border-border hover:bg-muted"
+                        className="h-auto py-2.5 px-2 flex flex-col items-center gap-1 border-border/60 hover:border-border hover:bg-muted text-center"
                       >
                         <o.icon className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-xs font-medium">{o.label}</span>
+                        <span className="text-[11px] sm:text-xs font-medium leading-tight">{o.label}</span>
                       </Button>
                     ))}
                   </div>
