@@ -30,6 +30,8 @@ import { FormsView } from "@/components/crm/FormsView";
 import { KpisView } from "@/components/crm/KpisView";
 import { BulkAssignView } from "@/components/crm/BulkAssignView";
 import { AdminChatsView } from "@/components/crm/AdminChatsView";
+import { ColdCallView } from "@/components/crm/ColdCallView";
+import { ColdCallPipelineView } from "@/components/crm/ColdCallPipelineView";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -76,6 +78,8 @@ const App = () => (
               <Route path="permissions" element={<RolePermissionsView />} />
               <Route path="bulk-assign" element={<BulkAssignView />} />
               <Route path="chats" element={<AdminChatsView />} />
+              <Route path="cold-calls" element={<ColdCallView />} />
+              <Route path="cold-call-pipeline" element={<ColdCallPipelineView />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
