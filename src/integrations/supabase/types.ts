@@ -147,7 +147,36 @@ export type Database = {
           subject?: string
           type?: Database["public"]["Enums"]["activity_type"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "activities_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activities_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_suggestions: {
         Row: {
@@ -480,11 +509,27 @@ export type Database = {
           user_id?: string
           website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clients_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_primary_contact_id_fkey"
+            columns: ["primary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contacts: {
         Row: {
           account_id: string
+          client_id: string | null
           created_at: string
           deleted_at: string | null
           deleted_by: string | null
@@ -501,6 +546,7 @@ export type Database = {
         }
         Insert: {
           account_id: string
+          client_id?: string | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
@@ -517,6 +563,7 @@ export type Database = {
         }
         Update: {
           account_id?: string
+          client_id?: string | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
@@ -537,6 +584,13 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
@@ -712,6 +766,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
@@ -2109,6 +2170,10 @@ export type Database = {
         Args: { _client_id: string; _user_id: string }
         Returns: boolean
       }
+      can_edit_lead: {
+        Args: { _lead_id: string; _user_id: string }
+        Returns: boolean
+      }
       convert_lead_to_deal: {
         Args: {
           _lead_id: string
@@ -2126,6 +2191,9 @@ export type Database = {
         Args: { _entity_id: string; _entity_type: string }
         Returns: boolean
       }
+      has_lead_access:
+        | { Args: { _lead_id: string }; Returns: boolean }
+        | { Args: { _lead_id: string; _user_id: string }; Returns: boolean }
       has_permission: {
         Args: { _permission_key: string; _user_id: string }
         Returns: boolean
@@ -2139,6 +2207,7 @@ export type Database = {
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
       is_client_owner: { Args: { client_id: string }; Returns: boolean }
+      is_lead_owner: { Args: { _lead_id: string }; Returns: boolean }
       is_owner: { Args: { _owner_id: string }; Returns: boolean }
     }
     Enums: {
