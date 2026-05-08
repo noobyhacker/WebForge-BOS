@@ -1,5 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Client, FollowUp, FollowUpStatus } from '@/types/crm';
+import { Badge } from '@/components/ui/badge';
+import { PhoneCall } from 'lucide-react';
+
+const COLD_CALL_LABEL: Record<string, string> = {
+  not_called: 'Not called',
+  callback: 'Callback',
+  not_interested: 'Not interested',
+  warm: 'Warm',
+  interested: 'Interested',
+  meeting_scheduled: 'Meeting scheduled',
+};
 import { StatusBadge } from './StatusBadge';
 import { FollowUpItem } from './FollowUpItem';
 import { Button } from '@/components/ui/button';
@@ -41,6 +53,22 @@ export function ClientDetails({
   const [showEditClient, setShowEditClient] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [coldCall, setColdCall] = useState<{ status: string | null; lastAt: string | null; notes: string | null } | null>(null);
+  const [coldHistory, setColdHistory] = useState<Array<{ id: string; from_status: string | null; to_status: string; note: string | null; created_at: string; changed_by_email: string | null }>>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [{ data: c }, { data: h }] = await Promise.all([
+        supabase.from('clients').select('cold_call_status,cold_call_last_at,cold_call_notes').eq('id', client.id).maybeSingle(),
+        supabase.from('cold_call_history').select('*').eq('client_id', client.id).order('created_at', { ascending: false }).limit(20),
+      ]);
+      if (cancelled) return;
+      if (c) setColdCall({ status: (c as any).cold_call_status, lastAt: (c as any).cold_call_last_at, notes: (c as any).cold_call_notes });
+      setColdHistory((h || []) as any);
+    })();
+    return () => { cancelled = true; };
+  }, [client.id]);
 
   // Only owners and admins can share
   const canShare = isAdmin || client.userId === user?.id;
@@ -178,6 +206,45 @@ export function ClientDetails({
           </div>
         </div>
 
+        {/* Cold Call Pipeline */}
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+            <PhoneCall className="h-3.5 w-3.5" /> Cold Call Pipeline
+          </h4>
+          <div className="p-3 rounded-lg bg-secondary/50 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <Badge variant="outline" className="text-[11px]">
+                {COLD_CALL_LABEL[coldCall?.status || 'not_called'] || 'Not called'}
+              </Badge>
+              {coldCall?.lastAt && (
+                <span className="text-[11px] text-muted-foreground">
+                  Last: {new Date(coldCall.lastAt).toLocaleDateString()}
+                </span>
+              )}
+            </div>
+            {coldCall?.notes && <p className="text-xs text-muted-foreground">{coldCall.notes}</p>}
+            {coldHistory.length > 0 && (
+              <details className="text-xs">
+                <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                  History ({coldHistory.length})
+                </summary>
+                <ul className="mt-2 space-y-1">
+                  {coldHistory.map(h => (
+                    <li key={h.id} className="flex flex-col p-1.5 rounded bg-background/60">
+                      <span>
+                        {COLD_CALL_LABEL[h.from_status || 'not_called'] || h.from_status || '—'} → {COLD_CALL_LABEL[h.to_status] || h.to_status}
+                      </span>
+                      <span className="text-muted-foreground/80">
+                        {new Date(h.created_at).toLocaleString()} · {h.changed_by_email || 'system'}
+                      </span>
+                      {h.note && <span className="text-muted-foreground/80">{h.note}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
+        </div>
         {/* Notes */}
         {client.notes && (
           <div className="space-y-2">

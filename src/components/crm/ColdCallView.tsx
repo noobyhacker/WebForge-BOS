@@ -117,6 +117,15 @@ export function ColdCallView() {
       details: `Cold call outcome: ${status}${note?.trim() ? ` — ${note.trim()}` : ''}`,
     });
 
+    await supabase.from('cold_call_history').insert({
+      client_id: active.id,
+      from_status: active.cold_call_status || 'not_called',
+      to_status: status,
+      note: note?.trim() || '',
+      changed_by: user.id,
+      changed_by_email: user.email || null,
+    });
+
     toast.success(`Logged: ${status.replace('_', ' ')}`);
 
     // Update local state and advance

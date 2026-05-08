@@ -535,6 +535,39 @@ export type Database = {
           },
         ]
       }
+      cold_call_history: {
+        Row: {
+          changed_by: string | null
+          changed_by_email: string | null
+          client_id: string
+          created_at: string
+          from_status: string | null
+          id: string
+          note: string | null
+          to_status: string
+        }
+        Insert: {
+          changed_by?: string | null
+          changed_by_email?: string | null
+          client_id: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status: string
+        }
+        Update: {
+          changed_by?: string | null
+          changed_by_email?: string | null
+          client_id?: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status?: string
+        }
+        Relationships: []
+      }
       contacts: {
         Row: {
           account_id: string
