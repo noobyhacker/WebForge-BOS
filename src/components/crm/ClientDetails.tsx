@@ -1,5 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Client, FollowUp, FollowUpStatus } from '@/types/crm';
+import { Badge } from '@/components/ui/badge';
+import { PhoneCall } from 'lucide-react';
+
+const COLD_CALL_LABEL: Record<string, string> = {
+  not_called: 'Not called',
+  callback: 'Callback',
+  not_interested: 'Not interested',
+  warm: 'Warm',
+  interested: 'Interested',
+  meeting_scheduled: 'Meeting scheduled',
+};
 import { StatusBadge } from './StatusBadge';
 import { FollowUpItem } from './FollowUpItem';
 import { Button } from '@/components/ui/button';
