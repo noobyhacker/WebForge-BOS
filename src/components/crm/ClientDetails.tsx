@@ -53,6 +53,22 @@ export function ClientDetails({
   const [showEditClient, setShowEditClient] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [coldCall, setColdCall] = useState<{ status: string | null; lastAt: string | null; notes: string | null } | null>(null);
+  const [coldHistory, setColdHistory] = useState<Array<{ id: string; from_status: string | null; to_status: string; note: string | null; created_at: string; changed_by_email: string | null }>>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [{ data: c }, { data: h }] = await Promise.all([
+        supabase.from('clients').select('cold_call_status,cold_call_last_at,cold_call_notes').eq('id', client.id).maybeSingle(),
+        supabase.from('cold_call_history').select('*').eq('client_id', client.id).order('created_at', { ascending: false }).limit(20),
+      ]);
+      if (cancelled) return;
+      if (c) setColdCall({ status: (c as any).cold_call_status, lastAt: (c as any).cold_call_last_at, notes: (c as any).cold_call_notes });
+      setColdHistory((h || []) as any);
+    })();
+    return () => { cancelled = true; };
+  }, [client.id]);
 
   // Only owners and admins can share
   const canShare = isAdmin || client.userId === user?.id;
