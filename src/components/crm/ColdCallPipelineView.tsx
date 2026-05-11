@@ -134,6 +134,18 @@ export function ColdCallPipelineView() {
   const [saving, setSaving] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
 
+  // Meeting / outcome note
+  const [meetingNote, setMeetingNote] = useState('');
+  const [meetingNewStatus, setMeetingNewStatus] = useState<ColdCallStatus | 'keep'>('keep');
+  const [logging, setLogging] = useState(false);
+
+  // Convert to deal
+  const [convertOpen, setConvertOpen] = useState(false);
+  const [dealName, setDealName] = useState('');
+  const [dealValue, setDealValue] = useState<string>('0');
+  const [dealStage, setDealStage] = useState<string>('prospecting');
+  const [converting, setConverting] = useState(false);
+
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const fetchLeads = async () => {
