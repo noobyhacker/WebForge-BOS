@@ -288,18 +288,6 @@ export function ColdCallPipelineView() {
     setLeads(prev => prev.map(l => l.id === opened.id ? { ...l, ...editForm } as Lead : l));
     setOpened(prev => prev ? { ...prev, ...editForm } as Lead : prev);
   };
-    if (!opened) return;
-    setSaving(true);
-    const { error } = await supabase.from('clients').update({
-      name: editForm.name, company: editForm.company, phone: editForm.phone,
-      email: editForm.email, notes: editForm.notes, cold_call_notes: editForm.cold_call_notes,
-    }).eq('id', opened.id);
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success('Saved');
-    setLeads(prev => prev.map(l => l.id === opened.id ? { ...l, ...editForm } as Lead : l));
-    setOpened(prev => prev ? { ...prev, ...editForm } as Lead : prev);
-  };
 
   const deleteLead = async () => {
     if (!opened || !user) return;
