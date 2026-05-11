@@ -10,9 +10,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ConfirmDialog } from './ConfirmDialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   PhoneOff, Clock, ThermometerSun, Flame, CalendarClock, Phone,
-  Pencil, Trash2, History, ExternalLink, Save, X,
+  Pencil, Trash2, History, ExternalLink, Save, Target, MessageSquarePlus,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -133,6 +135,18 @@ export function ColdCallPipelineView() {
   const [saving, setSaving] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
 
+  // Meeting / outcome note
+  const [meetingNote, setMeetingNote] = useState('');
+  const [meetingNewStatus, setMeetingNewStatus] = useState<ColdCallStatus | 'keep'>('keep');
+  const [logging, setLogging] = useState(false);
+
+  // Convert to deal
+  const [convertOpen, setConvertOpen] = useState(false);
+  const [dealName, setDealName] = useState('');
+  const [dealValue, setDealValue] = useState<string>('0');
+  const [dealStage, setDealStage] = useState<string>('prospecting');
+  const [converting, setConverting] = useState(false);
+
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const fetchLeads = async () => {
@@ -198,6 +212,11 @@ export function ColdCallPipelineView() {
   const openLead = async (l: Lead) => {
     setOpened(l);
     setEditForm({ name: l.name, company: l.company, phone: l.phone, email: l.email, notes: l.notes, cold_call_notes: l.cold_call_notes });
+    setMeetingNote('');
+    setMeetingNewStatus('keep');
+    setDealName(l.company ? `${l.company} – ${l.name}` : l.name);
+    setDealValue('0');
+    setDealStage('prospecting');
     const { data } = await supabase
       .from('cold_call_history')
       .select('*')
@@ -205,6 +224,56 @@ export function ColdCallPipelineView() {
       .order('created_at', { ascending: false })
       .limit(50);
     setHistory((data || []) as HistoryRow[]);
+  };
+
+  const logMeetingNote = async () => {
+    if (!opened || !user) return;
+    if (!meetingNote.trim() && meetingNewStatus === 'keep') {
+      toast.error('Add a note or pick a new status');
+      return;
+    }
+    setLogging(true);
+    const from = (opened.cold_call_status ?? 'not_called') as ColdCallStatus;
+    const to = meetingNewStatus === 'keep' ? from : meetingNewStatus;
+    const nowIso = new Date().toISOString();
+
+    if (to !== from) {
+      const { error: upErr } = await supabase.from('clients')
+        .update({ cold_call_status: to, cold_call_last_at: nowIso })
+        .eq('id', opened.id);
+      if (upErr) { setLogging(false); return toast.error(upErr.message); }
+      setLeads(prev => prev.map(l => l.id === opened.id ? { ...l, cold_call_status: to, cold_call_last_at: nowIso } : l));
+      setOpened(prev => prev ? { ...prev, cold_call_status: to, cold_call_last_at: nowIso } : prev);
+    }
+
+    const { data: row, error } = await supabase.from('cold_call_history').insert({
+      client_id: opened.id, from_status: from, to_status: to,
+      changed_by: user.id, changed_by_email: user.email || null,
+      note: meetingNote.trim(),
+    }).select('*').single();
+    setLogging(false);
+    if (error) return toast.error(error.message);
+    if (row) setHistory(prev => [row as HistoryRow, ...prev]);
+    setMeetingNote('');
+    setMeetingNewStatus('keep');
+    toast.success('Note logged');
+  };
+
+  const convertToDeal = async () => {
+    if (!opened) return;
+    if (!dealName.trim()) return toast.error('Deal name required');
+    setConverting(true);
+    const { data, error } = await supabase.rpc('convert_lead_to_deal', {
+      _lead_id: opened.id,
+      _name: dealName.trim(),
+      _value: Number(dealValue) || 0,
+      _stage: dealStage,
+    });
+    setConverting(false);
+    if (error) return toast.error(error.message);
+    toast.success('Deal created');
+    setConvertOpen(false);
+    navigate(`/deals?selected=${data}`);
   };
 
   const saveEdit = async () => {
@@ -304,12 +373,44 @@ export function ColdCallPipelineView() {
                   <Button size="sm" onClick={saveEdit} disabled={saving} className="gap-1.5">
                     <Save className="h-3.5 w-3.5" /> Save
                   </Button>
+                  <Button size="sm" variant="default" onClick={() => setConvertOpen(true)} className="gap-1.5 bg-primary/90 hover:bg-primary">
+                    <Target className="h-3.5 w-3.5" /> Convert to Deal
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => navigate(`/clients?selected=${opened.id}`)} className="gap-1.5">
-                    <ExternalLink className="h-3.5 w-3.5" /> Open in Clients
+                    <ExternalLink className="h-3.5 w-3.5" /> Open
                   </Button>
                   <Button size="sm" variant="destructive" onClick={() => setConfirmDel(true)} className="gap-1.5 ml-auto">
                     <Trash2 className="h-3.5 w-3.5" /> Delete
                   </Button>
+                </div>
+
+                <div className="pt-4 border-t border-border/50 space-y-2">
+                  <h4 className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <MessageSquarePlus className="h-3.5 w-3.5" /> Log meeting / outcome note
+                  </h4>
+                  <Textarea
+                    rows={2}
+                    placeholder="What was discussed? Next steps, objections, decisions…"
+                    value={meetingNote}
+                    onChange={e => setMeetingNote(e.target.value)}
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Label className="text-xs text-muted-foreground">Set stage:</Label>
+                    <Select value={meetingNewStatus} onValueChange={(v) => setMeetingNewStatus(v as ColdCallStatus | 'keep')}>
+                      <SelectTrigger className="h-8 text-xs w-[170px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="keep">Keep current</SelectItem>
+                        {COLUMNS.map(c => (
+                          <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button size="sm" onClick={logMeetingNote} disabled={logging} className="ml-auto gap-1.5">
+                      <MessageSquarePlus className="h-3.5 w-3.5" /> Log
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="pt-4 border-t border-border/50">
@@ -350,6 +451,49 @@ export function ColdCallPipelineView() {
         confirmText="Delete"
         onConfirm={deleteLead}
       />
+
+      <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Target className="h-4 w-4 text-muted-foreground" /> Convert to Deal
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Deal name</Label>
+              <Input value={dealName} onChange={e => setDealName(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Value</Label>
+                <Input type="number" value={dealValue} onChange={e => setDealValue(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Stage</Label>
+                <Select value={dealStage} onValueChange={setDealStage}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="prospecting">Prospecting</SelectItem>
+                    <SelectItem value="qualification">Qualification</SelectItem>
+                    <SelectItem value="proposal">Proposal</SelectItem>
+                    <SelectItem value="negotiation">Negotiation</SelectItem>
+                    <SelectItem value="closed_won">Closed Won</SelectItem>
+                    <SelectItem value="closed_lost">Closed Lost</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">A new deal will be created and linked to this lead's account & contact.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConvertOpen(false)}>Cancel</Button>
+            <Button onClick={convertToDeal} disabled={converting} className="gap-1.5">
+              <Target className="h-3.5 w-3.5" /> Create Deal
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
