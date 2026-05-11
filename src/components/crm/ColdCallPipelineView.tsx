@@ -211,6 +211,11 @@ export function ColdCallPipelineView() {
   const openLead = async (l: Lead) => {
     setOpened(l);
     setEditForm({ name: l.name, company: l.company, phone: l.phone, email: l.email, notes: l.notes, cold_call_notes: l.cold_call_notes });
+    setMeetingNote('');
+    setMeetingNewStatus('keep');
+    setDealName(l.company ? `${l.company} – ${l.name}` : l.name);
+    setDealValue('0');
+    setDealStage('prospecting');
     const { data } = await supabase
       .from('cold_call_history')
       .select('*')
@@ -220,7 +225,69 @@ export function ColdCallPipelineView() {
     setHistory((data || []) as HistoryRow[]);
   };
 
+  const logMeetingNote = async () => {
+    if (!opened || !user) return;
+    if (!meetingNote.trim() && meetingNewStatus === 'keep') {
+      toast.error('Add a note or pick a new status');
+      return;
+    }
+    setLogging(true);
+    const from = (opened.cold_call_status ?? 'not_called') as ColdCallStatus;
+    const to = meetingNewStatus === 'keep' ? from : meetingNewStatus;
+    const nowIso = new Date().toISOString();
+
+    if (to !== from) {
+      const { error: upErr } = await supabase.from('clients')
+        .update({ cold_call_status: to, cold_call_last_at: nowIso })
+        .eq('id', opened.id);
+      if (upErr) { setLogging(false); return toast.error(upErr.message); }
+      setLeads(prev => prev.map(l => l.id === opened.id ? { ...l, cold_call_status: to, cold_call_last_at: nowIso } : l));
+      setOpened(prev => prev ? { ...prev, cold_call_status: to, cold_call_last_at: nowIso } : prev);
+    }
+
+    const { data: row, error } = await supabase.from('cold_call_history').insert({
+      client_id: opened.id, from_status: from, to_status: to,
+      changed_by: user.id, changed_by_email: user.email || null,
+      note: meetingNote.trim(),
+    }).select('*').single();
+    setLogging(false);
+    if (error) return toast.error(error.message);
+    if (row) setHistory(prev => [row as HistoryRow, ...prev]);
+    setMeetingNote('');
+    setMeetingNewStatus('keep');
+    toast.success('Note logged');
+  };
+
+  const convertToDeal = async () => {
+    if (!opened) return;
+    if (!dealName.trim()) return toast.error('Deal name required');
+    setConverting(true);
+    const { data, error } = await supabase.rpc('convert_lead_to_deal', {
+      _lead_id: opened.id,
+      _name: dealName.trim(),
+      _value: Number(dealValue) || 0,
+      _stage: dealStage,
+    });
+    setConverting(false);
+    if (error) return toast.error(error.message);
+    toast.success('Deal created');
+    setConvertOpen(false);
+    navigate(`/deals?selected=${data}`);
+  };
+
   const saveEdit = async () => {
+    if (!opened) return;
+    setSaving(true);
+    const { error } = await supabase.from('clients').update({
+      name: editForm.name, company: editForm.company, phone: editForm.phone,
+      email: editForm.email, notes: editForm.notes, cold_call_notes: editForm.cold_call_notes,
+    }).eq('id', opened.id);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success('Saved');
+    setLeads(prev => prev.map(l => l.id === opened.id ? { ...l, ...editForm } as Lead : l));
+    setOpened(prev => prev ? { ...prev, ...editForm } as Lead : prev);
+  };
     if (!opened) return;
     setSaving(true);
     const { error } = await supabase.from('clients').update({
