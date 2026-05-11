@@ -373,12 +373,44 @@ export function ColdCallPipelineView() {
                   <Button size="sm" onClick={saveEdit} disabled={saving} className="gap-1.5">
                     <Save className="h-3.5 w-3.5" /> Save
                   </Button>
+                  <Button size="sm" variant="default" onClick={() => setConvertOpen(true)} className="gap-1.5 bg-primary/90 hover:bg-primary">
+                    <Target className="h-3.5 w-3.5" /> Convert to Deal
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => navigate(`/clients?selected=${opened.id}`)} className="gap-1.5">
-                    <ExternalLink className="h-3.5 w-3.5" /> Open in Clients
+                    <ExternalLink className="h-3.5 w-3.5" /> Open
                   </Button>
                   <Button size="sm" variant="destructive" onClick={() => setConfirmDel(true)} className="gap-1.5 ml-auto">
                     <Trash2 className="h-3.5 w-3.5" /> Delete
                   </Button>
+                </div>
+
+                <div className="pt-4 border-t border-border/50 space-y-2">
+                  <h4 className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <MessageSquarePlus className="h-3.5 w-3.5" /> Log meeting / outcome note
+                  </h4>
+                  <Textarea
+                    rows={2}
+                    placeholder="What was discussed? Next steps, objections, decisions…"
+                    value={meetingNote}
+                    onChange={e => setMeetingNote(e.target.value)}
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Label className="text-xs text-muted-foreground">Set stage:</Label>
+                    <Select value={meetingNewStatus} onValueChange={(v) => setMeetingNewStatus(v as ColdCallStatus | 'keep')}>
+                      <SelectTrigger className="h-8 text-xs w-[170px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="keep">Keep current</SelectItem>
+                        {COLUMNS.map(c => (
+                          <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button size="sm" onClick={logMeetingNote} disabled={logging} className="ml-auto gap-1.5">
+                      <MessageSquarePlus className="h-3.5 w-3.5" /> Log
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="pt-4 border-t border-border/50">
