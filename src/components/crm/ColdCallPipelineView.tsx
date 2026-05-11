@@ -10,9 +10,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ConfirmDialog } from './ConfirmDialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   PhoneOff, Clock, ThermometerSun, Flame, CalendarClock, Phone,
-  Pencil, Trash2, History, ExternalLink, Save, X,
+  Pencil, Trash2, History, ExternalLink, Save, Target, MessageSquarePlus,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
