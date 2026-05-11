@@ -451,6 +451,49 @@ export function ColdCallPipelineView() {
         confirmText="Delete"
         onConfirm={deleteLead}
       />
+
+      <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Target className="h-4 w-4 text-muted-foreground" /> Convert to Deal
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Deal name</Label>
+              <Input value={dealName} onChange={e => setDealName(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Value</Label>
+                <Input type="number" value={dealValue} onChange={e => setDealValue(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Stage</Label>
+                <Select value={dealStage} onValueChange={setDealStage}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="prospecting">Prospecting</SelectItem>
+                    <SelectItem value="qualification">Qualification</SelectItem>
+                    <SelectItem value="proposal">Proposal</SelectItem>
+                    <SelectItem value="negotiation">Negotiation</SelectItem>
+                    <SelectItem value="closed_won">Closed Won</SelectItem>
+                    <SelectItem value="closed_lost">Closed Lost</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">A new deal will be created and linked to this lead's account & contact.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConvertOpen(false)}>Cancel</Button>
+            <Button onClick={convertToDeal} disabled={converting} className="gap-1.5">
+              <Target className="h-3.5 w-3.5" /> Create Deal
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
