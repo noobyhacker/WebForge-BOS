@@ -167,16 +167,30 @@ export function ColdCallPipelineView() {
 
   useEffect(() => { if (user) fetchLeads(); }, [user]);
 
+  const reps = useMemo(() => {
+    const ids = Array.from(new Set(leads.map(l => l.user_id).filter(Boolean)));
+    return ids
+      .filter(id => id !== user?.id)
+      .map(id => ({ id, name: getOwnerName(id) }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [leads, user?.id, getOwnerName]);
+
+  const visibleLeads = useMemo(() => {
+    if (repFilter === 'all') return leads;
+    if (repFilter === 'mine') return leads.filter(l => l.user_id === user?.id);
+    return leads.filter(l => l.user_id === repFilter);
+  }, [leads, repFilter, user?.id]);
+
   const grouped = useMemo(() => {
     const g: Record<ColdCallStatus, Lead[]> = {
       not_called: [], not_interested: [], warm: [], interested: [], meeting_scheduled: [], callback: [],
     };
-    for (const l of leads) {
+    for (const l of visibleLeads) {
       const k = (l.cold_call_status ?? 'not_called') as ColdCallStatus;
       if (g[k]) g[k].push(l);
     }
     return g;
-  }, [leads]);
+  }, [visibleLeads]);
 
   const draggingLead = useMemo(() => leads.find(l => l.id === activeDragId) || null, [leads, activeDragId]);
 
