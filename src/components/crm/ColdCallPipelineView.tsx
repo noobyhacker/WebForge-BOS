@@ -127,10 +127,12 @@ function Column({
 
 export function ColdCallPipelineView() {
   const { user } = useAuth();
+  const { getOwnerName } = useProfilesMap();
   const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [repFilter, setRepFilter] = useState<string>('mine');
 
   const [opened, setOpened] = useState<Lead | null>(null);
   const [history, setHistory] = useState<HistoryRow[]>([]);
