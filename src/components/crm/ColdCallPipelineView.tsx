@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useProfilesMap } from '@/hooks/useProfilesMap';
 import { toast } from 'sonner';
 import {
   DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor,
@@ -37,6 +39,7 @@ interface Lead {
   cold_call_status: ColdCallStatus | null;
   cold_call_last_at: string | null;
   cold_call_notes: string | null;
+  user_id: string;
 }
 
 interface HistoryRow {
@@ -124,10 +127,12 @@ function Column({
 
 export function ColdCallPipelineView() {
   const { user } = useAuth();
+  const { getOwnerName } = useProfilesMap();
   const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [repFilter, setRepFilter] = useState<string>('mine');
 
   const [opened, setOpened] = useState<Lead | null>(null);
   const [history, setHistory] = useState<HistoryRow[]>([]);
@@ -152,7 +157,7 @@ export function ColdCallPipelineView() {
   const fetchLeads = async () => {
     const { data } = await supabase
       .from('clients')
-      .select('id,name,company,phone,email,notes,cold_call_status,cold_call_last_at,cold_call_notes')
+      .select('id,name,company,phone,email,notes,cold_call_status,cold_call_last_at,cold_call_notes,user_id')
       .is('deleted_at', null)
       .order('cold_call_last_at', { ascending: false, nullsFirst: false })
       .limit(1000);
@@ -162,16 +167,30 @@ export function ColdCallPipelineView() {
 
   useEffect(() => { if (user) fetchLeads(); }, [user]);
 
+  const reps = useMemo(() => {
+    const ids = Array.from(new Set(leads.map(l => l.user_id).filter(Boolean)));
+    return ids
+      .filter(id => id !== user?.id)
+      .map(id => ({ id, name: getOwnerName(id) }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [leads, user?.id, getOwnerName]);
+
+  const visibleLeads = useMemo(() => {
+    if (repFilter === 'all') return leads;
+    if (repFilter === 'mine') return leads.filter(l => l.user_id === user?.id);
+    return leads.filter(l => l.user_id === repFilter);
+  }, [leads, repFilter, user?.id]);
+
   const grouped = useMemo(() => {
     const g: Record<ColdCallStatus, Lead[]> = {
       not_called: [], not_interested: [], warm: [], interested: [], meeting_scheduled: [], callback: [],
     };
-    for (const l of leads) {
+    for (const l of visibleLeads) {
       const k = (l.cold_call_status ?? 'not_called') as ColdCallStatus;
       if (g[k]) g[k].push(l);
     }
     return g;
-  }, [leads]);
+  }, [visibleLeads]);
 
   const draggingLead = useMemo(() => leads.find(l => l.id === activeDragId) || null, [leads, activeDragId]);
 
@@ -308,6 +327,24 @@ export function ColdCallPipelineView() {
         <h1 className="text-lg sm:text-xl md:text-2xl font-semibold tracking-tight truncate">Cold Call Pipeline</h1>
         <p className="text-xs sm:text-sm text-muted-foreground truncate">Drag cards between columns. Click to edit, view history, or delete.</p>
       </div>
+
+      <Tabs value={repFilter} onValueChange={setRepFilter} className="min-w-0">
+        <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+          <TabsList className="h-8 bg-muted/50">
+            <TabsTrigger value="mine" className="text-xs h-6 px-2.5">My pipeline</TabsTrigger>
+            <TabsTrigger value="all" className="text-xs h-6 px-2.5">
+              All reps <span className="ml-1 text-muted-foreground">({leads.length})</span>
+            </TabsTrigger>
+            {reps.map(r => (
+              <TabsTrigger key={r.id} value={r.id} className="text-xs h-6 px-2.5 max-w-[160px]">
+                <span className="truncate">{r.name}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+      </Tabs>
+
+
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex-1 min-h-0 overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
