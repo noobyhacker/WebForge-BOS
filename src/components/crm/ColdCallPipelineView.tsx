@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useProfilesMap } from '@/hooks/useProfilesMap';
 import { toast } from 'sonner';
 import {
   DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor,
