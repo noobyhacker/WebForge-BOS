@@ -39,6 +39,7 @@ interface Lead {
   cold_call_status: ColdCallStatus | null;
   cold_call_last_at: string | null;
   cold_call_notes: string | null;
+  user_id: string;
 }
 
 interface HistoryRow {
