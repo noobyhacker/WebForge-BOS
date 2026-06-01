@@ -328,6 +328,24 @@ export function ColdCallPipelineView() {
         <p className="text-xs sm:text-sm text-muted-foreground truncate">Drag cards between columns. Click to edit, view history, or delete.</p>
       </div>
 
+      <Tabs value={repFilter} onValueChange={setRepFilter} className="min-w-0">
+        <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+          <TabsList className="h-8 bg-muted/50">
+            <TabsTrigger value="mine" className="text-xs h-6 px-2.5">My pipeline</TabsTrigger>
+            <TabsTrigger value="all" className="text-xs h-6 px-2.5">
+              All reps <span className="ml-1 text-muted-foreground">({leads.length})</span>
+            </TabsTrigger>
+            {reps.map(r => (
+              <TabsTrigger key={r.id} value={r.id} className="text-xs h-6 px-2.5 max-w-[160px]">
+                <span className="truncate">{r.name}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+      </Tabs>
+
+
+
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex-1 min-h-0 overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
           <div className="grid grid-flow-col auto-cols-[78vw] sm:auto-cols-[260px] lg:auto-cols-[minmax(220px,1fr)] gap-2.5 h-full pb-2">
