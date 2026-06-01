@@ -157,7 +157,7 @@ export function ColdCallPipelineView() {
   const fetchLeads = async () => {
     const { data } = await supabase
       .from('clients')
-      .select('id,name,company,phone,email,notes,cold_call_status,cold_call_last_at,cold_call_notes')
+      .select('id,name,company,phone,email,notes,cold_call_status,cold_call_last_at,cold_call_notes,user_id')
       .is('deleted_at', null)
       .order('cold_call_last_at', { ascending: false, nullsFirst: false })
       .limit(1000);
